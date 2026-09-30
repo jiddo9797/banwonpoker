@@ -32,6 +32,7 @@ import type {
 } from './protocol'
 import { PROTOCOL_VERSION } from './protocol'
 import { MIN_PLAYERS, normalizeSettings, scheduleOf, TURN_MS, validateNickname, validateSettings } from './settings'
+import type { SessionStore } from './store'
 
 export type Send = (message: ServerMessage) => void
 
@@ -58,6 +59,10 @@ export interface RoomDeps {
   options?: RoomOptions
   /** 방을 닫아도 될 때 부른다(모두 나갔거나 오래 비었을 때). */
   onClose?: (code: string) => void
+  /** 세션 기록 저장소. 없으면 기록하지 않는다(테스트 등). */
+  store?: SessionStore
+  /** 세션 id를 만든다. */
+  newSessionId?: () => string
 }
 
 interface Participant {
@@ -96,7 +101,10 @@ export class Room {
   private readonly closers = new Map<string, Close>()
   private table: TableState | null = null
   private startedAt: number | null = null
-  private turn: { playerId: string; deadline: number; timer: TimerHandle } | null = null
+  private turn: { playerId: string; turnSeq: number; deadline: number; timer: TimerHandle } | null = null
+  private sessionId: string | null = null
+  /** 저장소에 적은 차례 중 아직 끝나지 않은 것 */
+  private openTurnSeq: number | null = null
   private nextHand: { at: number; timer: TimerHandle } | null = null
   private idleTimer: TimerHandle | null = null
   private summary: SessionSummary | null = null
@@ -303,6 +311,7 @@ export class Room {
         return failure('SEAT_TAKEN', seated.error.message)
       }
       participant.inGame = true
+      this.recordParticipant(participant)
       this.apply(seated)
       return { ok: true, value: undefined }
     }
@@ -350,6 +359,17 @@ export class Room {
     this.table = table
     this.startedAt = this.deps.clock.now()
     this.phase = 'playing'
+    if (this.deps.store) {
+      this.sessionId = this.deps.newSessionId?.() ?? `s_${this.code}_${this.startedAt}`
+      this.deps.store.createSession({
+        id: this.sessionId,
+        roomCode: this.code,
+        name: this.settings.name,
+        settings: structuredClone(this.settings),
+        startedAt: this.startedAt,
+      })
+      for (const player of players) this.recordParticipant(player)
+    }
     this.startNextHand()
     return { ok: true, value: undefined }
   }
@@ -441,6 +461,7 @@ export class Room {
     const events: TimedEvent[] = result.events.map((event) => ({ ...event, sessionTimeMs: now - (this.startedAt ?? now) }))
     this.eventLog.push(...events)
     if (this.eventLog.length > this.eventBacklog * 2) this.eventLog = this.eventLog.slice(-this.eventBacklog)
+    this.record(events)
 
     for (const event of events) {
       if (event.type === 'player-eliminated') {
@@ -468,7 +489,8 @@ export class Room {
     this.clearTurn()
     const deadline = this.deps.clock.now() + this.turnMs
     const timer = this.deps.clock.setTimeout(() => this.onTurnTimeout(playerId), this.turnMs)
-    this.turn = { playerId, deadline, timer }
+    const turnSeq = [...this.eventLog].reverse().find((event) => event.type === 'turn-started' && event.playerId === playerId)?.seq ?? 0
+    this.turn = { playerId, turnSeq, deadline, timer }
   }
 
   private onTurnTimeout(playerId: string) {
@@ -507,6 +529,7 @@ export class Room {
     }
     this.phase = 'ended'
     this.summary = this.buildSummary(reason)
+    if (this.sessionId) this.deps.store?.endSession(this.sessionId, this.summary)
     this.broadcastState()
   }
 
@@ -535,12 +558,70 @@ export class Room {
       .sort((a, b) => a.place - b.place)
 
     return {
+      sessionId: this.sessionId ?? '',
       endedAt: now,
       reason,
       handsPlayed: table.handsPlayed,
       durationMs: now - (this.startedAt ?? now),
       results,
     }
+  }
+
+  // ── 기록 ─────────────────────────────────────────────────────
+
+  private recordParticipant(participant: Participant) {
+    if (!this.sessionId || !this.deps.store) return
+    this.deps.store.addParticipant(
+      this.sessionId,
+      { playerId: participant.id, nickname: participant.nickname, seat: participant.seat, voiceless: participant.voiceless },
+      participant.token,
+    )
+  }
+
+  /** 이벤트를 저장하고, 핸드 시작·끝에 전체 패와 보드를, 차례 시작·끝에 녹음 대상을 적는다. */
+  private record(events: TimedEvent[]) {
+    const store = this.deps.store
+    const sessionId = this.sessionId
+    if (!store || !sessionId || events.length === 0) return
+    store.appendEvents(sessionId, events)
+    const hand = this.table?.hand
+
+    for (const event of events) {
+      if ((event.type === 'hand-started' || event.type === 'hand-ended' || event.type === 'hand-cancelled') && hand) {
+        store.saveHand(sessionId, {
+          handNumber: hand.number,
+          dealerSeat: hand.dealerSeat,
+          blinds: hand.blinds,
+          holeCards: hand.players.map((player) => ({ playerId: player.id, seat: player.seat, cards: player.holeCards })),
+          board: hand.board,
+        })
+      }
+      if (event.type === 'turn-started') {
+        this.closeOpenTurn(event.sessionTimeMs)
+        store.startTurn(sessionId, {
+          turnSeq: event.seq,
+          handNumber: hand?.number ?? 0,
+          playerId: event.playerId,
+          startedMs: event.sessionTimeMs,
+          voiceless: this.participants.get(event.playerId)?.voiceless ?? false,
+        })
+        this.openTurnSeq = event.seq
+      }
+      if (event.type === 'action' || event.type === 'hand-ended' || event.type === 'hand-cancelled') {
+        this.closeOpenTurn(event.sessionTimeMs)
+      }
+    }
+  }
+
+  private closeOpenTurn(at: number) {
+    if (this.openTurnSeq === null || !this.sessionId) return
+    this.deps.store?.endTurn(this.sessionId, this.openTurnSeq, at)
+    this.openTurnSeq = null
+  }
+
+  /** 세션 id(게임을 시작한 뒤에만 있다) */
+  get currentSessionId() {
+    return this.sessionId
   }
 
   private close() {
@@ -579,6 +660,7 @@ export class Room {
   private roomSnapshot(): RoomSnapshot {
     return {
       code: this.code,
+      sessionId: this.sessionId,
       name: this.settings.name,
       hostId: this.hostId,
       phase: this.phase,
@@ -609,7 +691,9 @@ export class Room {
     return {
       startedAt: this.startedAt,
       view: playerView(this.table, playerId),
-      turn: this.turn ? { playerId: this.turn.playerId, deadline: this.turn.deadline, durationMs: this.turnMs } : null,
+      turn: this.turn
+        ? { playerId: this.turn.playerId, turnSeq: this.turn.turnSeq, deadline: this.turn.deadline, durationMs: this.turnMs }
+        : null,
       blinds: {
         level: this.table.hand?.blinds ?? schedule.levels[levelIndex],
         levelIndex,

@@ -139,7 +139,8 @@ describe('게임 시작', () => {
       expect(seats.filter((seat) => seat.id !== id).every((seat) => seat.holeCards === null)).toBe(true)
     }
     // 3명: 딜러 좌석 0(하늘), 스몰 민수, 빅 유진 → 하늘부터
-    expect(hostState.game!.turn).toEqual({ playerId: hostId, deadline: clock.now() + 60_000, durationMs: 60_000 })
+    expect(hostState.game!.turn).toMatchObject({ playerId: hostId, deadline: clock.now() + 60_000, durationMs: 60_000 })
+    expect(hostState.game!.turn!.turnSeq).toBe(hostState.game!.view.eventSeq)
     expect(hostState.game!.view.legal).toMatchObject({ callAmount: 100, minAmount: 200 })
   })
 
@@ -195,7 +196,7 @@ describe('액션과 차례', () => {
       action: 'fold',
       timedOut: true,
     })
-    expect(state(hostId).game!.turn).toEqual({ playerId: minsu, deadline: clock.now() + 60_000, durationMs: 60_000 })
+    expect(state(hostId).game!.turn).toMatchObject({ playerId: minsu, deadline: clock.now() + 60_000, durationMs: 60_000 })
   })
 
   it('연결이 끊긴 사람의 차례도 시간이 지나면 자동 처리된다', () => {

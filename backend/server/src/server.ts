@@ -2,6 +2,7 @@ import { createServer } from 'node:http'
 import type { IncomingMessage, Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { WebSocket, WebSocketServer } from 'ws'
+import { handleHttp } from './api'
 import { systemClock } from './clock'
 import type { Clock } from './clock'
 import { RoomManager } from './manager'
@@ -9,6 +10,7 @@ import type { ManagerDeps } from './manager'
 import { parseClientMessage } from './protocol'
 import type { ClientMessage, ErrorBody, ServerMessage } from './protocol'
 import type { Room, Send } from './room'
+import type { SessionStore } from './store'
 
 export const WS_PATH = '/ws'
 const MAX_MESSAGE_BYTES = 16 * 1024
@@ -20,7 +22,11 @@ export interface GameServerOptions {
   /** 허용할 Origin 목록. 비우면 localhost·127.0.0.1과 Origin 없는 요청(도구)만 허용한다. */
   allowedOrigins?: string[]
   clock?: Clock
-  manager?: Omit<ManagerDeps, 'clock'>
+  manager?: Omit<ManagerDeps, 'clock' | 'store'>
+  /** 세션 기록 저장소. 없으면 기록·복기를 하지 않는다. */
+  store?: SessionStore
+  /** 빌드된 프론트엔드 폴더. 주면 같은 주소에서 화면도 제공한다(배포용). */
+  staticDir?: string
 }
 
 export interface GameServer {
@@ -45,8 +51,14 @@ function isAllowedOrigin(origin: string | undefined, allowed: string[]) {
 /** HTTP(헬스 체크)와 WebSocket(/ws) 게임 서버를 연다. */
 export function startGameServer(options: GameServerOptions = {}): Promise<GameServer> {
   const clock = options.clock ?? systemClock
-  const manager = new RoomManager({ clock, ...options.manager })
+  const manager = new RoomManager({ clock, ...options.manager, store: options.store })
   const allowedOrigins = options.allowedOrigins ?? []
+  const apiContext = {
+    store: options.store,
+    clock,
+    staticDir: options.staticDir,
+    isAllowedOrigin: (origin: string | undefined) => isAllowedOrigin(origin, allowedOrigins),
+  }
 
   const http = createServer((request, response) => {
     if (request.method === 'GET' && request.url === '/health') {
@@ -54,8 +66,16 @@ export function startGameServer(options: GameServerOptions = {}): Promise<GameSe
       response.end(JSON.stringify({ ok: true, rooms: manager.size }))
       return
     }
-    response.writeHead(404, { 'content-type': 'application/json' })
-    response.end(JSON.stringify({ ok: false }))
+    handleHttp(request, response, apiContext)
+      .then((handled) => {
+        if (handled) return
+        response.writeHead(404, { 'content-type': 'application/json' })
+        response.end(JSON.stringify({ ok: false }))
+      })
+      .catch(() => {
+        if (!response.headersSent) response.writeHead(500, { 'content-type': 'application/json' })
+        response.end(JSON.stringify({ ok: false }))
+      })
   })
 
   const wss = new WebSocketServer({
