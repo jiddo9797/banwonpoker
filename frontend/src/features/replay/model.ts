@@ -32,11 +32,14 @@ export interface HandAction {
   pot: number
   thinkSeconds?: number
   audio: { status: AudioStatus; seconds?: number }
+  /** 실제 게임: 이 차례의 음성을 받을 번호 */
+  turnSeq?: number
 }
 
 export interface ReplayHand {
   number: number
-  board: [Card, Card, Card, Card, Card]
+  /** 실제로 펼쳐진 보드(최대 5장). 프리플랍에서 끝났으면 비어 있다. */
+  board: Card[]
   players: ReplayPlayer[]
   actions: HandAction[]
   result: string
@@ -80,6 +83,8 @@ export interface MixerChannel {
 }
 
 export interface ReplayState {
+  /** 복기할 핸드들(번호 순) */
+  hands: ReplayHand[]
   handNumber: number
   index: number
   playing: boolean

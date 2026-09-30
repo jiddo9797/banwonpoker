@@ -34,7 +34,8 @@ interface ReplayTableProps {
 
 export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
   const current = hand.actions[index]
-  const shownCards = visibleBoardCount[current.street]
+  const shownCards = Math.min(visibleBoardCount[current.street], hand.board.length)
+  const boardSlots = Array.from({ length: 5 }, (_, slot) => (slot < shownCards ? hand.board[slot] : null))
 
   return (
     <section aria-label={`핸드 ${hand.number} 복기 테이블`} className="replay-stage">
@@ -46,8 +47,8 @@ export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
       </div>
 
       <div aria-label={`${streetLabels[current.street]} 커뮤니티 카드`} className="replay-board" role="group">
-        {hand.board.map((card, cardIndex) =>
-          cardIndex < shownCards ? (
+        {boardSlots.map((card, cardIndex) =>
+          card ? (
             <PlayingCard card={card} key={`${card.rank}-${card.suit}`} size="small" />
           ) : (
             <EmptyCardSlot key={`empty-${cardIndex}`} size="small" />

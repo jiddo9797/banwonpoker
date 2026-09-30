@@ -3,7 +3,7 @@ import { seededRng } from '@banwonpoker/engine'
 import { WebSocket } from 'ws'
 import type { ClientMessage, ClientState, ServerMessage } from './protocol'
 import { parseClientMessage } from './protocol'
-import { startGameServer, WS_PATH } from './server'
+import { isAllowedOrigin, startGameServer, WS_PATH } from './server'
 import type { GameServer } from './server'
 import { agreed, fixedSettings } from './testing'
 
@@ -190,5 +190,17 @@ describe('parseClientMessage', () => {
     { type: 'room.join', roomCode: 'A'.repeat(17), nickname: '민수' },
   ])('%j → 거부', (input) => {
     expect(parseClientMessage(input)).toMatchObject({ ok: false, error: { code: 'BAD_REQUEST' } })
+  })
+})
+
+describe('isAllowedOrigin', () => {
+  it('같은 주소, 목록에 있는 주소, 목록이 비었을 때 localhost만 허용한다', () => {
+    expect(isAllowedOrigin(undefined, [])).toBe(true)
+    expect(isAllowedOrigin('https://bwp.fly.dev', [], 'bwp.fly.dev')).toBe(true)
+    expect(isAllowedOrigin('https://evil.example', [], 'bwp.fly.dev')).toBe(false)
+    expect(isAllowedOrigin('http://localhost:5173', [])).toBe(true)
+    expect(isAllowedOrigin('http://192.168.0.12:5173', ['http://192.168.0.12:5173'])).toBe(true)
+    expect(isAllowedOrigin('http://localhost:5173', ['http://192.168.0.12:5173'])).toBe(false)
+    expect(isAllowedOrigin('not a url', [])).toBe(false)
   })
 })

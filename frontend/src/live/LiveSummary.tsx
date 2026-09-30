@@ -1,4 +1,4 @@
-import { Info20Regular } from '@fluentui/react-icons'
+import { Info20Regular, Play20Filled } from '@fluentui/react-icons'
 import type { ClientState } from '@banwonpoker/server/protocol'
 import { formatChips, formatSignedChips } from '../shared/format'
 import '../features/replay/replay.css'
@@ -12,10 +12,12 @@ function formatDuration(ms: number) {
 interface LiveSummaryProps {
   state: ClientState
   onExit: () => void
+  /** 복기를 연다. 기록을 저장하지 않는 서버면 없다. */
+  onReplay?: () => void
 }
 
-/** 실제 게임의 세션 요약. 복기는 녹음·저장이 붙은 뒤 제공한다. */
-export function LiveSummary({ state, onExit }: LiveSummaryProps) {
+/** 실제 게임의 세션 요약 */
+export function LiveSummary({ state, onExit, onReplay }: LiveSummaryProps) {
   const summary = state.room.summary
   const results = summary?.results ?? []
 
@@ -78,16 +80,24 @@ export function LiveSummary({ state, onExit }: LiveSummaryProps) {
             </div>
             <p className="notice-inline">
               <Info20Regular aria-hidden="true" />
-              차례별 음성 기록과 복기는 녹음·저장 기능이 붙은 뒤 제공됩니다. 이번 세션 기록은 저장되지 않습니다.
+              {onReplay
+                ? '모든 참가자의 패와 차례별 음성을 액션 단위로 다시 볼 수 있습니다. 이 브라우저의 첫 화면에서도 다시 열 수 있습니다.'
+                : '이 서버는 기록을 저장하지 않아 복기할 수 없습니다.'}
             </p>
           </section>
         </div>
       </main>
 
       <footer className="summary-actions">
-        <button className="btn btn--primary" onClick={onExit} type="button">
+        <button className={onReplay ? 'btn btn--secondary' : 'btn btn--primary'} onClick={onExit} type="button">
           처음 화면으로
         </button>
+        {onReplay ? (
+          <button className="btn btn--primary" onClick={onReplay} type="button">
+            <Play20Filled aria-hidden="true" />
+            복기 보기
+          </button>
+        ) : null}
       </footer>
     </div>
   )
