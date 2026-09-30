@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { cardCode } from './cards'
 import { seededRng } from './rng'
-import { act, isGameOver, leaveTable, legalActions, seatPlayer, startHand, timeout, totalChips } from './table'
+import { act, cancelHand, isGameOver, leaveTable, legalActions, seatPlayer, startHand, timeout, totalChips } from './table'
 import { blinds, rng, stackedDeck, tableWith, unwrap } from './testing'
 import type { EngineEvent, PlayerAction, TableState } from './types'
 import { playerView } from './view'
@@ -337,6 +337,19 @@ describe('중간 참가와 퇴장', () => {
     const left = unwrap(leaveTable(headsUp, 'b')).table
     expect(left.hand!.phase).toBe('complete')
     expect(left.hand!.awards[0].winners[0].playerId).toBe('a')
+  })
+})
+
+describe('cancelHand', () => {
+  it('진행 중인 핸드를 무효로 하고 낸 칩을 모두 돌려준다', () => {
+    let table = start(tableWith(['a', 'b', 'c'])).table
+    table = play(table, 'a', { type: 'raise', amount: 500 })
+    const result = unwrap(cancelHand(table))
+    expect(result.events.map((event) => event.type)).toEqual(['hand-cancelled'])
+    expect(result.table.players.map((player) => player.stack)).toEqual([10_000, 10_000, 10_000])
+    expect(result.table.hand).toMatchObject({ phase: 'complete', toAct: null })
+    expect(totalChips(result.table)).toBe(30_000)
+    expect(cancelHand(result.table).ok).toBe(false)
   })
 })
 
