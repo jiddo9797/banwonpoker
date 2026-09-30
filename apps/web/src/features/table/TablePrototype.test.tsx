@@ -1,6 +1,7 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { defaultRoomSettings, generateLevels } from '../room/settings'
 import { scenarioKeys } from './model'
 import { PENDING_CONFIRM_DELAY_MS, TablePrototype } from './TablePrototype'
 
@@ -153,5 +154,58 @@ describe('TablePrototype', () => {
     await user.click(screen.getByRole('button', { name: /세션 종료/ }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '세션 종료' }))
     expect(onEndSession).toHaveBeenCalledOnce()
+  })
+})
+
+describe('TablePrototype 방 규칙·탈락', () => {
+  it('설정 버튼은 방 규칙을 읽기 전용으로 보여준다', async () => {
+    const user = userEvent.setup()
+    const room = { ...defaultRoomSettings, name: '토요일 홀덤', blindMode: 'increasing' as const, levels: generateLevels(100) }
+    render(<TablePrototype room={room} scenarioKey="opp" />)
+
+    expect(screen.getByRole('banner')).toHaveTextContent('100 / 200')
+    expect(screen.getByRole('banner')).toHaveTextContent('레벨 1 · 12분 뒤 200 / 400')
+
+    const settingsButton = screen.getByRole('button', { name: '설정' })
+    await user.click(settingsButton)
+    const dialog = screen.getByRole('dialog', { name: '방 설정 · 토요일 홀덤' })
+    expect(within(dialog).getByRole('list', { name: '블라인드 레벨' })).toBeInTheDocument()
+    expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('spinbutton')).not.toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(settingsButton).toHaveFocus()
+  })
+
+  it('고정 블라인드면 다음 레벨 안내가 없다', () => {
+    render(<TablePrototype room={defaultRoomSettings} scenarioKey="opp" />)
+    expect(screen.getByRole('banner')).not.toHaveTextContent('레벨')
+  })
+
+  it('참가자는 세션 종료를 누를 수 없다', async () => {
+    const user = userEvent.setup()
+    const onEndSession = vi.fn()
+    render(<TablePrototype hostName="민수" isHost={false} onEndSession={onEndSession} scenarioKey="opp" />)
+
+    await user.click(screen.getByRole('button', { name: '메뉴' }))
+    const item = screen.getByRole('button', { name: /세션 종료/ })
+    expect(item).toHaveAttribute('aria-disabled', 'true')
+    await user.click(item)
+    expect(onEndSession).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('칩을 모두 잃은 참가자는 탈락으로, 게임 중 들어온 참가자는 다음 핸드 대기로 보인다', async () => {
+    const user = userEvent.setup()
+    render(<TablePrototype scenarioKey="elim" />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('서준이 칩을 모두 잃어 탈락했습니다')
+    expect(screen.getByText('탈락')).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: /서준의/ })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: '참가자' }))
+    const panel = screen.getByRole('tabpanel')
+    expect(within(panel).getByText('도윤').closest('li')).toHaveTextContent('대기도윤다음 핸드부터')
+    expect(within(panel).getByText('서준').closest('li')).toHaveTextContent('탈락')
   })
 })

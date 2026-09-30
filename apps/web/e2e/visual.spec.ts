@@ -37,6 +37,8 @@ test.describe('준비·복기 화면 시각 회귀', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
   const screens = [
+    ['create', '?screen=create'],
+    ['create-increasing', '?screen=create&blinds=increasing'],
     ['entry', '?screen=entry'],
     ['seat', '?screen=seat'],
     ['consent', '?screen=consent'],
@@ -44,6 +46,10 @@ test.describe('준비·복기 화면 시각 회귀', () => {
     ['mic-ready', '?screen=mic&mic=ready'],
     ['mic-denied', '?screen=mic&mic=denied'],
     ['mic-not-found', '?screen=mic&mic=not-found'],
+    ['lobby-host', '?screen=lobby&role=host'],
+    ['lobby-host-increasing', '?screen=lobby&role=host&blinds=increasing'],
+    ['lobby-guest', '?screen=lobby&role=guest'],
+    ['table-increasing-blinds', '?scenario=opp&blinds=increasing'],
     ['summary', '?screen=summary'],
     ['replay', '?screen=replay&hand=24&action=13'],
     ['replay-showdown', '?screen=replay&hand=24&action=23'],
@@ -67,6 +73,13 @@ test.describe('준비·복기 화면 시각 회귀', () => {
     await page.getByRole('button', { name: '나가기' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await expect(page).toHaveScreenshot('dialog-leave.png')
+  })
+
+  test('게임 중 설정 창(읽기 전용)', async ({ page }) => {
+    await openPage(page, '?scenario=opp&blinds=increasing')
+    await page.getByRole('button', { name: '설정' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page).toHaveScreenshot('dialog-settings.png')
   })
 
   test('세션 종료 메뉴와 확인창', async ({ page }) => {

@@ -10,6 +10,7 @@ import { useEffect, useId } from 'react'
 import { canBeReady } from '../../app/flow'
 import type { ConsentState, MicCheckStatus } from '../../app/flow'
 import { PrepLayout } from './PrepLayout'
+import type { PrepContext } from './PrepLayout'
 
 export const MIC_CHECK_DURATION_MS = 1200
 
@@ -49,6 +50,7 @@ export function micStatusLabel(status: MicCheckStatus, voiceless: boolean) {
 }
 
 interface MicCheckScreenProps {
+  context: PrepContext
   nickname: string
   seatNumber?: number
   consent: ConsentState
@@ -62,6 +64,7 @@ interface MicCheckScreenProps {
 }
 
 export function MicCheckScreen({
+  context,
   nickname,
   seatNumber,
   consent,
@@ -99,6 +102,7 @@ export function MicCheckScreen({
 
   return (
     <PrepLayout
+      {...context}
       nickname={nickname}
       screen="mic"
       seatNumber={seatNumber}

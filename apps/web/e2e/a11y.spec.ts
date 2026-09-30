@@ -32,12 +32,17 @@ test.describe('axe 접근성 검사', () => {
   })
 
   const screens = [
+    '?screen=create',
+    '?screen=create&blinds=increasing',
     '?screen=entry',
     '?screen=seat',
     '?screen=consent',
     '?screen=mic',
     '?screen=mic&mic=ready',
     '?screen=mic&mic=denied',
+    '?screen=lobby&role=host',
+    '?screen=lobby&role=host&blinds=increasing',
+    '?screen=lobby&role=guest',
     '?screen=summary',
     '?screen=replay&hand=24&action=13',
     '?screen=replay&hand=24&export=options',
@@ -52,6 +57,20 @@ test.describe('axe 접근성 검사', () => {
       await expectNoAxeViolations(page)
     })
   }
+
+  test('방 만들기 오류 상태', async ({ page }) => {
+    await openPage(page, '?screen=create&blinds=increasing')
+    await page.getByLabel('방 이름').fill('')
+    await page.getByRole('button', { name: '방 만들기' }).click()
+    await expect(page.getByText('방 이름을 입력하세요.')).toBeVisible()
+    await expectNoAxeViolations(page)
+  })
+
+  test('게임 중 설정 창', async ({ page }) => {
+    await openPage(page, '?scenario=opp&blinds=increasing')
+    await page.getByRole('button', { name: '설정' }).click()
+    await expectNoAxeViolations(page)
+  })
 
   test('입장 화면 오류 상태', async ({ page }) => {
     await openPage(page, '?screen=entry')

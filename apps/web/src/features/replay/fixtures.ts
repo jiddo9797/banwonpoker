@@ -132,16 +132,16 @@ export const visibleBoardCount: Record<Street, number> = {
 
 export const sessionSummary: SessionSummary = {
   roomName: '금요일 밤 홀덤',
-  durationMinutes: 72,
-  handCount: 24,
+  durationMinutes: 78,
+  handCount: 25,
   startingStack: 10_000,
   results: [
-    { playerId: HERO_ID, name: '나', finalStack: 17_300, delta: 7_300 },
-    { playerId: 'minsu', name: '민수', finalStack: 11_900, delta: 1_900 },
+    { playerId: HERO_ID, name: '나', finalStack: 21_000, delta: 11_000 },
+    { playerId: 'minsu', name: '민수', finalStack: 13_650, delta: 3_650 },
     { playerId: 'eugene', name: '유진', finalStack: 9_100, delta: -900 },
-    { playerId: 'subin', name: '수빈', finalStack: 8_050, delta: -1_950 },
-    { playerId: 'seojun', name: '서준', finalStack: 7_450, delta: -2_550 },
-    { playerId: 'jihun', name: '지훈', finalStack: 6_200, delta: -3_800 },
+    { playerId: 'subin', name: '수빈', finalStack: 9_050, delta: -950 },
+    { playerId: 'jihun', name: '지훈', finalStack: 7_200, delta: -2_800 },
+    { playerId: 'seojun', name: '서준', finalStack: 0, delta: -10_000, eliminatedAtHand: 25 },
   ],
   selfRecording: {
     turns: 41,

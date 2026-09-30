@@ -4,6 +4,10 @@ import type { FlowState } from './flow'
 export function buildFlowSearch(state: FlowState, current: URLSearchParams): string {
   const next = new URLSearchParams()
   next.set('screen', state.screen)
+  const preparing = ['create', 'entry', 'seat', 'consent', 'mic', 'lobby'].includes(state.screen)
+  if (preparing && state.role === 'host' && state.screen !== 'create') next.set('role', 'host')
+  if (!preparing && state.role === 'guest') next.set('role', 'guest')
+  if (state.room.blindMode === 'increasing' && state.screen === 'table') next.set('blinds', 'increasing')
   if (state.screen === 'table') next.set('scenario', state.scenarioKey)
   if (state.screen === 'table' && state.voiceless) next.set('voiceless', '1')
   if (state.screen === 'replay' && state.replayHandNumber) next.set('hand', String(state.replayHandNumber))

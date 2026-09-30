@@ -1,13 +1,16 @@
 import { lazy, Suspense, useCallback, useEffect, useReducer, useRef } from 'react'
 import { ConsentScreen } from '../features/lobby/ConsentScreen'
+import { CreateRoomScreen } from '../features/lobby/CreateRoomScreen'
 import { EntryScreen } from '../features/lobby/EntryScreen'
-import { MicCheckScreen } from '../features/lobby/MicCheckScreen'
+import { LobbyScreen } from '../features/lobby/LobbyScreen'
+import { MicCheckScreen, micStatusLabel } from '../features/lobby/MicCheckScreen'
+import type { PrepContext } from '../features/lobby/PrepLayout'
 import { SeatScreen } from '../features/lobby/SeatScreen'
 import { ReplayScreen } from '../features/replay/ReplayScreen'
 import { SessionSummaryScreen } from '../features/replay/SessionSummaryScreen'
 import { TablePrototype } from '../features/table/TablePrototype'
 import { CanvasStage } from '../shared/CanvasStage'
-import { createInitialFlowState, flowReducer } from './flow'
+import { createInitialFlowState, flowReducer, hostNameOf } from './flow'
 import type { FlowAction, FlowState } from './flow'
 import { buildFlowSearch } from './url'
 
@@ -21,13 +24,27 @@ function readSearchParams() {
 
 function ScreenRouter({ state, dispatch }: { state: FlowState; dispatch: (action: FlowAction) => void }) {
   const finishMicCheck = useCallback(() => dispatch({ type: 'mic.checkFinished' }), [dispatch])
+  const startGame = useCallback(() => dispatch({ type: 'game.started' }), [dispatch])
   const leaveTable = () => dispatch({ type: 'table.left' })
+  const context: PrepContext = { role: state.role, room: state.room, hostName: hostNameOf(state) }
 
   switch (state.screen) {
+    case 'create':
+      return (
+        <CreateRoomScreen
+          initialNickname={state.nickname}
+          initialSettings={state.room}
+          onBack={() => dispatch({ type: 'screen.changed', screen: 'entry' })}
+          onCreate={(nickname, settings) => dispatch({ type: 'room.created', nickname, settings })}
+        />
+      )
+
     case 'entry':
       return (
         <EntryScreen
+          context={{ ...context, role: 'guest', hostName: hostNameOf({ role: 'guest', nickname: '' }) }}
           initialNickname={state.nickname}
+          onCreateRoom={() => dispatch({ type: 'screen.changed', screen: 'create' })}
           onSubmit={(nickname) => dispatch({ type: 'entry.submitted', nickname })}
         />
       )
@@ -35,6 +52,7 @@ function ScreenRouter({ state, dispatch }: { state: FlowState; dispatch: (action
     case 'seat':
       return (
         <SeatScreen
+          context={context}
           initialSeat={state.seatNumber}
           nickname={state.nickname}
           onBack={() => dispatch({ type: 'screen.changed', screen: 'entry' })}
@@ -46,6 +64,7 @@ function ScreenRouter({ state, dispatch }: { state: FlowState; dispatch: (action
       return (
         <ConsentScreen
           consent={state.consent}
+          context={context}
           nickname={state.nickname}
           onBack={() => dispatch({ type: 'screen.changed', screen: 'seat' })}
           onChange={(key, value) => dispatch({ type: 'consent.changed', key, value })}
@@ -58,6 +77,7 @@ function ScreenRouter({ state, dispatch }: { state: FlowState; dispatch: (action
       return (
         <MicCheckScreen
           consent={state.consent}
+          context={context}
           micStatus={state.micStatus}
           nickname={state.nickname}
           onBack={() => dispatch({ type: 'screen.changed', screen: 'consent' })}
@@ -70,11 +90,27 @@ function ScreenRouter({ state, dispatch }: { state: FlowState; dispatch: (action
         />
       )
 
+    case 'lobby':
+      return (
+        <LobbyScreen
+          context={context}
+          nickname={state.nickname}
+          onBack={() => dispatch({ type: 'screen.changed', screen: 'mic' })}
+          onSettingsChange={(settings) => dispatch({ type: 'room.settingsChanged', settings })}
+          onStart={startGame}
+          seatNumber={state.seatNumber}
+          selfMicLabel={micStatusLabel(state.micStatus, state.voiceless)}
+        />
+      )
+
     case 'table':
       return (
         <TablePrototype
+          hostName={hostNameOf(state)}
+          isHost={state.role === 'host'}
           onEndSession={() => dispatch({ type: 'session.ended' })}
           onLeave={leaveTable}
+          room={state.room}
           scenarioKey={state.scenarioKey}
           voiceless={state.voiceless}
         />
@@ -116,10 +152,12 @@ export function App() {
 
   useEffect(() => {
     const titles: Record<FlowState['screen'], string> = {
+      create: '방 만들기',
       entry: '입장',
       seat: '좌석 선택',
       consent: '녹음·패 공개 동의',
       mic: '마이크 점검',
+      lobby: '대기실',
       table: '테이블',
       summary: '세션 요약',
       replay: '복기',

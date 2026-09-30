@@ -12,12 +12,17 @@ import type { TableSnapshot } from '../model'
 
 interface TableChromeProps {
   snapshot: TableSnapshot
+  isHost: boolean
+  hostName: string
+  /** 블라인드가 오르는 방이면 다음 레벨 안내 */
+  blindNote?: string
   menuOpen: boolean
   onToggleMenu: () => void
   onCloseMenu: () => void
   onEndSession: () => void
   onInvite: () => void
   onLeave: () => void
+  onOpenSettings: () => void
 }
 
 function connectionLabel(connection: TableSnapshot['connection']) {
@@ -28,12 +33,16 @@ function connectionLabel(connection: TableSnapshot['connection']) {
 
 export function TableChrome({
   snapshot,
+  isHost,
+  hostName,
+  blindNote,
   menuOpen,
   onToggleMenu,
   onCloseMenu,
   onEndSession,
   onInvite,
   onLeave,
+  onOpenSettings,
 }: TableChromeProps) {
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const firstMenuItemRef = useRef<HTMLButtonElement>(null)
@@ -73,10 +82,12 @@ export function TableChrome({
 
         {menuOpen ? (
           <div className="menu-popover" id="table-menu-popover">
-            <p className="menu-popover-caption">방장 메뉴</p>
+            <p className="menu-popover-caption">{isHost ? '방장 메뉴' : '메뉴'}</p>
             <button
+              aria-disabled={!isHost}
               className="menu-popover-item is-danger"
               onClick={() => {
+                if (!isHost) return
                 // 메뉴 항목은 곧 사라지므로 다이얼로그가 닫힌 뒤 돌아올 곳을 메뉴 버튼으로 둔다.
                 menuButtonRef.current?.focus()
                 onEndSession()
@@ -87,7 +98,9 @@ export function TableChrome({
               <Power20Regular aria-hidden="true" />
               <span>
                 세션 종료
-                <small>전원이 세션 요약과 복기로 이동합니다</small>
+                <small>
+                  {isHost ? '전원이 세션 요약과 복기로 이동합니다' : `방장(${hostName})만 세션을 종료할 수 있습니다`}
+                </small>
               </span>
             </button>
           </div>
@@ -103,7 +116,7 @@ export function TableChrome({
               {connectionLabel(snapshot.connection)}
             </span>
             <span aria-hidden="true" className="meta-divider" />
-            <span>방장</span>
+            <span>{isHost ? '방장' : '참가자'}</span>
             <span aria-hidden="true" className="meta-divider" />
             <span>핸드 #{snapshot.handNumber}</span>
           </div>
@@ -113,12 +126,13 @@ export function TableChrome({
               {snapshot.smallBlind} / {snapshot.bigBlind}
             </strong>
           </div>
+          {blindNote ? <div className="blind-note">{blindNote}</div> : null}
           <div className="header-actions">
             <button onClick={onInvite} type="button">
               <Share20Regular aria-hidden="true" />
               초대
             </button>
-            <button type="button">
+            <button onClick={onOpenSettings} type="button">
               <Settings20Regular aria-hidden="true" />
               설정
             </button>

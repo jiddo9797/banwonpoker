@@ -1,17 +1,20 @@
 import { useId, useState } from 'react'
-import { roomInfo, seatOccupant } from './fixtures'
+import { MAX_PLAYERS } from '../room/settings'
+import { seatOccupantFor } from './fixtures'
 import { PrepLayout } from './PrepLayout'
+import type { PrepContext } from './PrepLayout'
 
 interface SeatScreenProps {
+  context: PrepContext
   nickname: string
   initialSeat?: number
   onBack: () => void
   onSelect: (seatNumber: number) => void
 }
 
-const seatNumbers = Array.from({ length: roomInfo.maxPlayers }, (_, index) => index + 1)
+const seatNumbers = Array.from({ length: MAX_PLAYERS }, (_, index) => index + 1)
 
-export function SeatScreen({ nickname, initialSeat, onBack, onSelect }: SeatScreenProps) {
+export function SeatScreen({ context, nickname, initialSeat, onBack, onSelect }: SeatScreenProps) {
   const [selectedSeat, setSelectedSeat] = useState(initialSeat)
   const [showHint, setShowHint] = useState(false)
   const hintId = useId()
@@ -25,7 +28,7 @@ export function SeatScreen({ nickname, initialSeat, onBack, onSelect }: SeatScre
   }
 
   return (
-    <PrepLayout nickname={nickname} screen="seat" seatNumber={selectedSeat} title="앉을 좌석을 고르세요">
+    <PrepLayout {...context} nickname={nickname} screen="seat" seatNumber={selectedSeat} title="앉을 좌석을 고르세요">
       <div className="prep-panel">
         <p className="prep-lead">
           빈 좌석 중 하나를 고르세요. 어떤 좌석을 골라도 테이블 화면에서는 내 좌석이 항상 하단 가운데에 표시됩니다.
@@ -34,8 +37,24 @@ export function SeatScreen({ nickname, initialSeat, onBack, onSelect }: SeatScre
         <div aria-label="좌석 배치" className="seat-map" role="group">
           <div aria-hidden="true" className="seat-map-felt" />
           {seatNumbers.map((seatNumber) => {
-            const occupant = seatOccupant(seatNumber)
+            const occupant = seatOccupantFor(context.role, seatNumber)
             const selected = selectedSeat === seatNumber
+            const closed = seatNumber > context.room.maxPlayers
+
+            if (closed) {
+              return (
+                <div
+                  aria-label={`${seatNumber}번 좌석, 최대 인원 밖이라 닫힘`}
+                  className={`seat-map-seat seat-map-seat--${seatNumber} is-taken is-closed`}
+                  key={seatNumber}
+                  role="group"
+                >
+                  <span className="seat-map-number">{seatNumber}</span>
+                  <strong>닫힌 좌석</strong>
+                  <span>최대 {context.room.maxPlayers}명</span>
+                </div>
+              )
+            }
 
             if (occupant) {
               return (

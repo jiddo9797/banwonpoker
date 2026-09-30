@@ -3,13 +3,16 @@ import { useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { NICKNAME_MAX_LENGTH, validateNickname } from './fixtures'
 import { PrepLayout } from './PrepLayout'
+import type { PrepContext } from './PrepLayout'
 
 interface EntryScreenProps {
+  context: PrepContext
   initialNickname?: string
   onSubmit: (nickname: string) => void
+  onCreateRoom: () => void
 }
 
-export function EntryScreen({ initialNickname = '', onSubmit }: EntryScreenProps) {
+export function EntryScreen({ context, initialNickname = '', onSubmit, onCreateRoom }: EntryScreenProps) {
   const [nickname, setNickname] = useState(initialNickname)
   const [error, setError] = useState<string>()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -28,7 +31,7 @@ export function EntryScreen({ initialNickname = '', onSubmit }: EntryScreenProps
   }
 
   return (
-    <PrepLayout screen="entry" title="테이블에 입장합니다">
+    <PrepLayout {...context} screen="entry" title="테이블에 입장합니다">
       <form className="prep-panel" noValidate onSubmit={submit}>
         <p className="prep-lead">
           친구가 보낸 초대 링크로 들어왔습니다. 테이블과 복기 화면에 표시될 닉네임을 정해 주세요.
@@ -67,6 +70,12 @@ export function EntryScreen({ initialNickname = '', onSubmit }: EntryScreenProps
         </div>
 
         <div className="prep-actions">
+          <p className="prep-actions-reason">
+            초대 링크 없이 새로 시작하려면{' '}
+            <button className="link-button" onClick={onCreateRoom} type="button">
+              새 방 만들기
+            </button>
+          </p>
           <button className="btn btn--primary" type="submit">
             입장하기
           </button>

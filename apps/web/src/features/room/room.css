@@ -1,0 +1,289 @@
+.room-form {
+  display: grid;
+  gap: 16px;
+}
+
+.room-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.room-form .field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.room-form .field > legend,
+.room-form .field-label,
+.blind-fieldset > legend,
+.blind-fixed > label {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.room-form .field input:not([type="radio"]) {
+  width: 100%;
+}
+
+.input-with-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-with-chips input {
+  flex: 1;
+  min-width: 0;
+}
+
+.chip-options {
+  display: flex;
+  gap: 4px;
+}
+
+.chip-options button {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--control);
+  cursor: pointer;
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip-options button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-subtle);
+}
+
+.segmented button[aria-disabled="true"] {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.fixed-rules {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--stroke-panel);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: var(--neutral-bg);
+  font-size: 12px;
+  list-style: none;
+}
+
+.blind-fieldset {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 8px;
+}
+
+.blind-fieldset > legend {
+  margin: 0;
+  padding: 0 6px;
+}
+
+.blind-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.blind-mode-row .chip-options {
+  margin-left: auto;
+}
+
+.radio-inline {
+  display: flex;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.radio-inline label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.radio-inline label:has(input:checked) {
+  color: var(--text-primary);
+  background: var(--control-selected);
+}
+
+.radio-inline input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.inline-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.inline-select select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 4px;
+  color: var(--text-primary);
+  background: var(--control);
+  font-size: 13px;
+}
+
+.blind-fixed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.blind-fixed > label {
+  margin: 0;
+}
+
+.blind-fixed input,
+.level-inputs input,
+.input-with-chips input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 4px;
+  color: var(--text-primary);
+  background: var(--control);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.blind-fixed input {
+  width: 120px;
+}
+
+.blind-fixed input[aria-invalid="true"],
+.level-inputs input[aria-invalid="true"],
+.input-with-chips input[aria-invalid="true"] {
+  border: 2px solid var(--critical);
+}
+
+.blind-bb {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.level-grid li {
+  display: grid;
+  gap: 4px;
+}
+
+.level-grid label {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.level-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.level-inputs input {
+  width: 84px;
+  height: 32px;
+  font-size: 13px;
+}
+
+.level-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.level-actions .field-hint {
+  margin-left: auto;
+}
+
+.btn.btn--sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.btn.btn--sm svg {
+  width: 16px;
+  height: 16px;
+}
+
+.blind-summary {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.room-rules {
+  display: grid;
+  gap: 12px;
+}
+
+.level-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.level-list li {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--control);
+}
+
+.level-list span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.level-list strong {
+  font-size: 12px;
+}

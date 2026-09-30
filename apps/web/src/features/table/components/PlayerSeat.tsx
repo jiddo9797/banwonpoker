@@ -6,6 +6,7 @@ function statusLabel(seat: Seat) {
   if (seat.status === 'folded') return '폴드'
   if (seat.status === 'all-in') return '올인'
   if (seat.status === 'disconnected') return '연결 끊김 · 재접속 대기'
+  if (seat.status === 'eliminated') return '탈락'
   if (seat.isWinner) return seat.handRank ?? '승리'
   if (seat.handRank) return seat.handRank
   return null
@@ -37,7 +38,7 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
 
   return (
     <div className={classes}>
-      {seat.status === 'folded' ? (
+      {seat.status === 'folded' || seat.status === 'eliminated' ? (
         <div className="opponent-card-stack" />
       ) : (
         <div

@@ -2,8 +2,10 @@ import { LockClosed20Regular } from '@fluentui/react-icons'
 import { useId } from 'react'
 import type { ConsentState } from '../../app/flow'
 import { PrepLayout } from './PrepLayout'
+import type { PrepContext } from './PrepLayout'
 
 interface ConsentScreenProps {
+  context: PrepContext
   nickname: string
   seatNumber?: number
   consent: ConsentState
@@ -26,13 +28,13 @@ const consentItems: Array<{ key: keyof ConsentState; title: string; detail: stri
   },
 ]
 
-export function ConsentScreen({ nickname, seatNumber, consent, onChange, onBack, onNext }: ConsentScreenProps) {
+export function ConsentScreen({ context, nickname, seatNumber, consent, onChange, onBack, onNext }: ConsentScreenProps) {
   const reasonId = useId()
   const itemId = useId()
   const complete = consent.recording && consent.reveal
 
   return (
-    <PrepLayout nickname={nickname} screen="consent" seatNumber={seatNumber} title="녹음과 패 공개에 동의해 주세요">
+    <PrepLayout {...context} nickname={nickname} screen="consent" seatNumber={seatNumber} title="녹음과 패 공개에 동의해 주세요">
       <div className="prep-panel">
         <p className="prep-lead">두 항목 모두 이 방에서 플레이하기 위한 필수 조건입니다.</p>
 

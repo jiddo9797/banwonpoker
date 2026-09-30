@@ -31,6 +31,7 @@ export function createInitialPrototypeState(
     leaveDialogOpen: false,
     menuOpen: false,
     endSessionDialogOpen: false,
+    settingsDialogOpen: false,
   }
 }
 
@@ -52,6 +53,7 @@ export function prototypeReducer(
         leaveDialogOpen: false,
         menuOpen: false,
         endSessionDialogOpen: false,
+        settingsDialogOpen: false,
       }
     }
 
@@ -149,6 +151,19 @@ export function prototypeReducer(
       return {
         ...state,
         endSessionDialogOpen: false,
+      }
+
+    case 'settings.opened':
+      return {
+        ...state,
+        menuOpen: false,
+        settingsDialogOpen: true,
+      }
+
+    case 'settings.closed':
+      return {
+        ...state,
+        settingsDialogOpen: false,
       }
   }
 }
