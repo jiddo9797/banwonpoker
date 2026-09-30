@@ -1,9 +1,10 @@
-import { Add20Regular, DoorArrowRight20Regular } from '@fluentui/react-icons'
+import { Add20Regular, DoorArrowRight20Regular, History20Regular } from '@fluentui/react-icons'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { CreateRoomScreen } from '../features/lobby/CreateRoomScreen'
 import { defaultRoomSettings } from '../features/room/settings'
 import type { LiveClient, LiveSnapshot } from './client'
+import type { PastSession } from './history'
 import './live.css'
 
 const NICKNAME_MIN = 2
@@ -25,9 +26,14 @@ interface LiveHomeProps {
   snapshot: LiveSnapshot
   /** 초대 링크(?room=)로 들어왔을 때의 방 코드 */
   initialRoomCode?: string
+  /** 이 브라우저에서 참여했던 끝난 세션 */
+  pastSessions?: PastSession[]
+  onOpenReplay?: (session: PastSession) => void
 }
 
-export function LiveHome({ client, snapshot, initialRoomCode }: LiveHomeProps) {
+const dateFormat = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+
+export function LiveHome({ client, snapshot, initialRoomCode, pastSessions = [], onOpenReplay }: LiveHomeProps) {
   const [mode, setMode] = useState<'home' | 'create'>('home')
   const [waitingFor, setWaitingFor] = useState<'room.create' | 'room.join' | null>(null)
   const [code, setCode] = useState(initialRoomCode ?? '')
@@ -150,6 +156,25 @@ export function LiveHome({ client, snapshot, initialRoomCode }: LiveHomeProps) {
             </button>
           </form>
         </div>
+
+        {pastSessions.length > 0 && onOpenReplay ? (
+          <section aria-labelledby="past-title" className="past-sessions">
+            <h2 id="past-title">
+              <History20Regular aria-hidden="true" />
+              지난 세션 복기
+            </h2>
+            <ul>
+              {pastSessions.slice(0, 4).map((session) => (
+                <li key={session.sessionId}>
+                  <button onClick={() => onOpenReplay(session)} type="button">
+                    <strong>{session.name}</strong>
+                    <span>{dateFormat.format(session.endedAt)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </main>
     </div>
   )

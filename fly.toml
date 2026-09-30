@@ -1,0 +1,40 @@
+# Fly.io 배포 설정. `app` 이름은 전 세계에서 하나뿐이어야 하므로 `fly launch`에서 정한 이름으로 바뀐다.
+app = "banwonpoker"
+primary_region = "nrt" # 도쿄: 한국에서 가장 가까운 리전
+
+[build]
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8080"
+  DATA_DIR = "/data"
+  STATIC_DIR = "/app/public"
+
+# 세션 기록(SQLite)과 음성 파일을 둘 디스크. `fly volumes create banwonpoker_data`로 만든다.
+[[mounts]]
+  source = "banwonpoker_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # 진행 중인 방은 서버 메모리에 있으므로 멈추면 게임이 사라진다. 항상 한 대를 켜 둔다.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 500
+    hard_limit = 1000
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/health"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

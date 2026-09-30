@@ -5,6 +5,7 @@ import type { Clock } from './clock'
 import type { ErrorBody, RoomSettings } from './protocol'
 import { Room } from './room'
 import type { RoomOptions } from './room'
+import type { SessionStore } from './store'
 
 /** 헷갈리는 글자(0·O, 1·I·L)를 뺀 방 코드 글자 */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
@@ -18,6 +19,8 @@ export interface ManagerDeps {
   newId?: () => string
   newToken?: () => string
   roomOptions?: RoomOptions
+  store?: SessionStore
+  newSessionId?: () => string
 }
 
 function randomCode() {
@@ -58,6 +61,8 @@ export class RoomManager {
       newToken: this.deps.newToken ?? (() => randomBytes(24).toString('hex')),
       options: this.deps.roomOptions,
       onClose: (closed) => this.rooms.delete(closed),
+      store: this.deps.store,
+      newSessionId: this.deps.newSessionId ?? (() => `s_${randomBytes(9).toString('base64url')}`),
     })
     if (!created.ok) return created
     this.rooms.set(code, created.value.room)
