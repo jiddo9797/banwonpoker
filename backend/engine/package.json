@@ -1,0 +1,22 @@
+{
+  "name": "@banwonpoker/engine",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "banwonpoker 노리밋 텍사스 홀덤 규칙 엔진. 네트워크·DB·시간에 의존하지 않는 순수 TypeScript.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "oxlint --deny-warnings src",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "oxlint": "^1.85.0",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.2"
+  }
+}
