@@ -1,0 +1,63 @@
+.live-home {
+  position: absolute;
+  inset: 0;
+}
+
+.live-home-main {
+  position: absolute;
+  top: 150px;
+  left: 50%;
+  width: 960px;
+  transform: translateX(-50%);
+}
+
+.live-home-main h1 {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.live-home-lead {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.live-home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.live-home-card {
+  align-content: start;
+}
+
+.live-home-card h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.live-home-card > p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.live-home-card .btn {
+  justify-self: start;
+}
+
+.live-home-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.live-home-card .field input {
+  width: 100%;
+}
