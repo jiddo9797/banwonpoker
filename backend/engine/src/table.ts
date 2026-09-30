@@ -548,3 +548,22 @@ export function leaveTable(table: TableState, playerId: string): EngineResult {
   emit(ctx, { type: 'player-left', playerId })
   return done(ctx)
 }
+
+/**
+ * 진행 중인 핸드를 무효로 한다. 이번 핸드에 낸 칩을 모두 돌려주고 핸드를 끝낸다.
+ * 방장이 세션을 도중에 끝낼 때 쓴다.
+ */
+export function cancelHand(table: TableState): EngineResult {
+  if (!isHandInProgress(table)) return fail('NO_HAND', '진행 중인 핸드가 없습니다.')
+  const ctx = begin(table)
+  const hand = ctx.table.hand as HandState
+  for (const player of hand.players) {
+    ;(findPlayer(ctx.table, player.id) as Player).stack += player.totalCommitted
+    player.totalCommitted = 0
+    player.streetCommitted = 0
+  }
+  hand.phase = 'complete'
+  hand.toAct = null
+  emit(ctx, { type: 'hand-cancelled', handNumber: hand.number })
+  return done(ctx)
+}

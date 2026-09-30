@@ -7,7 +7,8 @@ Private multiplayer poker with turn-based voice replay
 > **현재 단계**
 > - `frontend/`: 클릭 프로토타입. 모든 화면은 아직 목(mock) 데이터로 움직입니다.
 > - `backend/engine/`: 노리밋 홀덤 규칙 엔진(완료). 서버에서 판정에 씁니다.
-> - 다음: `backend/server/` 게임 서버와 WebSocket, 프론트 연결, 녹음, 저장·복기, 배포
+> - `backend/server/`: 게임 서버(완료). 방·좌석·준비·차례 타이머를 관리하고 WebSocket으로 참가자별 화면을 보냅니다.
+> - 다음: 프론트엔드를 서버에 연결 → 녹음 → 저장·복기 → 배포
 
 ## 폴더 구조
 
@@ -33,6 +34,15 @@ backend/
       blinds.ts           블라인드 레벨(고정·시간마다 인상)
       table.ts            좌석·핸드 진행·베팅 규칙·정산·탈락
       view.ts             참가자별 화면 데이터(남의 패 숨김)
+  server/                 게임 서버 (@banwonpoker/server)
+    src/
+      protocol.ts         브라우저와 주고받는 메시지 타입과 입력 검증(프론트가 그대로 가져다 씀)
+      settings.ts         방 설정 검증, 블라인드 일정
+      room.ts             방 하나: 대기실·좌석·준비·게임 시작·차례 타이머·다음 핸드·탈락·세션 종료·재접속
+      manager.ts          방 코드 발급과 방 목록
+      server.ts           HTTP(헬스 체크)와 WebSocket(/ws)
+      clock.ts            시계·타이머(테스트에서는 가짜 시계)
+      index.ts            실행 진입점
 ```
 
 ## 요구 사항
@@ -60,11 +70,13 @@ PowerShell에서 `pnpm`이 실행 정책 오류로 막히면 `Set-ExecutionPolic
 
 | 명령 | 설명 |
 | --- | --- |
-| `pnpm dev` | Vite 개발 서버 |
+| `pnpm dev` | 프론트엔드 Vite 개발 서버 |
+| `pnpm dev:server` | 게임 서버 개발 모드(파일이 바뀌면 다시 시작). 기본 `ws://127.0.0.1:8787/ws` |
+| `pnpm start:server` | 게임 서버 실행 |
 | `pnpm build` | 타입 검사 후 프론트엔드 프로덕션 빌드(`frontend/dist`) |
 | `pnpm typecheck` | 모든 패키지 TypeScript 타입 검사 |
 | `pnpm lint` | 모든 패키지 OXLint(경고도 실패로 처리) |
-| `pnpm test` | 모든 패키지 Vitest 테스트(프론트 단위·컴포넌트, 엔진 규칙) |
+| `pnpm test` | 모든 패키지 Vitest 테스트(프론트 단위·컴포넌트, 엔진 규칙, 서버) |
 | `pnpm test:e2e` | Playwright 시각 회귀·axe 접근성·클릭 흐름 테스트 |
 | `pnpm test:e2e:update` | 시각 회귀 기준 이미지 다시 만들기 |
 
@@ -152,6 +164,14 @@ pnpm test
 - 남의 홀카드와 덱이 화면 데이터에 새지 않는지
 - 무작위 참가자 6명으로 20게임을 끝까지 두며 매 행동마다 칩 보존·이벤트 순번 검사
 
+**게임 서버**
+- 입장·닉네임·좌석·준비(동의 필수)·방 설정(방장, 대기실에서만)·게임 시작 조건
+- 각자 자기 홀카드만 받는지, 다른 사람의 음성 선택이 공개되지 않는지
+- 거절 이유 문구, 같은 `clientActionId` 중복 처리 방지, 60초 시간 초과(연결이 끊겨도 동작)
+- 다음 핸드 자동 시작과 딜러 이동, 게임 중 입장은 다음 핸드부터, 블라인드 인상
+- 방장의 세션 종료(진행 중인 핸드 무효), 한 명 남으면 자동 종료와 순위, 퇴장·방장 위임, 토큰 재접속, 빈 방 정리
+- 실제 WebSocket 서버에 클라이언트 3개를 붙여 한 판 진행과 재접속, 잘못된 메시지·Origin 거부
+
 **프론트엔드**
 
 - 테이블·흐름·복기 reducer와 fixture 불변 조건: 상대 좌석에 녹음 필드가 없음, 액션 버튼 순서, 차례는 한 명, 칩 합계 등
@@ -204,10 +224,30 @@ if (started.ok) {
 - 규칙: 노리밋 홀덤, 헤즈업은 딜러가 스몰 블라인드, 최소 레이즈는 직전 레이즈 폭, 모자란 올인 레이즈는 이미 행동한 사람에게 레이즈 기회를 다시 주지 않음, 시간 초과는 체크 가능하면 체크·아니면 폴드(D4), 칩 0이면 탈락, 핸드 중에 앉으면 다음 핸드부터, 남는 칩은 딜러 왼쪽에 가까운 승자에게.
 - 블라인드 인상은 `blindLevelAt(schedule, 경과 시간)`으로 핸드를 시작할 때의 레벨을 구해 `startHand`에 넘깁니다.
 
+## 게임 서버
+
+```bash
+pnpm dev:server
+```
+
+| 환경 변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `PORT` | `8787` | 포트 |
+| `HOST` | `127.0.0.1` | 같은 와이파이의 다른 기기에서 접속하려면 `0.0.0.0` |
+| `ALLOWED_ORIGINS` | 없음 | 접속을 허용할 웹 주소(쉼표로 구분). 비우면 localhost만 허용 |
+
+- 주소: WebSocket `ws://호스트:포트/ws`, 헬스 체크 `http://호스트:포트/health`
+- 메시지는 JSON 한 줄이고, 타입은 `backend/server/src/protocol.ts`에 있습니다.
+  - 보내는 것: `room.create`·`room.join`·`room.resume`(토큰 재접속)·`seat.take`·`ready.set`·`settings.update`·`game.start`·`action`·`session.end`·`room.leave`·`ping`
+  - 받는 것: `joined`(참가자 id와 재접속 토큰)·`state`(나에게 보이는 전체 상태)·`events`(엔진 이벤트 + `sessionTimeMs`)·`action.result`·`error`·`pong`
+- 서버가 모든 판정을 합니다. `state`에는 내 홀카드와 쇼다운에서 공개된 카드만 들어 있습니다.
+- 계정은 없습니다. 입장하면 받은 토큰을 브라우저에 저장해 두었다가 연결이 끊기면 `room.resume`으로 같은 자리에 돌아옵니다.
+- 방은 서버 메모리에만 있습니다. 서버를 다시 시작하면 사라집니다(저장은 5단계).
+
 ## 기술 스택
 
 - 프론트엔드: React 19.3, TypeScript 6, Vite 8.3, Tailwind CSS 4.3, Fluent System Icons, Pretendard(가변 폰트, 유니코드 범위별 동적 서브셋)·Inter 자체 호스팅
-- 백엔드: TypeScript 6(엔진). 서버는 다음 단계에서 Node.js + WebSocket
+- 백엔드: TypeScript 6, Node.js, `ws`(WebSocket), `tsx`로 실행
 - 공통: pnpm 워크스페이스, OXLint, Vitest, React Testing Library, Playwright, axe-core
 
 ## 방 규칙

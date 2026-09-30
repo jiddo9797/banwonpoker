@@ -1,0 +1,30 @@
+{
+  "name": "@banwonpoker/server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "banwonpoker 게임 서버. 방·좌석·준비·차례 타이머를 관리하고 WebSocket으로 참가자별 화면을 보낸다.",
+  "exports": {
+    "./protocol": "./src/protocol.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "oxlint --deny-warnings src",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@banwonpoker/engine": "workspace:*",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "@types/ws": "^8.18.1",
+    "oxlint": "^1.86.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.2"
+  }
+}

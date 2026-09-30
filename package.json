@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "pnpm --filter @banwonpoker/web dev",
+    "dev:server": "pnpm --filter @banwonpoker/server dev",
+    "start:server": "pnpm --filter @banwonpoker/server start",
     "build": "pnpm --filter @banwonpoker/web build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",

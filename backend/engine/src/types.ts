@@ -140,6 +140,7 @@ type EventBody =
   | { type: 'pot-awarded'; award: PotAward }
   | { type: 'player-eliminated'; playerId: string; place: number; handNumber: number }
   | { type: 'hand-ended'; handNumber: number }
+  | { type: 'hand-cancelled'; handNumber: number }
   | { type: 'player-joined'; playerId: string; seat: number; joinsNextHand: boolean }
   | { type: 'player-left'; playerId: string }
 
