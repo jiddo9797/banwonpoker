@@ -4,7 +4,7 @@ import { openPage } from './helpers'
 test.use({ viewport: { width: 1440, height: 900 } })
 
 test('방장: 방 만들기 → 착석 → 동의 → 마이크 → 대기실 → 게임 시작 → 세션 종료 → 복기 → 내보내기', async ({ page }) => {
-  await openPage(page, '')
+  await openPage(page, '?screen=entry')
 
   // 방 만들기
   await page.getByRole('button', { name: '새 방 만들기' }).click()
@@ -54,7 +54,7 @@ test('방장: 방 만들기 → 착석 → 동의 → 마이크 → 대기실 �
 })
 
 test('참가자: 입장 → 대기실에서 방장을 기다렸다가 테이블로 들어간다', async ({ page }) => {
-  await openPage(page, '')
+  await openPage(page, '?screen=entry')
   await page.getByLabel('닉네임').fill('하늘')
   await page.getByRole('button', { name: '입장하기' }).click()
   await page.getByRole('button', { name: '5번 좌석, 빈 좌석' }).click()

@@ -90,7 +90,10 @@ export function startGameServer(options: GameServerOptions = {}): Promise<GameSe
 
     const bind = (room: Room, playerId: string) => {
       binding = { room, playerId }
-      room.attach(playerId, send)
+      room.attach(playerId, send, () => {
+        binding = null
+        socket.close(4000, 'replaced')
+      })
     }
 
     const route = (message: ClientMessage) => {

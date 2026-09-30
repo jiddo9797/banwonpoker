@@ -5,7 +5,7 @@ import { formatChips } from '../../shared/format'
 import { blindSummary, TURN_SECONDS } from '../room/settings'
 import type { RoomSettings } from '../room/settings'
 import { participantsFor, ROOM_CODE } from './fixtures'
-import type { LobbyRole } from './fixtures'
+import type { LobbyParticipant, LobbyRole } from './fixtures'
 import './lobby.css'
 
 const stepsByRole: Record<LobbyRole, Array<{ screen: ScreenKey; label: string }>> = {
@@ -30,6 +30,10 @@ export interface PrepContext {
   role: LobbyRole
   room: RoomSettings
   hostName: string
+  /** 실제 게임: 서버가 알려 준 다른 참가자(나 제외). 없으면 목 데이터를 쓴다. */
+  participants?: LobbyParticipant[]
+  /** 실제 게임: 방 코드 */
+  roomCode?: string
 }
 
 interface PrepLayoutProps extends PrepContext {
@@ -54,12 +58,15 @@ export function PrepLayout({
   seatNumber,
   selfReady = false,
   selfMicLabel,
+  participants: liveParticipants,
+  roomCode,
   children,
 }: PrepLayoutProps) {
   const steps = stepsByRole[role]
   const currentIndex = steps.findIndex((step) => step.screen === screen)
   // 방장은 대기실에 들어가야 친구들이 들어와 있다.
-  const participants = role === 'host' && screen !== 'lobby' ? [] : participantsFor(role, seatNumber)
+  const participants =
+    liveParticipants ?? (role === 'host' && screen !== 'lobby' ? [] : participantsFor(role, seatNumber))
 
   return (
     <div className="prep-screen">
@@ -119,7 +126,7 @@ export function PrepLayout({
             </div>
             <div>
               <dt>방 코드</dt>
-              <dd className="numeric">{screen === 'create' ? '만들면 발급' : ROOM_CODE}</dd>
+              <dd className="numeric">{screen === 'create' ? '만들면 발급' : (roomCode ?? ROOM_CODE)}</dd>
             </div>
           </dl>
         </section>

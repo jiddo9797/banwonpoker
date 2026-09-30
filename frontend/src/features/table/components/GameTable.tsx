@@ -44,20 +44,24 @@ function RecordingStatus({ state, voiceless }: { state: RecordingState; voiceles
   )
 }
 
-function HeroSeat({ snapshot, voiceless }: { snapshot: TableSnapshot; voiceless: boolean }) {
+function HeroSeat({ snapshot, voiceless, heroLabel }: { snapshot: TableSnapshot; voiceless: boolean; heroLabel: string }) {
   const warning = (snapshot.heroRemainingSeconds ?? 60) <= 10
   const isTurn = snapshot.recordingState !== 'hidden' || snapshot.actions.some((action) => action.enabled)
 
   return (
-    <div className={`hero-seat ${isTurn ? 'is-turn' : ''} ${snapshot.tableMessage?.includes('승리') ? 'is-winner' : ''}`}>
+    <div className={`hero-seat ${isTurn ? 'is-turn' : ''} ${(snapshot.heroIsWinner ?? snapshot.tableMessage?.includes('승리')) ? 'is-winner' : ''}`}>
       {snapshot.heroBet ? <div className="hero-bet-pill">{formatChips(snapshot.heroBet)}</div> : null}
       <div className="hero-card-stack">
-        <PlayingCard card={snapshot.heroCards[0]} />
-        <PlayingCard card={snapshot.heroCards[1]} className="overlap" />
+        {snapshot.heroCards ? (
+          <>
+            <PlayingCard card={snapshot.heroCards[0]} />
+            <PlayingCard card={snapshot.heroCards[1]} className="overlap" />
+          </>
+        ) : null}
       </div>
       <div className="hero-panel">
         <div className="hero-name-row">
-          <span className="hero-name">나</span>
+          <span className="hero-name">{heroLabel}</span>
           {isTurn && snapshot.heroRemainingSeconds !== undefined ? (
             <span className={warning ? 'hero-time is-warning' : 'hero-time'}>
               {snapshot.heroRemainingSeconds}초
@@ -87,9 +91,13 @@ function HeroSeat({ snapshot, voiceless }: { snapshot: TableSnapshot; voiceless:
 interface GameTableProps {
   snapshot: TableSnapshot
   voiceless?: boolean
+  /** 내 좌석에 보일 이름. 관전 중이면 `관전 중` */
+  heroLabel?: string
+  /** 음성 기록 안내를 보여줄지. 녹음이 아직 연결되지 않은 실제 게임에서는 숨긴다. */
+  showRecordingNote?: boolean
 }
 
-export function GameTable({ snapshot, voiceless = false }: GameTableProps) {
+export function GameTable({ snapshot, voiceless = false, heroLabel = '나', showRecordingNote = true }: GameTableProps) {
   return (
     <main aria-labelledby="table-title" className="game-table-area">
       <h1 className="visually-hidden" id="table-title">
@@ -129,8 +137,9 @@ export function GameTable({ snapshot, voiceless = false }: GameTableProps) {
         ))}
       </div>
 
-      <HeroSeat snapshot={snapshot} voiceless={voiceless} />
+      <HeroSeat heroLabel={heroLabel} snapshot={snapshot} voiceless={voiceless} />
 
+      {showRecordingNote ? (
       <div className="privacy-note">
         {voiceless ? <MicOff20Regular aria-hidden="true" /> : <Mic20Regular aria-hidden="true" />}
         <span>
@@ -139,6 +148,7 @@ export function GameTable({ snapshot, voiceless = false }: GameTableProps) {
             : '음성은 내 차례에만 기록되며 플레이 중 상대에게 전달되지 않습니다.'}
         </span>
       </div>
+      ) : null}
     </main>
   )
 }

@@ -42,6 +42,10 @@ export interface Seat {
   showdownCards?: [Card, Card]
   handRank?: string
   isWinner?: boolean
+  /** 이번 핸드에 참여 중인지. false면 카드를 그리지 않는다(다음 핸드 대기 등). 기본값 true */
+  inHand?: boolean
+  /** 좌석 아래 상태 칩에 보여줄 문구. 있으면 기본 상태 문구보다 먼저 쓴다. */
+  statusNote?: string
 }
 
 export interface Pot {
@@ -78,11 +82,14 @@ export interface TableSnapshot {
   potNote?: string
   seats: Seat[]
   heroId: string
-  heroCards: [Card, Card]
+  /** 내 홀카드. 관전 중이거나 다음 핸드를 기다리면 없다. */
+  heroCards: [Card, Card] | null
   heroBadge: 'D' | 'SB' | 'BB' | 'none'
   heroStack: number
   heroBet?: number
   heroRemainingSeconds?: number
+  /** 이번 핸드에서 내가 이겼는지. 없으면 테이블 문구로 판단한다(목 데이터) */
+  heroIsWinner?: boolean
   recordingState: RecordingState
   actionHint: string
   actions: ActionOption[]

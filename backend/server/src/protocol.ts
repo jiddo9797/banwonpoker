@@ -63,6 +63,8 @@ export type ErrorCode =
   | 'HOST_NOT_READY'
   | 'NOT_ENOUGH_PLAYERS'
   | 'ACTION_REJECTED'
+  /** 다른 탭·기기에서 같은 자리로 들어와 이 연결을 끊었다. */
+  | 'SESSION_REPLACED'
 
 export interface ErrorBody {
   code: ErrorCode

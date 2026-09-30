@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { RoomSettingsForm } from '../room/RoomSettingsForm'
 import { hasErrors, validateRoomSettings } from '../room/settings'
 import type { RoomSettings } from '../room/settings'
-import { NICKNAME_MAX_LENGTH, validateNickname } from './fixtures'
+import { NICKNAME_MAX_LENGTH, validateNickname as validateMockNickname } from './fixtures'
 import { PrepLayout } from './PrepLayout'
 
 interface CreateRoomScreenProps {
@@ -11,9 +11,23 @@ interface CreateRoomScreenProps {
   initialNickname?: string
   onCreate: (nickname: string, settings: RoomSettings) => void
   onBack: () => void
+  /** 닉네임 검증. 기본은 목 참가자 이름과 겹치는지까지 본다. */
+  validateNickname?: (nickname: string) => string | undefined
+  /** 실제 게임: 서버가 거절한 이유 */
+  errorMessage?: string
+  /** 실제 게임: 서버 응답을 기다리는 중 */
+  busy?: boolean
 }
 
-export function CreateRoomScreen({ initialSettings, initialNickname = '', onCreate, onBack }: CreateRoomScreenProps) {
+export function CreateRoomScreen({
+  initialSettings,
+  initialNickname = '',
+  onCreate,
+  onBack,
+  validateNickname = validateMockNickname,
+  errorMessage,
+  busy = false,
+}: CreateRoomScreenProps) {
   const [settings, setSettings] = useState(initialSettings)
   const [nickname, setNickname] = useState(initialNickname)
   const [submitted, setSubmitted] = useState(false)
@@ -25,6 +39,7 @@ export function CreateRoomScreen({ initialSettings, initialNickname = '', onCrea
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (busy) return
     setSubmitted(true)
     if (validateNickname(nickname) || hasErrors(settingsErrors)) {
       // 오류 문구가 그려진 다음 첫 번째 잘못된 칸으로 포커스를 옮긴다.
@@ -57,13 +72,19 @@ export function CreateRoomScreen({ initialSettings, initialNickname = '', onCrea
 
         <RoomSettingsForm errors={settingsErrors} onChange={setSettings} settings={settings} showErrors={submitted} />
 
+        {errorMessage ? (
+          <p className="field-error" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
+
         <div className="prep-actions">
           <p className="prep-actions-reason">설정은 게임을 시작하기 전까지 대기실에서 바꿀 수 있습니다.</p>
           <button className="btn btn--secondary" onClick={onBack} type="button">
             취소
           </button>
-          <button className="btn btn--primary" type="submit">
-            방 만들기
+          <button aria-disabled={busy} className="btn btn--primary" type="submit">
+            {busy ? '만드는 중…' : '방 만들기'}
           </button>
         </div>
       </form>
