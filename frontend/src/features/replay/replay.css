@@ -47,7 +47,7 @@
 }
 
 .audio-status--none {
-  color: var(--text-disabled);
+  color: var(--text-tertiary);
 }
 
 /* 세션 요약 */
@@ -699,6 +699,13 @@
   background: var(--felt-pot);
 }
 
+/* 초록 배경 위에서도 대비 4.5:1 이상 */
+.timeline-cell--result .timeline-cell-actor,
+.timeline-cell--result .timeline-cell-think,
+.timeline-cell--result .audio-status {
+  color: var(--felt-text);
+}
+
 .timeline-cell-actor {
   color: var(--text-tertiary);
   font-size: 12px;
@@ -807,6 +814,39 @@
 .export-progress-text strong {
   color: var(--text-primary);
   font-size: 16px;
+}
+
+.export-files {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.export-files li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--ok);
+  border-radius: 6px;
+}
+
+.export-files li > span {
+  display: grid;
+  gap: 4px;
+}
+
+.export-files strong {
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.export-files li > span > span {
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .export-result {

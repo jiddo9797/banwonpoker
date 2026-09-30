@@ -127,6 +127,7 @@ describe('turnStatus', () => {
     ['무발언', turn({ report: { chunks: 2, durationMs: 5_000, silent: true, failed: false, audioStartMs: 0 } }), 'silent'],
     ['기록 실패', turn({ receivedChunks: 0, report: { chunks: 0, durationMs: 0, silent: false, failed: true, audioStartMs: null } }), 'failed'],
     ['조각 누락', turn({ receivedChunks: 1 }), 'missing'],
+    ['녹음이 켜지기 전에 끝남', turn({ receivedChunks: 0, report: { chunks: 0, durationMs: 0, silent: false, failed: false, audioStartMs: null } }), 'silent'],
     ['보고 없음·조각 없음', turn({ receivedChunks: 0, report: null }), 'missing'],
     ['보고 없음·조각 있음', turn({ receivedChunks: 1, report: null }), 'voice'],
     ['음성 없이 참여', turn({ voiceless: true }), 'voiceless'],

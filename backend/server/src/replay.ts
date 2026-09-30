@@ -8,7 +8,9 @@ export function turnStatus(turn: StoredTurn | undefined, participant: StoredPart
   const report = turn.report
   if (report?.failed) return { status: 'failed', durationMs: null }
   if (report) {
-    if (turn.receivedChunks < report.chunks || report.chunks === 0) return { status: 'missing', durationMs: null }
+    // 마이크가 켜지기 전에 차례가 끝났다: 말할 틈이 없었으므로 무발언으로 본다.
+    if (report.chunks === 0) return { status: 'silent', durationMs: 0 }
+    if (turn.receivedChunks < report.chunks) return { status: 'missing', durationMs: null }
     if (report.silent) return { status: 'silent', durationMs: report.durationMs }
     return { status: 'voice', durationMs: report.durationMs }
   }

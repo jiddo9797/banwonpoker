@@ -1,9 +1,12 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 4173
 /** E2E 전용 게임 서버 포트. 개발용 8787과 겹치지 않게 둔다. */
 const GAME_SERVER_PORT = 8788
 const isCI = Boolean(process.env.CI)
+/** E2E 게임 서버의 기록(DB·음성)을 둘 임시 폴더 */
+const GAME_DATA_DIR = fileURLToPath(new URL(`./test-results/game-data-${Date.now()}`, import.meta.url))
 
 export default defineConfig({
   testDir: './e2e',
@@ -38,7 +41,7 @@ export default defineConfig({
     {
       command: 'pnpm --filter @banwonpoker/server start',
       url: `http://127.0.0.1:${GAME_SERVER_PORT}/health`,
-      env: { PORT: String(GAME_SERVER_PORT), HOST: '127.0.0.1', ALLOWED_ORIGINS: `http://localhost:${PORT}` },
+      env: { PORT: String(GAME_SERVER_PORT), HOST: '127.0.0.1', ALLOWED_ORIGINS: `http://localhost:${PORT}`, DATA_DIR: GAME_DATA_DIR },
       reuseExistingServer: false,
       timeout: 60_000,
     },

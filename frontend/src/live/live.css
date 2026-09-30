@@ -58,6 +58,60 @@
   margin-top: 32px;
 }
 
+.past-sessions {
+  margin-top: 32px;
+}
+
+.past-sessions h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.past-sessions h2 svg {
+  width: 18px;
+  height: 18px;
+}
+
+.past-sessions ul {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.past-sessions button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: var(--control);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+}
+
+.past-sessions button:hover {
+  border-color: var(--text-tertiary);
+}
+
+.past-sessions strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .live-home-card .field input {
   width: 100%;
 }

@@ -84,7 +84,9 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   // 서로의 홀카드는 보이지 않는다.
   await expect(host.getByRole('group', { name: '민수의 비공개 홀카드 2장' })).toBeVisible()
   await expect(guest.getByRole('group', { name: '하늘의 비공개 홀카드 2장' })).toBeVisible()
-  await expect(host.getByText('음성 기록 중')).toHaveCount(0)
+  // 내 차례에는 나에게만 녹음 표시가 보인다. 상대 화면에는 어떤 녹음 표시도 없다.
+  await expect(host.getByText('내 차례 · 음성 기록 중')).toBeVisible()
+  await expect(guest.getByText(/음성 기록|녹음/)).toHaveCount(0)
   await expectAccessible(host)
   await expectAccessible(guest)
 
@@ -92,9 +94,13 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await expect(dock(host).getByRole('button', { name: /^콜/ })).toHaveAttribute('aria-disabled', 'false')
   await expect(dock(guest).getByRole('button', { name: /^콜/ })).toHaveAttribute('aria-disabled', 'true')
   await expect(guest.getByText('하늘 차례를 기다리는 중')).toBeVisible()
+  // 가짜 마이크 소리가 조금 녹음되도록 잠깐 기다렸다가 행동한다.
+  await host.waitForTimeout(1_500)
   await dock(host).getByRole('button', { name: /^콜/ }).click()
 
   // 빅 블라인드(민수) 체크 → 플랍
+  await expect(guest.getByText('내 차례 · 음성 기록 중')).toBeVisible()
+  await guest.waitForTimeout(1_500)
   await dock(guest).getByRole('button', { name: /^체크/ }).click()
   await expect(guest.getByRole('group', { name: '플랍 커뮤니티 카드' }).getByRole('img')).toHaveCount(3)
 
@@ -118,6 +124,42 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
     await expect(page.getByRole('row', { name: /민수.*10,100/ })).toBeVisible()
     await expect(page.getByRole('row', { name: /하늘.*9,900/ })).toBeVisible()
   }
+
+  // 복기: 전체 패와 차례별 음성
+  await host.getByRole('button', { name: '복기 보기' }).click()
+  await expect(host.getByRole('heading', { level: 1, name: '복기 · 핸드 #1' })).toBeVisible()
+  await expect(host.getByRole('group', { name: '민수의 홀카드' }).getByRole('img')).toHaveCount(2)
+  const timeline = host.getByRole('group', { name: '액션 타임라인' })
+  await expect(timeline.getByRole('button', { name: /^3번째 액션, 나 콜 100, 음성 \d+초/ })).toBeVisible()
+  // 가짜 마이크는 1초마다 삑 소리만 내서 짧은 차례는 무발언으로 잡힐 수 있다. 둘 다 기록된 것이다.
+  await expect(timeline.getByRole('button', { name: /^4번째 액션, 민수 체크, (음성 \d+초|무발언)/ })).toBeVisible()
+  // 곧바로 행동한 차례도 누락이 아니다.
+  await expect(timeline.getByRole('button', { name: /누락|기록 실패/ })).toHaveCount(0)
+  await expectAccessible(host)
+
+  // 재생하면 음성이 있는 칸을 틀며 넘어간다.
+  await host.getByRole('button', { name: '재생' }).click()
+  await expect(timeline.getByRole('button', { name: /^5번째 액션/ })).toHaveAttribute('aria-current', 'step', { timeout: 15_000 })
+  await host.getByRole('button', { name: '일시정지' }).click()
+
+  // 내보내기: 음성(WAV)과 기록(텍스트)
+  await host.getByRole('button', { name: '영상 내보내기' }).click()
+  await expect(host.getByRole('dialog', { name: '음성과 기록 내보내기' })).toBeVisible()
+  await host.getByRole('button', { name: '내보내기 시작' }).click()
+  const files = host.getByRole('list', { name: '만든 파일' })
+  await expect(files).toContainText('banwonpoker-hand1.wav', { timeout: 15_000 })
+  await expect(files).toContainText('banwonpoker-hand1.txt')
+  const download = host.waitForEvent('download')
+  await files.getByRole('link', { name: '다운로드' }).first().click()
+  expect((await download).suggestedFilename()).toBe('banwonpoker-hand1.wav')
+
+  await host.getByRole('dialog').getByRole('button', { name: '닫기' }).click()
+
+  // 방을 나간 뒤에도 첫 화면에서 다시 복기할 수 있다.
+  await host.getByRole('button', { name: '세션 요약' }).click()
+  await host.getByRole('button', { name: '처음 화면으로' }).click()
+  await host.getByRole('button', { name: /E2E 홀덤/ }).click()
+  await expect(host.getByRole('heading', { level: 1, name: '복기 · 핸드 #1' })).toBeVisible()
 })
 
 test('연결이 끊겨도 새로고침하면 같은 자리로 돌아온다', async ({ browser }) => {
