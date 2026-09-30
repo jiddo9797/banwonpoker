@@ -2,7 +2,7 @@
  * 브라우저와 게임 서버가 WebSocket으로 주고받는 메시지. 모두 JSON 한 줄이다.
  * 좌석 번호는 0부터 시작한다(화면에는 +1 해서 보여준다).
  */
-import type { BlindLevel, EngineEvent, PlayerAction, PlayerView } from '@banwonpoker/engine'
+import type { BlindLevel, Card, EngineEvent, PlayerAction, PlayerView, Street } from '@banwonpoker/engine'
 
 export const PROTOCOL_VERSION = 1
 
@@ -99,6 +99,7 @@ export interface SessionResult {
 }
 
 export interface SessionSummary {
+  sessionId: string
   endedAt: number
   reason: 'host-ended' | 'last-player'
   handsPlayed: number
@@ -108,6 +109,8 @@ export interface SessionSummary {
 
 export interface RoomSnapshot {
   code: string
+  /** 게임이 시작되면 생기는 세션 id. 음성 업로드와 복기에 쓴다. */
+  sessionId: string | null
   name: string
   hostId: string
   phase: RoomPhase
@@ -120,7 +123,8 @@ export interface GameSnapshot {
   startedAt: number
   /** 이 참가자에게 보이는 테이블. 남의 홀카드는 없다. */
   view: PlayerView
-  turn: { playerId: string; deadline: number; durationMs: number } | null
+  /** turnSeq는 이 차례를 시작한 turn-started 이벤트의 순번. 음성 조각을 이 번호로 올린다. */
+  turn: { playerId: string; turnSeq: number; deadline: number; durationMs: number } | null
   blinds: { level: BlindLevel; levelIndex: number; nextLevel: BlindLevel | null; nextLevelAt: number | null }
   /** 다음 핸드가 시작되는 시각(핸드 사이 쉬는 시간) */
   nextHandAt: number | null
@@ -241,4 +245,83 @@ export function parseClientMessage(value: unknown): Parsed {
     default:
       return bad('알 수 없는 메시지입니다.')
   }
+}
+
+// ── 복기(세션이 끝난 뒤 HTTP로 받는다) ─────────────────────────────
+
+/**
+ * 차례 하나의 음성 상태
+ * - voice: 음성 있음 / silent: 기록됐지만 말이 없음 / failed: 녹음·업로드 실패
+ * - missing: 기록이 서버에 도착하지 않음 / voiceless: 음성 없이 참여 / none: 블라인드처럼 차례가 아님
+ */
+export type AudioStatus = 'voice' | 'silent' | 'failed' | 'missing' | 'voiceless' | 'none'
+
+export interface ReplayActionData {
+  seq: number
+  street: Street
+  /** 블라인드·액션을 한 사람 */
+  playerId: string
+  kind: 'blind' | 'check' | 'call' | 'bet' | 'raise' | 'fold'
+  /** 이번에 새로 낸 칩 */
+  amount: number
+  /** 이번 스트리트 누적 금액 */
+  to: number
+  allIn: boolean
+  timedOut: boolean
+  /** 이 액션까지 쌓인 팟 */
+  pot: number
+  sessionTimeMs: number
+  /** 차례가 시작된 뒤 액션까지 걸린 시간 */
+  thinkMs: number | null
+  /** 이 차례의 음성을 받을 번호. 블라인드는 없다. */
+  turnSeq: number | null
+  audio: { status: AudioStatus; durationMs: number | null }
+}
+
+export interface ReplayHandData {
+  number: number
+  dealerSeat: number
+  blinds: BlindLevel
+  /** 세션을 도중에 끝내 무효가 된 핸드 */
+  cancelled: boolean
+  players: Array<{ playerId: string; nickname: string; seat: number; cards: [Card, Card] }>
+  /** 실제로 펼쳐진 보드 카드 */
+  board: Card[]
+  actions: ReplayActionData[]
+  /** 스트리트별로 보드가 몇 장인지 알 수 있게 보드가 열린 순번 */
+  streets: Array<{ street: Exclude<Street, 'preflop'>; seq: number }>
+  awards: Array<{ amount: number; winners: Array<{ playerId: string; amount: number }>; handName: string | null }>
+}
+
+export interface ReplayData {
+  session: {
+    id: string
+    name: string
+    settings: RoomSettings
+    startedAt: number
+    endedAt: number | null
+    summary: SessionSummary | null
+  }
+  participants: Array<{ playerId: string; nickname: string; voiceless: boolean }>
+  hands: ReplayHandData[]
+}
+
+/** 녹음한 쪽이 차례가 끝난 뒤 알려 주는 결과 */
+export interface TurnReport {
+  chunks: number
+  durationMs: number
+  silent: boolean
+  failed: boolean
+  /** 녹음이 실제로 시작된 세션 시각 */
+  audioStartMs: number | null
+}
+
+export function parseTurnReport(value: unknown): TurnReport | undefined {
+  if (!isObject(value)) return undefined
+  const { chunks, durationMs, silent, failed, audioStartMs } = value
+  if (!isInt(chunks) || chunks < 0 || chunks > 400) return undefined
+  if (!isInt(durationMs) || durationMs < 0 || durationMs > 10 * 60_000) return undefined
+  if (typeof silent !== 'boolean' || typeof failed !== 'boolean') return undefined
+  if (audioStartMs !== null && !isInt(audioStartMs)) return undefined
+  return { chunks, durationMs, silent, failed, audioStartMs: audioStartMs as number | null }
 }

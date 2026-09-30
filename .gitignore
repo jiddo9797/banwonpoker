@@ -149,3 +149,7 @@ blob-report/
 
 # 로컬 Claude 미리보기 설정
 .claude/launch.json
+
+# 게임 서버 기록(DB·음성)
+backend/server/data/
+data/
