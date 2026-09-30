@@ -1,14 +1,20 @@
-import { Clock20Regular, Mic20Regular, Warning20Filled } from '@fluentui/react-icons'
+import { Clock20Regular, Mic20Regular, MicOff20Regular, Warning20Filled } from '@fluentui/react-icons'
 import type { RecordingState, TableSnapshot } from '../model'
 import { EmptyCardSlot, PlayingCard } from './PlayingCard'
 import { PlayerSeat } from './PlayerSeat'
+import { formatChips } from '../../../shared/format'
 
-function formatChips(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value)
-}
-
-function RecordingStatus({ state }: { state: RecordingState }) {
+function RecordingStatus({ state, voiceless }: { state: RecordingState; voiceless: boolean }) {
   if (state === 'hidden') return null
+
+  if (voiceless && state !== 'processing') {
+    return (
+      <div className="recording-status" role="status">
+        <MicOff20Regular aria-hidden="true" />
+        <span>내 차례 · 음성 없이 참여 중</span>
+      </div>
+    )
+  }
 
   if (state === 'recording') {
     return (
@@ -24,7 +30,7 @@ function RecordingStatus({ state }: { state: RecordingState }) {
       <div className="recording-status" role="status">
         <Clock20Regular aria-hidden="true" />
         <span>액션 처리 중</span>
-        <span className="recording-status-detail">기록 종료됨</span>
+        {voiceless ? null : <span className="recording-status-detail">기록 종료됨</span>}
       </div>
     )
   }
@@ -38,7 +44,7 @@ function RecordingStatus({ state }: { state: RecordingState }) {
   )
 }
 
-function HeroSeat({ snapshot }: { snapshot: TableSnapshot }) {
+function HeroSeat({ snapshot, voiceless }: { snapshot: TableSnapshot; voiceless: boolean }) {
   const warning = (snapshot.heroRemainingSeconds ?? 60) <= 10
   const isTurn = snapshot.recordingState !== 'hidden' || snapshot.actions.some((action) => action.enabled)
 
@@ -71,23 +77,27 @@ function HeroSeat({ snapshot }: { snapshot: TableSnapshot }) {
           </span>
         ) : null}
       </div>
-      <RecordingStatus state={snapshot.recordingState} />
+      <RecordingStatus state={snapshot.recordingState} voiceless={voiceless} />
     </div>
   )
 }
 
 interface GameTableProps {
   snapshot: TableSnapshot
+  voiceless?: boolean
 }
 
-export function GameTable({ snapshot }: GameTableProps) {
+export function GameTable({ snapshot, voiceless = false }: GameTableProps) {
   return (
-    <main aria-label={`핸드 ${snapshot.handNumber} 포커 테이블`} className="game-table-area">
+    <main aria-labelledby="table-title" className="game-table-area">
+      <h1 className="visually-hidden" id="table-title">
+        핸드 #{snapshot.handNumber} 포커 테이블 · {snapshot.street}
+      </h1>
       <div aria-hidden="true" className="poker-table">
         <div className="poker-table-inner" />
       </div>
 
-      <div aria-label="현재 팟" className="pot-cluster">
+      <div aria-label="현재 팟" className="pot-cluster" role="group">
         <div className="pot-row">
           {snapshot.pots.map((pot) => (
             <div className="pot-pill" key={pot.label}>
@@ -99,7 +109,7 @@ export function GameTable({ snapshot }: GameTableProps) {
         {snapshot.potNote ? <div className="pot-note">{snapshot.potNote}</div> : null}
       </div>
 
-      <div aria-label={`${snapshot.street} 커뮤니티 카드`} className="community-board">
+      <div aria-label={`${snapshot.street} 커뮤니티 카드`} className="community-board" role="group">
         <div className="community-cards">
           {snapshot.board.map((card, index) =>
             card ? <PlayingCard card={card} key={`${card.rank}-${card.suit}-${index}`} /> : <EmptyCardSlot key={`empty-${index}`} />,
@@ -111,17 +121,21 @@ export function GameTable({ snapshot }: GameTableProps) {
         </div>
       </div>
 
-      <div aria-label="참가자 좌석" className="seat-layer">
+      <div aria-label="참가자 좌석" className="seat-layer" role="group">
         {snapshot.seats.map((seat) => (
           <PlayerSeat key={seat.id} seat={seat} />
         ))}
       </div>
 
-      <HeroSeat snapshot={snapshot} />
+      <HeroSeat snapshot={snapshot} voiceless={voiceless} />
 
       <div className="privacy-note">
-        <Mic20Regular aria-hidden="true" />
-        <span>음성은 내 차례에만 기록되며 플레이 중 상대에게 전달되지 않습니다.</span>
+        {voiceless ? <MicOff20Regular aria-hidden="true" /> : <Mic20Regular aria-hidden="true" />}
+        <span>
+          {voiceless
+            ? '음성 없이 참여 중입니다. 내 차례에도 음성이 기록되지 않습니다.'
+            : '음성은 내 차례에만 기록되며 플레이 중 상대에게 전달되지 않습니다.'}
+        </span>
       </div>
     </main>
   )

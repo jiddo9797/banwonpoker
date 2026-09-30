@@ -107,6 +107,8 @@ export interface PrototypeState {
   pendingAction?: ActionOption['id']
   toast?: ToastMessage
   leaveDialogOpen: boolean
+  menuOpen: boolean
+  endSessionDialogOpen: boolean
 }
 
 export type PrototypeAction =
@@ -120,6 +122,10 @@ export type PrototypeAction =
   | { type: 'toast.dismissed' }
   | { type: 'leave.opened' }
   | { type: 'leave.closed' }
+  | { type: 'menu.toggled' }
+  | { type: 'menu.closed' }
+  | { type: 'endSession.opened' }
+  | { type: 'endSession.closed' }
 
 export function isScenarioKey(value: string | null): value is ScenarioKey {
   return scenarioKeys.includes(value as ScenarioKey)

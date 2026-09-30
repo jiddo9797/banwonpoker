@@ -1,9 +1,13 @@
 import { ChevronDown20Regular, ChevronUp20Regular } from '@fluentui/react-icons'
+import { useRef } from 'react'
+import type { KeyboardEvent } from 'react'
+import { formatChips } from '../../../shared/format'
 import type { PanelTab, TableSnapshot } from '../model'
 
-function formatChips(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value)
-}
+const tabs: Array<{ id: PanelTab; label: string }> = [
+  { id: 'log', label: '로그' },
+  { id: 'participants', label: '참가자' },
+]
 
 interface SidePanelProps {
   snapshot: TableSnapshot
@@ -20,38 +24,46 @@ export function SidePanel({
   onTabChange,
   onToggleCollapsed,
 }: SidePanelProps) {
-  const moveTab = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+  const tabRefs = useRef<Partial<Record<PanelTab, HTMLButtonElement | null>>>({})
+
+  // WAI-ARIA 탭 패턴: 방향키·Home·End로 탭을 바꾸고 포커스도 함께 옮긴다.
+  const moveTab = (event: KeyboardEvent<HTMLDivElement>) => {
+    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab)
+    let nextIndex: number
+
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length
+    else if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = tabs.length - 1
+    else return
+
     event.preventDefault()
-    onTabChange(activeTab === 'log' ? 'participants' : 'log')
+    const nextTab = tabs[nextIndex].id
+    onTabChange(nextTab)
+    tabRefs.current[nextTab]?.focus()
   }
 
   return (
-    <section className={`side-panel ${collapsed ? 'is-collapsed' : ''}`}>
+    <section aria-label="로그와 참가자" className={`side-panel ${collapsed ? 'is-collapsed' : ''}`}>
       <div className="panel-header">
         <div aria-label="테이블 정보" className="panel-tabs" onKeyDown={moveTab} role="tablist">
-          <button
-            aria-controls="log-panel"
-            aria-selected={activeTab === 'log'}
-            id="log-tab"
-            onClick={() => onTabChange('log')}
-            role="tab"
-            tabIndex={activeTab === 'log' ? 0 : -1}
-            type="button"
-          >
-            로그
-          </button>
-          <button
-            aria-controls="participants-panel"
-            aria-selected={activeTab === 'participants'}
-            id="participants-tab"
-            onClick={() => onTabChange('participants')}
-            role="tab"
-            tabIndex={activeTab === 'participants' ? 0 : -1}
-            type="button"
-          >
-            참가자
-          </button>
+          {tabs.map((tab) => (
+            <button
+              aria-controls={collapsed ? undefined : `${tab.id}-panel`}
+              aria-selected={activeTab === tab.id}
+              id={`${tab.id}-tab`}
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              ref={(element) => {
+                tabRefs.current[tab.id] = element
+              }}
+              role="tab"
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         <button
           aria-expanded={!collapsed}
@@ -72,7 +84,7 @@ export function SidePanel({
       </div>
 
       {!collapsed && activeTab === 'log' ? (
-        <div aria-labelledby="log-tab" className="panel-body" id="log-panel" role="tabpanel">
+        <div aria-labelledby="log-tab" className="panel-body" id="log-panel" role="tabpanel" tabIndex={0}>
           <ol className="game-log">
             {snapshot.logs.slice(0, 5).map((log, index) => (
               <li className={index === 0 ? 'is-latest' : ''} key={`${log}-${index}`}>
@@ -90,6 +102,7 @@ export function SidePanel({
           className="panel-body"
           id="participants-panel"
           role="tabpanel"
+          tabIndex={0}
         >
           <ul className="participant-list">
             {snapshot.seats.map((seat) => (

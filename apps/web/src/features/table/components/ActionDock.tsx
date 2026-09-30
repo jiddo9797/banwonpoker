@@ -1,8 +1,5 @@
 import type { ActionOption, DemoPhase, TableSnapshot } from '../model'
-
-function formatChips(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value)
-}
+import { formatChips } from '../../../shared/format'
 
 function roundToStep(value: number, step: number) {
   return Math.round(value / step) * step
@@ -44,7 +41,7 @@ export function ActionDock({
             <span>
               콜 {formatChips(snapshot.callAmount)} · 최소 레이즈 {formatChips(snapshot.minRaise)}
             </span>
-            <div aria-label="빠른 베팅 금액" className="quick-bets">
+            <div aria-label="빠른 베팅 금액" className="quick-bets" role="group">
               {quickBets.map((bet) => (
                 <button
                   aria-pressed={selectedBetAmount === bet.value}
@@ -82,13 +79,10 @@ export function ActionDock({
         {snapshot.actions.map((action) => {
           const enabled = action.enabled && !isPending
           const isSubmitted = isPending && action.id === (pendingAction ?? 'raise')
-          const label =
-            isSubmitted
-              ? '처리 중…'
-              : action.id === 'raise' && action.enabled
-              ? isSubmitted
-                ? '처리 중…'
-                : `레이즈 ${formatChips(selectedBetAmount)}`
+          const label = isSubmitted
+            ? '처리 중…'
+            : action.id === 'raise' && action.enabled
+              ? `레이즈 ${formatChips(selectedBetAmount)}`
               : action.label
           const detail = isSubmitted
             ? action.id === 'raise'

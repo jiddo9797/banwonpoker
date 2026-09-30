@@ -29,6 +29,8 @@ export function createInitialPrototypeState(
     pendingAction: scenarioKey === 'pending' ? 'raise' : undefined,
     toast: snapshot.toast,
     leaveDialogOpen: false,
+    menuOpen: false,
+    endSessionDialogOpen: false,
   }
 }
 
@@ -48,6 +50,8 @@ export function prototypeReducer(
         pendingAction: action.scenarioKey === 'pending' ? 'raise' : undefined,
         toast: snapshot.toast,
         leaveDialogOpen: false,
+        menuOpen: false,
+        endSessionDialogOpen: false,
       }
     }
 
@@ -112,6 +116,7 @@ export function prototypeReducer(
     case 'leave.opened':
       return {
         ...state,
+        menuOpen: false,
         leaveDialogOpen: true,
       }
 
@@ -119,6 +124,31 @@ export function prototypeReducer(
       return {
         ...state,
         leaveDialogOpen: false,
+      }
+
+    case 'menu.toggled':
+      return {
+        ...state,
+        menuOpen: !state.menuOpen,
+      }
+
+    case 'menu.closed':
+      return {
+        ...state,
+        menuOpen: false,
+      }
+
+    case 'endSession.opened':
+      return {
+        ...state,
+        menuOpen: false,
+        endSessionDialogOpen: true,
+      }
+
+    case 'endSession.closed':
+      return {
+        ...state,
+        endSessionDialogOpen: false,
       }
   }
 }

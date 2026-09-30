@@ -4,45 +4,23 @@ import {
   Info20Regular,
   Warning20Filled,
 } from '@fluentui/react-icons'
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef } from 'react'
+import { isCompactViewport } from '../../shared/CanvasStage'
+import { Dialog } from '../../shared/Dialog'
+import { formatChips } from '../../shared/format'
 import { ActionDock } from './components/ActionDock'
 import { GameTable } from './components/GameTable'
 import { SidePanel } from './components/SidePanel'
 import { TableChrome } from './components/TableChrome'
 import { getTableSnapshot } from './fixtures'
-import { isScenarioKey } from './model'
 import type { ActionOption, ScenarioKey, TableSnapshot, ToastMessage } from './model'
 import { createInitialPrototypeState, prototypeReducer } from './reducer'
 
-const CANVAS_WIDTH = 1440
-const CANVAS_HEIGHT = 900
+export const PENDING_CONFIRM_DELAY_MS = 1200
 
-function readScenarioFromUrl(): ScenarioKey {
-  if (typeof window === 'undefined') return 'opp'
-  const value = new URLSearchParams(window.location.search).get('scenario')
-  return isScenarioKey(value) ? value : 'opp'
-}
-
-function getCanvasScale() {
-  if (typeof window === 'undefined') return 1
-  return Math.min(window.innerWidth / CANVAS_WIDTH, window.innerHeight / CANVAS_HEIGHT, 1)
-}
-
-function useCanvasScale() {
-  const [scale, setScale] = useState(getCanvasScale)
-
-  useEffect(() => {
-    const updateScale = () => setScale(getCanvasScale())
-    window.addEventListener('resize', updateScale)
-    return () => window.removeEventListener('resize', updateScale)
-  }, [])
-
-  return scale
-}
-
-function settledSnapshot(snapshot: TableSnapshot, amount: number, actionId?: ActionOption['id']) {
+export function settledSnapshot(snapshot: TableSnapshot, amount: number, actionId?: ActionOption['id']): TableSnapshot {
   const actionLabel = actionId === 'fold' ? '폴드' : actionId === 'call' ? '콜' : actionId === 'check' ? '체크' : '레이즈'
-  const actionLog = actionId === 'raise' ? `내가 ${amount.toLocaleString('ko-KR')}으로 레이즈` : `내가 ${actionLabel}`
+  const actionLog = actionId === 'raise' ? `내가 ${formatChips(amount)}으로 레이즈` : `내가 ${actionLabel}`
 
   return {
     ...snapshot,
@@ -53,13 +31,13 @@ function settledSnapshot(snapshot: TableSnapshot, amount: number, actionId?: Act
     ),
     heroBet: actionId === 'raise' ? amount : snapshot.heroBet,
     heroStack: actionId === 'raise' ? Math.max(0, snapshot.heroStack - amount) : snapshot.heroStack,
-    recordingState: 'hidden' as const,
+    recordingState: 'hidden',
     heroRemainingSeconds: undefined,
     actionHint: '유진 차례를 기다리는 중',
     actions: getTableSnapshot('opp').actions,
     logs: [actionLog, ...snapshot.logs],
     toast: {
-      kind: 'success' as const,
+      kind: 'success',
       message: `${actionLabel} 액션이 확정되었습니다`,
     },
   }
@@ -82,51 +60,87 @@ function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () => voi
   )
 }
 
-function LeaveDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface ConfirmDialogProps {
+  open: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function LeaveDialog({ open, onCancel, onConfirm }: ConfirmDialogProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    cancelButtonRef.current?.focus()
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
-
-  if (!open) return null
-
   return (
-    <div className="modal-backdrop">
-      <section aria-describedby="leave-description" aria-labelledby="leave-title" className="leave-dialog" role="dialog">
-        <h2 id="leave-title">테이블에서 나갈까요?</h2>
-        <p id="leave-description">
-          진행 중인 핸드는 폴드 처리됩니다. 이 화면은 프로토타입이므로 실제 퇴장이나 게임 상태 변경은 발생하지 않습니다.
-        </p>
-        <div className="dialog-actions">
-          <button onClick={onClose} ref={cancelButtonRef} type="button">
-            계속 플레이
-          </button>
-          <button className="danger-button" onClick={onClose} type="button">
-            나가기
-          </button>
-        </div>
-      </section>
-    </div>
+    <Dialog
+      description={<p>이번 핸드는 폴드 처리됩니다. 남은 칩은 세션 기록에 그대로 남습니다.</p>}
+      initialFocusRef={cancelButtonRef}
+      onClose={onCancel}
+      open={open}
+      title="테이블에서 나갈까요?"
+    >
+      <div className="dialog-actions">
+        <button onClick={onCancel} ref={cancelButtonRef} type="button">
+          계속 플레이
+        </button>
+        <button className="danger-button" onClick={onConfirm} type="button">
+          나가기
+        </button>
+      </div>
+    </Dialog>
   )
 }
 
-export function TablePrototype() {
-  const initialScenario = useMemo(readScenarioFromUrl, [])
+function EndSessionDialog({ open, onCancel, onConfirm }: ConfirmDialogProps) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null)
+
+  return (
+    <Dialog
+      description={
+        <p>
+          진행 중인 핸드는 무효 처리되고, 참가자 전원이 세션 요약과 복기 화면으로 이동합니다. 종료한 세션은 다시 열 수
+          없습니다.
+        </p>
+      }
+      initialFocusRef={cancelButtonRef}
+      onClose={onCancel}
+      open={open}
+      title="세션을 종료할까요?"
+    >
+      <div className="dialog-actions">
+        <button onClick={onCancel} ref={cancelButtonRef} type="button">
+          계속 플레이
+        </button>
+        <button className="danger-button" onClick={onConfirm} type="button">
+          세션 종료
+        </button>
+      </div>
+    </Dialog>
+  )
+}
+
+interface TablePrototypeProps {
+  scenarioKey: ScenarioKey
+  /** `음성 없이 참여`를 선택했는지. 내 좌석의 기록 상태 문구만 바뀐다. */
+  voiceless?: boolean
+  onLeave?: () => void
+  onEndSession?: () => void
+}
+
+export function TablePrototype({ scenarioKey, voiceless = false, onLeave, onEndSession }: TablePrototypeProps) {
   const [state, dispatch] = useReducer(
     prototypeReducer,
-    createInitialPrototypeState(
-      initialScenario,
-      typeof window !== 'undefined' && (window.innerWidth <= 1280 || window.innerHeight <= 720),
-    ),
+    undefined,
+    () => createInitialPrototypeState(scenarioKey, isCompactViewport()),
   )
-  const scale = useCanvasScale()
+
+  // 개발 도구나 URL로 시나리오가 바뀌면 목 상태를 새 시나리오로 맞춘다.
+  if (state.scenarioKey !== scenarioKey) {
+    dispatch({
+      type: 'scenario.changed',
+      scenarioKey,
+      defaultBet: getTableSnapshot(scenarioKey).selectedBetAmount,
+    })
+  }
+
   const baseSnapshot = useMemo(() => getTableSnapshot(state.scenarioKey), [state.scenarioKey])
 
   const snapshot = useMemo(() => {
@@ -149,71 +163,65 @@ export function TablePrototype() {
   const activeToast = state.demoPhase === 'settled' ? snapshot.toast : state.toast
 
   useEffect(() => {
-    const url = new URL(window.location.href)
-    url.searchParams.set('scenario', state.scenarioKey)
-    window.history.replaceState(null, '', url)
-  }, [state.scenarioKey])
-
-  useEffect(() => {
     if (state.demoPhase !== 'pending' || state.scenarioKey === 'pending') return
-    const timer = window.setTimeout(() => dispatch({ type: 'action.confirmed' }), 1200)
+    const timer = window.setTimeout(() => dispatch({ type: 'action.confirmed' }), PENDING_CONFIRM_DELAY_MS)
     return () => window.clearTimeout(timer)
   }, [state.demoPhase, state.scenarioKey])
 
-  const changeScenario = (scenarioKey: ScenarioKey) => {
-    const nextSnapshot = getTableSnapshot(scenarioKey)
-    dispatch({
-      type: 'scenario.changed',
-      scenarioKey,
-      defaultBet: nextSnapshot.selectedBetAmount,
-    })
-  }
-
   const invite = async () => {
     try {
-      await navigator.clipboard?.writeText(window.location.href)
+      await navigator.clipboard?.writeText(window.location.origin)
+    } catch {
+      // 목 프로토타입에서는 클립보드 권한이 없어도 같은 안내를 보여준다.
     } finally {
       dispatch({ type: 'invite.copied' })
     }
   }
 
   return (
-    <div className="prototype-viewport">
-      <div
-        className="canvas-stage"
-        style={{ width: CANVAS_WIDTH * scale, height: CANVAS_HEIGHT * scale }}
-      >
-        <div className="table-canvas" style={{ transform: `scale(${scale})` }}>
-          <TableChrome
-            onInvite={invite}
-            onLeave={() => dispatch({ type: 'leave.opened' })}
-            onScenarioChange={changeScenario}
-            scenarioKey={state.scenarioKey}
-            snapshot={snapshot}
-          />
-          <GameTable snapshot={snapshot} />
-          <SidePanel
-            activeTab={state.panelTab}
-            collapsed={state.panelCollapsed}
-            onTabChange={(tab) => dispatch({ type: 'panel.tabChanged', tab })}
-            onToggleCollapsed={() => dispatch({ type: 'panel.collapsedChanged' })}
-            snapshot={snapshot}
-          />
-          <ActionDock
-            onAction={(actionId) => dispatch({ type: 'action.submitted', actionId })}
-            onBetAmountChange={(amount) => dispatch({ type: 'bet.amountChanged', amount })}
-            pendingAction={state.pendingAction}
-            phase={state.demoPhase}
-            selectedBetAmount={state.selectedBetAmount}
-            snapshot={snapshot}
-          />
-          {activeToast ? (
-            <Toast onDismiss={() => dispatch({ type: 'toast.dismissed' })} toast={activeToast} />
-          ) : null}
-          <LeaveDialog onClose={() => dispatch({ type: 'leave.closed' })} open={state.leaveDialogOpen} />
-        </div>
-      </div>
-      <p className="small-screen-note">이 프로토타입은 최소 1280×720 PC 화면을 기준으로 설계되었습니다.</p>
-    </div>
+    <>
+      <TableChrome
+        menuOpen={state.menuOpen}
+        onCloseMenu={() => dispatch({ type: 'menu.closed' })}
+        onEndSession={() => dispatch({ type: 'endSession.opened' })}
+        onInvite={invite}
+        onLeave={() => dispatch({ type: 'leave.opened' })}
+        onToggleMenu={() => dispatch({ type: 'menu.toggled' })}
+        snapshot={snapshot}
+      />
+      <GameTable snapshot={snapshot} voiceless={voiceless} />
+      <SidePanel
+        activeTab={state.panelTab}
+        collapsed={state.panelCollapsed}
+        onTabChange={(tab) => dispatch({ type: 'panel.tabChanged', tab })}
+        onToggleCollapsed={() => dispatch({ type: 'panel.collapsedChanged' })}
+        snapshot={snapshot}
+      />
+      <ActionDock
+        onAction={(actionId) => dispatch({ type: 'action.submitted', actionId })}
+        onBetAmountChange={(amount) => dispatch({ type: 'bet.amountChanged', amount })}
+        pendingAction={state.pendingAction}
+        phase={state.demoPhase}
+        selectedBetAmount={state.selectedBetAmount}
+        snapshot={snapshot}
+      />
+      {activeToast ? <Toast onDismiss={() => dispatch({ type: 'toast.dismissed' })} toast={activeToast} /> : null}
+      <LeaveDialog
+        onCancel={() => dispatch({ type: 'leave.closed' })}
+        onConfirm={() => {
+          dispatch({ type: 'leave.closed' })
+          onLeave?.()
+        }}
+        open={state.leaveDialogOpen}
+      />
+      <EndSessionDialog
+        onCancel={() => dispatch({ type: 'endSession.closed' })}
+        onConfirm={() => {
+          dispatch({ type: 'endSession.closed' })
+          onEndSession?.()
+        }}
+        open={state.endSessionDialogOpen}
+      />
+    </>
   )
 }
