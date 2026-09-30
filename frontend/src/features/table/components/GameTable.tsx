@@ -1,8 +1,11 @@
 import { Clock20Regular, Mic20Regular, MicOff20Regular, Warning20Filled } from '@fluentui/react-icons'
 import type { RecordingState, TableSnapshot } from '../model'
-import { EmptyCardSlot, PlayingCard } from './PlayingCard'
+import { EmptyCardSlot, FlipInCard, PlayingCard } from './PlayingCard'
 import { PlayerSeat } from './PlayerSeat'
 import { formatChips } from '../../../shared/format'
+
+/** 플랍 카드끼리 뒤집히기 시작하는 간격 */
+const FLOP_STAGGER_MS = 140
 
 function RecordingStatus({ state, voiceless }: { state: RecordingState; voiceless: boolean }) {
   if (state === 'hidden') return null
@@ -122,7 +125,12 @@ export function GameTable({ snapshot, voiceless = false, heroLabel = '나', show
       <div aria-label={`${snapshot.street} 커뮤니티 카드`} className="community-board" role="group">
         <div className="community-cards">
           {snapshot.board.map((card, index) =>
-            card ? <PlayingCard card={card} key={`${card.rank}-${card.suit}-${index}`} /> : <EmptyCardSlot key={`empty-${index}`} />,
+            card ? (
+              // 플랍 세 장은 차례로 조금씩 늦게 뒤집는다. 턴·리버는 바로 뒤집는다.
+              <FlipInCard card={card} delayMs={index < 3 ? index * FLOP_STAGGER_MS : 0} key={`${card.rank}-${card.suit}-${index}`} />
+            ) : (
+              <EmptyCardSlot key={`empty-${index}`} />
+            ),
           )}
         </div>
         <div className="street-row">
