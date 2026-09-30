@@ -2,11 +2,10 @@ import { Speaker220Regular } from '@fluentui/react-icons'
 import { formatChips } from '../../../shared/format'
 import { EmptyCardSlot, PlayingCard } from '../../table/components/PlayingCard'
 import { streetLabels, visibleBoardCount } from '../fixtures'
-import type { HandAction, ReplayHand, ReplayPlayer } from '../model'
+import type { ReplayHand, ReplayPlayer } from '../model'
 
 interface PlayerView {
   player: ReplayPlayer
-  lastAction?: HandAction
   folded: boolean
   isActor: boolean
 }
@@ -19,7 +18,6 @@ function playerViews(hand: ReplayHand, index: number): PlayerView[] {
     const own = played.filter((action) => action.playerId === player.id)
     return {
       player,
-      lastAction: own[own.length - 1],
       folded: own.some((action) => action.kind === 'fold'),
       isActor: current?.playerId === player.id,
     }
@@ -61,7 +59,8 @@ export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
         {current.kind === 'result' ? <span className="table-message">{hand.result}</span> : null}
       </div>
 
-      {playerViews(hand, index).map(({ player, lastAction, folded, isActor }) => {
+      {/* 좌석에는 액션 글자·금액을 쓰지 않는다. 음성을 듣기 전에 무엇을 했는지 먼저 보이지 않게, 액션은 현재 액션 칸에서만 보여준다. */}
+      {playerViews(hand, index).map(({ player, folded, isActor }) => {
         const speaking = isActor && current.audio.status === 'voice'
         return (
           <div
@@ -82,7 +81,6 @@ export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
                 <strong>{player.name}</strong>
                 {player.badge ? <span className="replay-badge">{player.badge}</span> : null}
               </div>
-              <span className="replay-seat-action">{folded ? '폴드' : (lastAction?.label ?? '대기')}</span>
             </div>
             {speaking ? (
               <span className="speaking-chip">

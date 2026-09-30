@@ -985,11 +985,11 @@ input:focus-visible {
   cursor: pointer;
 }
 
-.bet-slider-row output {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+.bet-slider-row .bet-amount-input {
+  width: 100%;
+  min-width: 0;
   height: 36px;
+  text-align: right;
   padding: 0 12px;
   border: 1px solid var(--stroke-control);
   border-radius: 4px;
@@ -1201,6 +1201,33 @@ input:focus-visible {
   gap: 7px;
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.participant-list li.can-kick {
+  grid-template-columns: auto 1fr auto auto;
+}
+
+.participant-list li.can-kick > span:last-of-type {
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.kick-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--stroke-control);
+  border-radius: 6px;
+  color: var(--critical-text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.kick-icon-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .participant-list strong {

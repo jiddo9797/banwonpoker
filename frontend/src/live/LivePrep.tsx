@@ -11,6 +11,8 @@ import { hasErrors, validateRoomSettings } from '../features/room/settings'
 import type { RoomSettings } from '../features/room/settings'
 import { toLobbyParticipants } from './adapt'
 import type { LiveClient, LiveError } from './client'
+import { KickDialog } from './KickDialog'
+import type { KickTarget } from './KickDialog'
 import { checkMicrophone } from './microphone'
 
 const SETTINGS_DEBOUNCE_MS = 400
@@ -35,6 +37,7 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
   const [seatError, setSeatError] = useState<string>()
   const [draft, setDraft] = useState<RoomSettings>(room.settings)
   const lastSentSettings = useRef(JSON.stringify(room.settings))
+  const [kickTarget, setKickTarget] = useState<KickTarget | null>(null)
 
   // 좌석을 거절당하면 좌석 선택으로 돌아가 이유를 보여준다.
   const [seenError, setSeenError] = useState(lastError?.id)
@@ -84,7 +87,18 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
     hostName: host?.nickname ?? '',
     participants: others,
     roomCode: room.code,
+    onKick: you.isHost ? (participant) => setKickTarget({ id: participant.id, name: participant.name }) : undefined,
   }
+  const kickDialog = (
+    <KickDialog
+      onCancel={() => setKickTarget(null)}
+      onConfirm={(target) => {
+        setKickTarget(null)
+        client.send({ type: 'player.kick', playerId: target.id })
+      }}
+      target={kickTarget}
+    />
+  )
   const nickname = room.participants.find((participant) => participant.id === you.playerId)?.nickname ?? ''
   const seatNumber = you.seat === null ? undefined : you.seat + 1
 
@@ -103,6 +117,7 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
       errorMessage: lobbyError,
     }
     return (
+      <>
       <LobbyScreen
         context={context}
         live={live}
@@ -119,11 +134,14 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
         seatNumber={seatNumber}
         selfMicLabel={you.voiceless ? '음성 없이 참여' : micStatus === 'idle' ? '확인됨' : micStatusLabel(micStatus, you.voiceless)}
       />
+      {kickDialog}
+      </>
     )
   }
 
   if (step === 'seat') {
     return (
+      <>
       <SeatScreen
         context={context}
         errorMessage={seatError}
@@ -137,11 +155,14 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
           setStep('consent')
         }}
       />
+      {kickDialog}
+      </>
     )
   }
 
   if (step === 'consent') {
     return (
+      <>
       <ConsentScreen
         consent={consent}
         context={context}
@@ -151,10 +172,13 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
         onNext={() => setStep('mic')}
         seatNumber={seatNumber}
       />
+      {kickDialog}
+      </>
     )
   }
 
   return (
+    <>
     <MicCheckScreen
       consent={consent}
       context={context}
@@ -168,5 +192,7 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
       seatNumber={seatNumber}
       voiceless={voiceless}
     />
+    {kickDialog}
+    </>
   )
 }

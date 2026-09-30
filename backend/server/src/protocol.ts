@@ -37,6 +37,8 @@ export type ClientMessage =
   /** clientActionId가 같은 요청은 한 번만 처리한다(중복 입력 잠금). */
   | { type: 'action'; clientActionId: string; action: PlayerAction }
   | { type: 'session.end' }
+  /** 방장이 다른 참가자를 내보낸다. */
+  | { type: 'player.kick'; playerId: string }
   | { type: 'room.leave' }
   | { type: 'ping' }
 
@@ -65,6 +67,9 @@ export type ErrorCode =
   | 'ACTION_REJECTED'
   /** 다른 탭·기기에서 같은 자리로 들어와 이 연결을 끊었다. */
   | 'SESSION_REPLACED'
+  /** 방장이 이 참가자를 내보냈다. */
+  | 'KICKED'
+  | 'NOT_FOUND'
 
 export interface ErrorBody {
   code: ErrorCode
@@ -237,6 +242,9 @@ export function parseClientMessage(value: unknown): Parsed {
       }
       return { ok: true, message: { type: 'action', clientActionId: value.clientActionId, action } }
     }
+    case 'player.kick':
+      if (!isString(value.playerId) || value.playerId.length === 0) return bad('내보낼 참가자가 필요합니다.')
+      return { ok: true, message: { type: 'player.kick', playerId: value.playerId } }
     case 'game.start':
     case 'session.end':
     case 'room.leave':
