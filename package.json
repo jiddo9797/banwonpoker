@@ -10,6 +10,9 @@
     "dev": "pnpm --filter @banwonpoker/web dev",
     "build": "pnpm --filter @banwonpoker/web build",
     "lint": "pnpm --filter @banwonpoker/web lint",
-    "typecheck": "pnpm --filter @banwonpoker/web typecheck"
+    "typecheck": "pnpm --filter @banwonpoker/web typecheck",
+    "test": "pnpm --filter @banwonpoker/web test",
+    "test:e2e": "pnpm --filter @banwonpoker/web test:e2e",
+    "test:e2e:update": "pnpm --filter @banwonpoker/web test:e2e:update"
   }
 }

@@ -1,9 +1,6 @@
 import type { Seat } from '../model'
 import { PlayingCard } from './PlayingCard'
-
-function formatChips(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value)
-}
+import { formatChips } from '../../../shared/format'
 
 function statusLabel(seat: Seat) {
   if (seat.status === 'folded') return '폴드'
@@ -40,14 +37,18 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
 
   return (
     <div className={classes}>
-      <div aria-label={`${seat.name}의 비공개 홀카드 2장`} className="opponent-card-stack">
-        {seat.status === 'folded' ? null : (
-          <>
-            <PlayingCard card={seat.showdownCards?.[0]} size="small" />
-            <PlayingCard card={seat.showdownCards?.[1]} className="overlap" size="small" />
-          </>
-        )}
-      </div>
+      {seat.status === 'folded' ? (
+        <div className="opponent-card-stack" />
+      ) : (
+        <div
+          aria-label={seat.showdownCards ? `${seat.name}의 공개된 홀카드` : `${seat.name}의 비공개 홀카드 2장`}
+          className="opponent-card-stack"
+          role="group"
+        >
+          <PlayingCard card={seat.showdownCards?.[0]} size="small" />
+          <PlayingCard card={seat.showdownCards?.[1]} className="overlap" size="small" />
+        </div>
+      )}
 
       <div className="seat-panel">
         <div className="seat-name-row">

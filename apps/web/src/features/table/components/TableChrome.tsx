@@ -2,26 +2,20 @@ import {
   DoorArrowLeft20Regular,
   Navigation20Regular,
   Person20Regular,
+  Power20Regular,
   Settings20Regular,
   Share20Regular,
 } from '@fluentui/react-icons'
-import type { ScenarioKey, TableSnapshot } from '../model'
-
-const scenarioOptions: Array<{ key: ScenarioKey; label: string }> = [
-  { key: 'opp', label: '상대 차례' },
-  { key: 'my', label: '내 차례' },
-  { key: 'pending', label: '액션 처리 중' },
-  { key: 'fold', label: '폴드 직후' },
-  { key: 'allin', label: '올인 · 사이드팟' },
-  { key: 'showdown', label: '쇼다운' },
-  { key: 'disc', label: '연결 끊김' },
-  { key: 'micfail', label: '마이크 실패' },
-]
+import { useEffect, useRef } from 'react'
+import type { KeyboardEvent } from 'react'
+import type { TableSnapshot } from '../model'
 
 interface TableChromeProps {
   snapshot: TableSnapshot
-  scenarioKey: ScenarioKey
-  onScenarioChange: (key: ScenarioKey) => void
+  menuOpen: boolean
+  onToggleMenu: () => void
+  onCloseMenu: () => void
+  onEndSession: () => void
   onInvite: () => void
   onLeave: () => void
 }
@@ -34,32 +28,37 @@ function connectionLabel(connection: TableSnapshot['connection']) {
 
 export function TableChrome({
   snapshot,
-  scenarioKey,
-  onScenarioChange,
+  menuOpen,
+  onToggleMenu,
+  onCloseMenu,
+  onEndSession,
   onInvite,
   onLeave,
 }: TableChromeProps) {
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const firstMenuItemRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (menuOpen) firstMenuItemRef.current?.focus()
+  }, [menuOpen])
+
+  const closeMenuOnEscape = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Escape' || !menuOpen) return
+    event.stopPropagation()
+    onCloseMenu()
+    menuButtonRef.current?.focus()
+  }
+
   return (
     <>
-      <div className="wordmark">banwonpoker</div>
-
-      <label className="scenario-picker">
-        <span>프로토타입 상태</span>
-        <select
-          aria-label="프로토타입 화면 상태"
-          onChange={(event) => onScenarioChange(event.target.value as ScenarioKey)}
-          value={scenarioKey}
+      <nav aria-label="테이블 메뉴" className="side-menu" onKeyDown={closeMenuOnEscape}>
+        <button
+          aria-controls="table-menu-popover"
+          aria-expanded={menuOpen}
+          onClick={onToggleMenu}
+          ref={menuButtonRef}
+          type="button"
         >
-          {scenarioOptions.map((option) => (
-            <option key={option.key} value={option.key}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <nav aria-label="테이블 메뉴" className="side-menu">
-        <button type="button">
           <Navigation20Regular aria-hidden="true" />
           <span>메뉴</span>
         </button>
@@ -71,34 +70,59 @@ export function TableChrome({
           <DoorArrowLeft20Regular aria-hidden="true" />
           <span>나가기</span>
         </button>
+
+        {menuOpen ? (
+          <div className="menu-popover" id="table-menu-popover">
+            <p className="menu-popover-caption">방장 메뉴</p>
+            <button
+              className="menu-popover-item is-danger"
+              onClick={() => {
+                // 메뉴 항목은 곧 사라지므로 다이얼로그가 닫힌 뒤 돌아올 곳을 메뉴 버튼으로 둔다.
+                menuButtonRef.current?.focus()
+                onEndSession()
+              }}
+              ref={firstMenuItemRef}
+              type="button"
+            >
+              <Power20Regular aria-hidden="true" />
+              <span>
+                세션 종료
+                <small>전원이 세션 요약과 복기로 이동합니다</small>
+              </span>
+            </button>
+          </div>
+        ) : null}
       </nav>
 
-      <header className="table-header">
-        <div className="session-meta">
-          <span className={`connection-state connection-state--${snapshot.connection}`}>
-            <span aria-hidden="true" className="connection-dot" />
-            {connectionLabel(snapshot.connection)}
-          </span>
-          <span aria-hidden="true" className="meta-divider" />
-          <span>방장</span>
-          <span aria-hidden="true" className="meta-divider" />
-          <span>핸드 #{snapshot.handNumber}</span>
-        </div>
-        <div className="game-meta">
-          <span>{snapshot.gameType}</span>
-          <strong>
-            {snapshot.smallBlind} / {snapshot.bigBlind}
-          </strong>
-        </div>
-        <div className="header-actions">
-          <button onClick={onInvite} type="button">
-            <Share20Regular aria-hidden="true" />
-            초대
-          </button>
-          <button type="button">
-            <Settings20Regular aria-hidden="true" />
-            설정
-          </button>
+      <header className="chrome-header">
+        <div className="wordmark">banwonpoker</div>
+        <div className="table-header">
+          <div className="session-meta">
+            <span className={`connection-state connection-state--${snapshot.connection}`}>
+              <span aria-hidden="true" className="connection-dot" />
+              {connectionLabel(snapshot.connection)}
+            </span>
+            <span aria-hidden="true" className="meta-divider" />
+            <span>방장</span>
+            <span aria-hidden="true" className="meta-divider" />
+            <span>핸드 #{snapshot.handNumber}</span>
+          </div>
+          <div className="game-meta">
+            <span>{snapshot.gameType}</span>
+            <strong>
+              {snapshot.smallBlind} / {snapshot.bigBlind}
+            </strong>
+          </div>
+          <div className="header-actions">
+            <button onClick={onInvite} type="button">
+              <Share20Regular aria-hidden="true" />
+              초대
+            </button>
+            <button type="button">
+              <Settings20Regular aria-hidden="true" />
+              설정
+            </button>
+          </div>
         </div>
       </header>
     </>

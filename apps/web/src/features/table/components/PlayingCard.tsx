@@ -64,6 +64,6 @@ export function PlayingCard({
   )
 }
 
-export function EmptyCardSlot() {
-  return <span aria-hidden="true" className="playing-card playing-card--empty playing-card--large" />
+export function EmptyCardSlot({ size = 'large' }: { size?: PlayingCardProps['size'] }) {
+  return <span aria-hidden="true" className={`playing-card playing-card--empty playing-card--${size}`} />
 }
