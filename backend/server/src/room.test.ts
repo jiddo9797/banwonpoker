@@ -329,6 +329,46 @@ describe('세션 종료', () => {
   })
 })
 
+describe('방장의 내보내기', () => {
+  it('방장만 다른 참가자를 내보낼 수 있고 자기 자신은 내보낼 수 없다', () => {
+    const { send, lastError, hostId, minsu, eugene, state } = startedRoom()
+    send(minsu, { type: 'player.kick', playerId: eugene })
+    expect(lastError(minsu)?.code).toBe('NOT_HOST')
+    send(hostId, { type: 'player.kick', playerId: hostId })
+    expect(lastError(hostId)?.code).toBe('BAD_REQUEST')
+    send(hostId, { type: 'player.kick', playerId: 'nobody' })
+    expect(lastError(hostId)?.code).toBe('NOT_FOUND')
+    expect(state(hostId).room.participants).toHaveLength(3)
+  })
+
+  it('게임 중에 내보내면 알리고 연결을 끊으며, 차례였다면 폴드되고 같은 자리로 돌아올 수 없다', () => {
+    const { room, send, state, messages, hostId, minsu, eugene } = startedRoom()
+    const closed: string[] = []
+    room.attach(minsu, (message) => messages(minsu).push(message), () => closed.push('minsu'))
+    send(hostId, { type: 'action', clientActionId: 'f1', action: { type: 'fold' } })
+    expect(state(hostId).game!.turn?.playerId).toBe(minsu)
+
+    send(hostId, { type: 'player.kick', playerId: minsu })
+    expect(messages(minsu).at(-1)).toMatchObject({ type: 'error', error: { code: 'KICKED' } })
+    expect(closed).toEqual(['minsu'])
+    expect(room.findByToken('t2')).toBeUndefined()
+    const seen = state(eugene)
+    expect(seen.room.participants.map((participant) => participant.nickname)).toEqual(['하늘', '유진'])
+    // 민수가 폴드되어 유진이 이번 핸드를 가져간다.
+    expect(seen.game!.view.phase).toBe('complete')
+  })
+
+  it('대기실에서 내보내면 좌석이 빈다', () => {
+    const { join, send, prepare, state, hostId } = setupRoom()
+    const minsu = join('민수')
+    prepare(minsu, 3)
+    send(hostId, { type: 'player.kick', playerId: minsu })
+    send(hostId, { type: 'seat.take', seat: 3 })
+    expect(state(hostId).you.seat).toBe(3)
+    expect(state(hostId).room.participants).toHaveLength(1)
+  })
+})
+
 describe('퇴장과 재접속', () => {
   it('자기 차례에 나가면 폴드되고, 방장이 나가면 다음 사람이 방장이 된다', () => {
     const { send, state, hostId, minsu } = startedRoom()

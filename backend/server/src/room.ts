@@ -253,6 +253,8 @@ export class Room {
         return this.act(participant, message.clientActionId, message.action)
       case 'session.end':
         return reply(this.endSessionBy(participant))
+      case 'player.kick':
+        return reply(this.kick(participant, message.playerId))
       case 'room.leave':
         return this.leave(participant)
       case 'ping':
@@ -406,6 +408,24 @@ export class Room {
     if (!this.isHost(participant)) return failure('NOT_HOST', '방장만 세션을 끝낼 수 있습니다.')
     if (this.phase !== 'playing') return failure('WRONG_PHASE', '진행 중인 게임이 없습니다.')
     this.endSession('host-ended')
+    return { ok: true, value: undefined }
+  }
+
+  /** 방장이 다른 참가자를 내보낸다. 게임 중이면 그 사람의 핸드는 폴드되고, 같은 자리로 돌아올 수 없다. */
+  private kick(host: Participant, targetId: string): Result {
+    if (!this.isHost(host)) return failure('NOT_HOST', '방장만 참가자를 내보낼 수 있습니다.')
+    if (this.phase === 'ended') return failure('WRONG_PHASE', '이미 끝난 세션입니다.')
+    if (targetId === host.id) return failure('BAD_REQUEST', '자기 자신은 내보낼 수 없습니다.')
+    const target = this.participants.get(targetId)
+    if (!target || target.left) return failure('NOT_FOUND', '방에 없는 참가자입니다.')
+
+    this.sendTo(target.id, { type: 'error', error: { code: 'KICKED', message: '방장이 방에서 내보냈습니다.' } })
+    const close = this.closers.get(target.id)
+    // 나간 뒤의 상태는 보내지 않는다.
+    this.connections.delete(target.id)
+    this.closers.delete(target.id)
+    this.leave(target)
+    close?.()
     return { ok: true, value: undefined }
   }
 

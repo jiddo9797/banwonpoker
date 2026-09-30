@@ -36,6 +36,8 @@ export interface LiveSnapshot {
   resuming: boolean
   /** 다른 탭·기기에서 같은 자리로 들어와 이 탭의 연결이 끊겼는지 */
   replaced: boolean
+  /** 방장이 이 참가자를 내보냈는지 */
+  kicked: boolean
 }
 
 export interface SavedSession {
@@ -110,6 +112,7 @@ export class LiveClient {
     clockOffset: 0,
     resuming: false,
     replaced: false,
+    kicked: false,
   }
   private session: SavedSession | null
   private reconnectAttempt = 0
@@ -194,7 +197,7 @@ export class LiveClient {
     this.socket?.close()
     this.socket = null
     this.queue = []
-    this.update({ status: 'idle', state: null, events: [], pending: null, lastError: null, resuming: false, replaced: false })
+    this.update({ status: 'idle', state: null, events: [], pending: null, lastError: null, resuming: false, replaced: false, kicked: false })
   }
 
   dismissError() {
@@ -346,6 +349,13 @@ export class LiveClient {
           // 다른 탭이 이 자리를 가져갔다. 서로 번갈아 뺏지 않도록 자동 재접속을 멈춘다.
           this.intentionalClose = true
           this.update({ replaced: true, state: null, events: [], pending: null, resuming: false })
+          return
+        }
+        if (message.error.code === 'KICKED') {
+          // 방장이 내보냈다. 같은 자리로 돌아갈 수 없으니 저장을 지우고 다시 연결하지 않는다.
+          this.forget()
+          this.intentionalClose = true
+          this.update({ kicked: true, state: null, events: [], pending: null, resuming: false })
           return
         }
         const resumeFailed = message.requestType === 'room.resume'

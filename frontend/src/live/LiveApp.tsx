@@ -5,26 +5,28 @@ import type { LiveClient } from './client'
 import { readHistory, rememberSession } from './history'
 import type { PastSession } from './history'
 import { getLiveClient, useLiveSnapshot } from './hooks'
-import { LiveHome, Reconnecting, Replaced } from './LiveHome'
+import { Kicked, LiveHome, Reconnecting, Replaced } from './LiveHome'
 import { LivePrep } from './LivePrep'
 import { LiveReplay } from './LiveReplay'
 import { LiveSummary } from './LiveSummary'
 import { LiveTable } from './LiveTable'
 
-type LiveScreen = 'home' | 'reconnecting' | 'replaced' | 'prep' | 'table' | 'summary' | 'replay'
+type LiveScreen = 'home' | 'reconnecting' | 'replaced' | 'kicked' | 'prep' | 'table' | 'summary' | 'replay'
 
 const titles: Record<LiveScreen, string> = {
   home: '시작',
   reconnecting: '다시 연결 중',
   replaced: '다른 탭에서 사용 중',
+  kicked: '내보내짐',
   prep: '게임 준비',
   table: '테이블',
   summary: '세션 요약',
   replay: '복기',
 }
 
-function screenOf(state: ClientState | null, resuming: boolean, replaced: boolean): LiveScreen {
+function screenOf(state: ClientState | null, resuming: boolean, replaced: boolean, kicked: boolean): LiveScreen {
   if (replaced) return 'replaced'
+  if (kicked) return 'kicked'
   if (!state) return resuming ? 'reconnecting' : 'home'
   if (state.room.phase === 'ended') return 'summary'
   const me = state.room.participants.find((participant) => participant.id === state.you.playerId)
@@ -43,7 +45,7 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
   const invitedRoom = useRef(roomFromUrl())
   const [replaying, setReplaying] = useState<PastSession | null>(null)
   const [history, setHistory] = useState(readHistory)
-  const screen: LiveScreen = replaying ? 'replay' : screenOf(snapshot.state, snapshot.resuming, snapshot.replaced)
+  const screen: LiveScreen = replaying ? 'replay' : screenOf(snapshot.state, snapshot.resuming, snapshot.replaced, snapshot.kicked)
 
   // 세션이 끝나면 이 브라우저에 남겨 두어 나중에도 복기할 수 있게 한다.
   const summary = snapshot.state?.room.summary
@@ -108,6 +110,7 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
         />
       ) : null}
       {screen === 'reconnecting' ? <Reconnecting /> : null}
+      {screen === 'kicked' ? <Kicked onHome={leave} /> : null}
       {screen === 'replaced' ? <Replaced onLeave={leave} onResume={() => client.resumeSaved()} /> : null}
       {screen === 'prep' && snapshot.state ? (
         <LivePrep client={client} key={snapshot.state.room.code} lastError={snapshot.lastError} state={snapshot.state} />
