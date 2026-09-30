@@ -5,6 +5,11 @@ const PORT = 4173
 /** E2E 전용 게임 서버 포트. 개발용 8787과 겹치지 않게 둔다. */
 const GAME_SERVER_PORT = 8788
 const isCI = Boolean(process.env.CI)
+/**
+ * 이미 떠 있는 배포 구성(서버가 화면까지 제공)에 대고 돌릴 때의 주소.
+ * 예: E2E_BASE_URL=http://127.0.0.1:8790 pnpm exec playwright test e2e/live.spec.ts
+ */
+const EXTERNAL_BASE_URL = process.env.E2E_BASE_URL
 /** E2E 게임 서버의 기록(DB·음성)을 둘 임시 폴더 */
 const GAME_DATA_DIR = fileURLToPath(new URL(`./test-results/game-data-${Date.now()}`, import.meta.url))
 
@@ -24,7 +29,7 @@ export default defineConfig({
     },
   },
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: EXTERNAL_BASE_URL ?? `http://localhost:${PORT}`,
     locale: 'ko-KR',
     timezoneId: 'Asia/Seoul',
     colorScheme: 'dark',
@@ -36,7 +41,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], deviceScaleFactor: 1 },
     },
   ],
-  webServer: [
+  webServer: EXTERNAL_BASE_URL ? [] : [
     // 실제 게임 서버. live.spec.ts가 여기에 붙는다.
     {
       command: 'pnpm --filter @banwonpoker/server start',
