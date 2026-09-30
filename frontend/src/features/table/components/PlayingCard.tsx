@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { Card, Suit } from '../model'
 
 const suitMeta: Record<Suit, { symbol: string; name: string }> = {
@@ -59,6 +60,23 @@ export function PlayingCard({
       </span>
       <span className="card-suit-large" aria-hidden="true">
         {suit.symbol}
+      </span>
+    </span>
+  )
+}
+
+/**
+ * 뒷면에서 앞면으로 뒤집히며 나타나는 카드. 처음 그려질 때 한 번만 뒤집힌다.
+ * 뒷면은 장식이라 보조기술에는 앞면만 읽힌다. 움직임 줄이기 설정이면 바로 앞면이 보인다.
+ */
+export function FlipInCard({ card, size = 'large', delayMs = 0 }: { card: Card; size?: PlayingCardProps['size']; delayMs?: number }) {
+  return (
+    <span className={`card-flip card-flip--${size}`} style={{ '--flip-delay': `${delayMs}ms` } as CSSProperties}>
+      <span className="card-flip-inner">
+        <PlayingCard card={card} className="card-flip-front" size={size} />
+        <span aria-hidden="true" className={`playing-card playing-card--back playing-card--${size} card-flip-back`}>
+          <span className="card-back-mark" />
+        </span>
       </span>
     </span>
   )
