@@ -14,8 +14,8 @@ export const LATE_UPLOAD_MS = 10 * 60_000
 export interface ApiContext {
   store?: SessionStore
   clock: Clock
-  /** CORS를 허용할 Origin인지 */
-  isAllowedOrigin: (origin: string | undefined) => boolean
+  /** CORS를 허용할 Origin인지(host는 요청의 Host 헤더) */
+  isAllowedOrigin: (origin: string | undefined, host?: string) => boolean
   /** 배포 환경에서 프론트엔드 빌드 결과를 함께 제공할 폴더 */
   staticDir?: string
 }
@@ -103,6 +103,16 @@ const routes = {
   replay: /^\/api\/sessions\/([\w-]{1,64})\/replay$/,
 }
 
+/** 이 서버가 준 화면에서 온 요청인지 */
+function isSameOrigin(origin: string | undefined, host: string | undefined) {
+  if (!origin || !host) return false
+  try {
+    return new URL(origin).host === host
+  } catch {
+    return false
+  }
+}
+
 /** HTTP 요청을 처리했으면 true. /health는 server.ts가 먼저 처리한다. */
 export async function handleHttp(request: IncomingMessage, response: ServerResponse, context: ApiContext): Promise<boolean> {
   const url = new URL(request.url ?? '/', 'http://local')
@@ -110,12 +120,13 @@ export async function handleHttp(request: IncomingMessage, response: ServerRespo
 
   if (url.pathname.startsWith('/api/')) {
     // 개발 중에는 화면(5173)과 서버(8787)의 Origin이 달라 CORS가 필요하다.
-    if (origin && context.isAllowedOrigin(origin)) {
+    const sameOrigin = isSameOrigin(origin, request.headers.host)
+    if (origin && !sameOrigin && context.isAllowedOrigin(origin, request.headers.host)) {
       response.setHeader('access-control-allow-origin', origin)
       response.setHeader('vary', 'origin')
       response.setHeader('access-control-allow-headers', 'authorization, content-type')
       response.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS')
-    } else if (origin) {
+    } else if (origin && !sameOrigin) {
       sendError(response, 'FORBIDDEN', '허용하지 않은 사이트에서 온 요청입니다.')
       return true
     }

@@ -36,9 +36,18 @@ export interface GameServer {
   close(): Promise<void>
 }
 
-function isAllowedOrigin(origin: string | undefined, allowed: string[]) {
+/**
+ * 접속을 허용할 Origin인지. 같은 주소에서 온 요청(배포 환경에서 이 서버가 준 화면)은 늘 허용한다.
+ * 그 밖에는 ALLOWED_ORIGINS 목록, 목록이 비었으면 localhost만 허용한다.
+ */
+export function isAllowedOrigin(origin: string | undefined, allowed: string[], host?: string) {
   if (!origin) return true
   if (allowed.includes(origin)) return true
+  try {
+    if (host && new URL(origin).host === host) return true
+  } catch {
+    return false
+  }
   if (allowed.length > 0) return false
   try {
     const { hostname } = new URL(origin)
@@ -57,7 +66,7 @@ export function startGameServer(options: GameServerOptions = {}): Promise<GameSe
     store: options.store,
     clock,
     staticDir: options.staticDir,
-    isAllowedOrigin: (origin: string | undefined) => isAllowedOrigin(origin, allowedOrigins),
+    isAllowedOrigin: (origin: string | undefined, host?: string) => isAllowedOrigin(origin, allowedOrigins, host),
   }
 
   const http = createServer((request, response) => {
@@ -82,7 +91,7 @@ export function startGameServer(options: GameServerOptions = {}): Promise<GameSe
     server: http,
     path: WS_PATH,
     maxPayload: MAX_MESSAGE_BYTES,
-    verifyClient: ({ req }: { req: IncomingMessage }) => isAllowedOrigin(req.headers.origin, allowedOrigins),
+    verifyClient: ({ req }: { req: IncomingMessage }) => isAllowedOrigin(req.headers.origin, allowedOrigins, req.headers.host),
   })
 
   const alive = new WeakMap<WebSocket, boolean>()
