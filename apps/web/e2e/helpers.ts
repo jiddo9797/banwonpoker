@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
-export const scenarios = ['opp', 'my', 'pending', 'fold', 'allin', 'showdown', 'disc', 'micfail'] as const
+export const scenarios = ['opp', 'my', 'pending', 'fold', 'allin', 'showdown', 'disc', 'micfail', 'elim'] as const
 
 export const viewports = [
   { name: '1440x900', width: 1440, height: 900 },

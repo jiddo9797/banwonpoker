@@ -7,6 +7,7 @@ export const scenarioKeys = [
   'showdown',
   'disc',
   'micfail',
+  'elim',
 ] as const
 
 export type ScenarioKey = (typeof scenarioKeys)[number]
@@ -26,7 +27,7 @@ export type SeatPosition =
   | 'bottom-right'
   | 'hero'
 
-export type SeatStatus = 'active' | 'folded' | 'all-in' | 'disconnected' | 'empty'
+export type SeatStatus = 'active' | 'folded' | 'all-in' | 'disconnected' | 'eliminated' | 'empty'
 
 export interface Seat {
   id: string
@@ -78,6 +79,7 @@ export interface TableSnapshot {
   seats: Seat[]
   heroId: string
   heroCards: [Card, Card]
+  heroBadge: 'D' | 'SB' | 'BB' | 'none'
   heroStack: number
   heroBet?: number
   heroRemainingSeconds?: number
@@ -90,6 +92,8 @@ export interface TableSnapshot {
   selectedBetAmount: number
   tableMessage?: string
   logs: string[]
+  /** 게임 중에 들어와 다음 핸드부터 참여할 참가자 */
+  waitingPlayers?: string[]
   toast?: ToastMessage
   connection: 'connected' | 'reconnecting' | 'disconnected'
 }
@@ -109,6 +113,7 @@ export interface PrototypeState {
   leaveDialogOpen: boolean
   menuOpen: boolean
   endSessionDialogOpen: boolean
+  settingsDialogOpen: boolean
 }
 
 export type PrototypeAction =
@@ -126,6 +131,8 @@ export type PrototypeAction =
   | { type: 'menu.closed' }
   | { type: 'endSession.opened' }
   | { type: 'endSession.closed' }
+  | { type: 'settings.opened' }
+  | { type: 'settings.closed' }
 
 export function isScenarioKey(value: string | null): value is ScenarioKey {
   return scenarioKeys.includes(value as ScenarioKey)

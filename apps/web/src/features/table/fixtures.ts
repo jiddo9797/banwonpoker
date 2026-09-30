@@ -211,6 +211,7 @@ const baseSnapshot: TableSnapshot = {
   }),
   heroId: 'hero',
   heroCards,
+  heroBadge: 'D',
   heroStack: 9_750,
   recordingState: 'hidden',
   actionHint: '지훈 차례를 기다리는 중',
@@ -243,6 +244,7 @@ function createScenario(key: ScenarioKey, overrides: SnapshotOverrides): TableSn
     heroCards: [copyCard(cards[0]), copyCard(cards[1])],
     actions: actions.map((action) => ({ ...action })),
     logs: [...logs],
+    waitingPlayers: overrides.waitingPlayers ? [...overrides.waitingPlayers] : undefined,
     toast: overrides.toast ? { ...overrides.toast } : undefined,
   }
 }
@@ -375,6 +377,27 @@ export const tableFixtures = {
     actions: activeActions,
     logs: ['수빈이 900으로 레이즈', '지훈 폴드', '민수가 300 콜', '서준 300 베팅'],
   }),
+  elim: createScenario('elim', {
+    label: '탈락과 다음 핸드 참가',
+    description: '서준이 칩을 모두 잃어 탈락하고, 게임 중 들어온 도윤이 다음 핸드를 기다리는 상태',
+    handNumber: 25,
+    street: '프리플랍',
+    board: [null, null, null, null, null],
+    pots: [{ label: '팟', amount: 150 }],
+    seats: seatsWith({
+      eugene: { badge: 'D', bet: undefined },
+      seojun: { status: 'eliminated', stack: 0, badge: undefined, bet: undefined },
+      minsu: { badge: 'SB', bet: 50, stack: 12_300 },
+      jihun: { badge: 'BB', bet: 100, stack: 7_300 },
+      subin: { isTurn: true, remainingSeconds: 45, stack: 8_950 },
+    }),
+    heroBadge: 'none',
+    heroStack: 16_400,
+    actionHint: '수빈 차례를 기다리는 중',
+    logs: ['핸드 #25 시작', '서준 탈락 · 칩 0', '나 승리 · 에이스 하이 플러시 +6,650'],
+    waitingPlayers: ['도윤'],
+    toast: { kind: 'info', message: '서준이 칩을 모두 잃어 탈락했습니다' },
+  }),
 } satisfies Record<ScenarioKey, TableSnapshot>
 
 function copySnapshot(snapshot: TableSnapshot): TableSnapshot {
@@ -386,6 +409,7 @@ function copySnapshot(snapshot: TableSnapshot): TableSnapshot {
     heroCards: [copyCard(snapshot.heroCards[0]), copyCard(snapshot.heroCards[1])],
     actions: snapshot.actions.map((action) => ({ ...action })),
     logs: [...snapshot.logs],
+    waitingPlayers: snapshot.waitingPlayers ? [...snapshot.waitingPlayers] : undefined,
     toast: snapshot.toast ? { ...snapshot.toast } : undefined,
   }
 }

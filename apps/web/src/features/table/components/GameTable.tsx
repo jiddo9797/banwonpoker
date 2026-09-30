@@ -65,7 +65,9 @@ function HeroSeat({ snapshot, voiceless }: { snapshot: TableSnapshot; voiceless:
           ) : null}
         </div>
         <div className="hero-stack">{formatChips(snapshot.heroStack)}</div>
-        <span className="position-badge badge-d">D</span>
+        {snapshot.heroBadge === 'none' ? null : (
+          <span className={`position-badge badge-${snapshot.heroBadge.toLowerCase()}`}>{snapshot.heroBadge}</span>
+        )}
         {isTurn ? (
           <span aria-hidden="true" className="turn-progress">
             <span

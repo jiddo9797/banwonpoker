@@ -47,6 +47,8 @@ export interface SessionResult {
   name: string
   finalStack: number
   delta: number
+  /** 칩을 모두 잃어 탈락한 핸드 */
+  eliminatedAtHand?: number
 }
 
 export interface SessionSummary {

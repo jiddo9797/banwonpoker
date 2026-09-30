@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { canBeReady, createInitialFlowState, flowReducer } from './flow'
+import { defaultRoomSettings, generateLevels } from '../features/room/settings'
+import { canBeReady, canStartGame, createInitialFlowState, flowReducer } from './flow'
 import type { FlowState } from './flow'
 import { buildFlowSearch } from './url'
 
@@ -38,16 +39,29 @@ describe('createInitialFlowState', () => {
     })
   })
 
-  it('?scenario=만 있는 예전 링크는 테이블로 연다', () => {
+  it('?scenario=만 있는 예전 링크는 방장 시점 테이블로 연다', () => {
     expect(createInitialFlowState(params('scenario=showdown'))).toMatchObject({
       screen: 'table',
+      role: 'host',
       scenarioKey: 'showdown',
       micStatus: 'ready',
     })
   })
 
+  it('준비 화면은 참가자, 방 만들기는 방장 시점이 기본이고 role로 바꿀 수 있다', () => {
+    expect(createInitialFlowState(params('screen=seat')).role).toBe('guest')
+    expect(createInitialFlowState(params('screen=create'))).toMatchObject({ role: 'host', nickname: '' })
+    expect(createInitialFlowState(params('screen=lobby&role=host'))).toMatchObject({ role: 'host', micStatus: 'ready' })
+    expect(createInitialFlowState(params('scenario=my&role=guest')).role).toBe('guest')
+  })
+
+  it('blinds=increasing이면 인상 방식 방으로 연다', () => {
+    expect(createInitialFlowState(params('scenario=opp&blinds=increasing')).room.blindMode).toBe('increasing')
+    expect(createInitialFlowState().room).toEqual(defaultRoomSettings)
+  })
+
   it('알 수 없는 값은 기본값으로 돌린다', () => {
-    expect(createInitialFlowState(params('screen=lobby&scenario=nope'))).toMatchObject({
+    expect(createInitialFlowState(params('screen=nowhere&scenario=nope'))).toMatchObject({
       screen: 'table',
       scenarioKey: 'opp',
     })
@@ -113,7 +127,7 @@ describe('flowReducer', () => {
     expect(flowReducer(notReady, { type: 'ready.confirmed' })).toBe(notReady)
 
     const voiceless = { ...notReady, voiceless: true }
-    expect(flowReducer(voiceless, { type: 'ready.confirmed' })).toMatchObject({ screen: 'table', scenarioKey: 'opp' })
+    expect(flowReducer(voiceless, { type: 'ready.confirmed' })).toMatchObject({ screen: 'lobby' })
   })
 
   it('테이블에서 나가면 처음부터 다시 시작하되 개발용 결과 설정은 유지한다', () => {
@@ -141,12 +155,74 @@ describe('flowReducer', () => {
 
 describe('buildFlowSearch', () => {
   it('현재 화면에 필요한 값만 남기고 devtools 설정은 유지한다', () => {
-    const state = { ...createInitialFlowState(), screen: 'table' as const, scenarioKey: 'allin' as const }
+    const state = { ...createInitialFlowState(), role: 'host' as const, screen: 'table' as const, scenarioKey: 'allin' as const }
     expect(buildFlowSearch(state, params('mic=denied&devtools=0'))).toBe('?screen=table&scenario=allin&devtools=0')
   })
 
   it('복기 화면은 핸드 번호를 남긴다', () => {
-    const state = { ...createInitialFlowState(), screen: 'replay' as const, replayHandNumber: 23 }
+    const state = { ...createInitialFlowState(), role: 'host' as const, screen: 'replay' as const, replayHandNumber: 23 }
     expect(buildFlowSearch(state, params('export=done'))).toBe('?screen=replay&hand=23')
+  })
+})
+
+describe('방장 규칙', () => {
+  const lobby = (overrides: Partial<FlowState> = {}): FlowState => ({
+    ...createInitialFlowState(params('screen=lobby&role=host')),
+    ...overrides,
+  })
+  const increasing = { ...defaultRoomSettings, blindMode: 'increasing' as const, levels: generateLevels(100) }
+
+  it('방을 만들면 방장이 되고 좌석 선택으로 간다', () => {
+    const state = flowReducer(createInitialFlowState(params('screen=create')), {
+      type: 'room.created',
+      nickname: ' 하늘 ',
+      settings: increasing,
+    })
+    expect(state).toMatchObject({ screen: 'seat', role: 'host', nickname: '하늘', room: increasing })
+  })
+
+  it('입장하면 참가자가 된다', () => {
+    const state = flowReducer({ ...createInitialFlowState(), role: 'host' }, { type: 'entry.submitted', nickname: '하늘' })
+    expect(state.role).toBe('guest')
+  })
+
+  it('설정은 방장이 대기실에서만 바꿀 수 있다', () => {
+    expect(flowReducer(lobby(), { type: 'room.settingsChanged', settings: increasing }).room).toEqual(increasing)
+
+    for (const screen of ['table', 'summary', 'mic'] as const) {
+      const state = lobby({ screen })
+      expect(flowReducer(state, { type: 'room.settingsChanged', settings: increasing })).toBe(state)
+    }
+
+    const guest = lobby({ role: 'guest' })
+    expect(flowReducer(guest, { type: 'room.settingsChanged', settings: increasing })).toBe(guest)
+  })
+
+  it('준비된 인원이 2명 이상이고 설정이 올바르면 방장이 시작할 수 있다', () => {
+    expect(canStartGame(lobby())).toBe(true)
+    expect(canStartGame(lobby({ room: { ...defaultRoomSettings, name: '' } }))).toBe(false)
+    expect(canStartGame(lobby({ role: 'guest' }))).toBe(false)
+    expect(canStartGame(lobby({ screen: 'mic' }))).toBe(false)
+  })
+
+  it('게임 시작은 대기실에서만 되고, 방장은 시작 조건을 채워야 한다', () => {
+    expect(flowReducer(lobby(), { type: 'game.started' })).toMatchObject({ screen: 'table', scenarioKey: 'opp' })
+
+    const invalid = lobby({ room: { ...defaultRoomSettings, startingStack: 10 } })
+    expect(flowReducer(invalid, { type: 'game.started' })).toBe(invalid)
+
+    const guest = lobby({ role: 'guest' })
+    expect(flowReducer(guest, { type: 'game.started' }).screen).toBe('table')
+
+    const table = lobby({ screen: 'table', scenarioKey: 'my' })
+    expect(flowReducer(table, { type: 'game.started' })).toBe(table)
+  })
+
+  it('URL에 역할과 인상 방식을 남긴다', () => {
+    expect(buildFlowSearch(lobby(), params(''))).toBe('?screen=lobby&role=host')
+    expect(buildFlowSearch(lobby({ screen: 'create' }), params(''))).toBe('?screen=create')
+    expect(buildFlowSearch(lobby({ screen: 'table', role: 'guest', room: increasing }), params(''))).toBe(
+      '?screen=table&role=guest&blinds=increasing&scenario=opp',
+    )
   })
 })

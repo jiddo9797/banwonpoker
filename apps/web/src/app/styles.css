@@ -1562,3 +1562,55 @@ a:focus-visible {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* 방 규칙·탈락·대기 */
+
+.blind-note {
+  color: var(--text-secondary);
+  font-family: "Inter Variable", "Pretendard Variable", sans-serif;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dialog.settings-dialog {
+  width: 520px;
+}
+
+.settings-dialog-body {
+  margin-top: 16px;
+}
+
+.menu-popover-item[aria-disabled="true"] {
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.menu-popover-item[aria-disabled="true"]:hover {
+  background: transparent;
+}
+
+.player-seat--eliminated .seat-panel {
+  border: 1px dashed var(--stroke-control);
+  background: rgba(18, 21, 26, 0.6);
+  box-shadow: none;
+}
+
+.player-seat--eliminated .seat-name,
+.player-seat--eliminated .seat-stack {
+  color: var(--text-tertiary);
+}
+
+.player-seat--eliminated .seat-status-chip {
+  color: var(--text-secondary);
+  background: var(--panel);
+}
+
+.participant-state--eliminated > span {
+  border-radius: 1px;
+  background: var(--text-tertiary);
+}
+
+.participant-state--waiting > span {
+  border: 1px solid var(--text-tertiary);
+  background: transparent;
+}

@@ -109,7 +109,13 @@ export function SidePanel({
               <li key={seat.id}>
                 <span className={`participant-state participant-state--${seat.status}`}>
                   <span aria-hidden="true" />
-                  {seat.status === 'disconnected' ? '연결 끊김' : seat.status === 'empty' ? '빈 좌석' : '연결됨'}
+                  {seat.status === 'disconnected'
+                    ? '연결 끊김'
+                    : seat.status === 'eliminated'
+                      ? '탈락'
+                      : seat.status === 'empty'
+                        ? '빈 좌석'
+                        : '연결됨'}
                 </span>
                 <strong>{seat.name}</strong>
                 <span>{formatChips(seat.stack)}</span>
@@ -122,6 +128,15 @@ export function SidePanel({
               <strong>나</strong>
               <span>{formatChips(snapshot.heroStack)}</span>
             </li>
+            {snapshot.waitingPlayers?.map((name) => (
+              <li className="is-waiting" key={name}>
+                <span className="participant-state participant-state--waiting">
+                  <span aria-hidden="true" /> 대기
+                </span>
+                <strong>{name}</strong>
+                <span>다음 핸드부터</span>
+              </li>
+            ))}
           </ul>
         </div>
       ) : null}

@@ -614,3 +614,132 @@ button.seat-map-seat.is-selected > span:last-child {
   color: var(--text-tertiary);
   font-size: 12px;
 }
+
+.prep-panel--compact {
+  gap: 16px;
+  padding: 24px;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  color: var(--accent-text);
+  background: transparent;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lobby-empty {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.seat-map-seat.is-closed {
+  border-style: dashed;
+  background: transparent;
+}
+
+/* 대기실 */
+
+.invite-box {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 6px;
+  background: var(--control);
+}
+
+.invite-box code {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.invite-status {
+  grid-column: 1 / -1;
+  min-height: 0;
+  color: var(--ok-text);
+  font-size: 12px;
+}
+
+.invite-status:empty {
+  display: none;
+}
+
+.start-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--stroke-panel);
+}
+
+.start-box-text {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.start-box-text strong {
+  font-size: 15px;
+}
+
+.start-box-text > span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.start-box-text > .field-error {
+  color: var(--critical-text);
+}
+
+.waiting-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 8px;
+  background: var(--control);
+}
+
+.waiting-status svg {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--text-secondary);
+}
+
+.waiting-status h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.waiting-status p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.section-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+}

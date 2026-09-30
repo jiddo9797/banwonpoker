@@ -3,12 +3,15 @@ import { openPage } from './helpers'
 
 test.use({ viewport: { width: 1440, height: 900 } })
 
-test('입장 → 착석 → 동의 → 마이크 점검 → 테이블 → 액션 → 세션 종료 → 복기 → 내보내기', async ({ page }) => {
+test('방장: 방 만들기 → 착석 → 동의 → 마이크 → 대기실 → 게임 시작 → 세션 종료 → 복기 → 내보내기', async ({ page }) => {
   await openPage(page, '')
 
-  // 입장
-  await page.getByLabel('닉네임').fill('하늘')
-  await page.getByRole('button', { name: '입장하기' }).click()
+  // 방 만들기
+  await page.getByRole('button', { name: '새 방 만들기' }).click()
+  await page.getByLabel('내 닉네임 (방장)').fill('하늘')
+  await page.getByRole('radio', { name: '시간마다 인상' }).check()
+  await page.getByRole('combobox', { name: '인상 간격' }).selectOption('10')
+  await page.getByRole('button', { name: '방 만들기' }).click()
 
   // 좌석
   await page.getByRole('button', { name: '6번 좌석, 빈 좌석' }).click()
@@ -23,7 +26,12 @@ test('입장 → 착석 → 동의 → 마이크 점검 → 테이블 → 액션
   await page.getByRole('button', { name: '마이크 점검 시작' }).click()
   await expect(page.getByRole('heading', { name: '마이크가 정상입니다' })).toBeVisible()
   await page.getByRole('button', { name: '준비 완료' }).click()
-  await expect(page).toHaveURL(/screen=table&scenario=opp/)
+
+  // 대기실 → 게임 시작
+  await expect(page.getByRole('complementary', { name: '방 정보' })).toContainText('50 / 100부터 10분마다 인상')
+  await page.getByRole('button', { name: '게임 시작 · 3명' }).click()
+  await expect(page).toHaveURL(/screen=table&blinds=increasing&scenario=opp/)
+  await expect(page.getByRole('banner')).toContainText('레벨 1 · 12분 뒤 100 / 200')
 
   // 세션 종료 → 요약
   await page.getByRole('button', { name: '메뉴' }).click()
@@ -43,6 +51,23 @@ test('입장 → 착석 → 동의 → 마이크 점검 → 테이블 → 액션
   await page.getByRole('button', { name: '내보내기 시작' }).click()
   await expect(page.getByRole('progressbar')).toBeVisible()
   await expect(page.getByRole('dialog', { name: '영상이 준비되었습니다' })).toBeVisible()
+})
+
+test('참가자: 입장 → 대기실에서 방장을 기다렸다가 테이블로 들어간다', async ({ page }) => {
+  await openPage(page, '')
+  await page.getByLabel('닉네임').fill('하늘')
+  await page.getByRole('button', { name: '입장하기' }).click()
+  await page.getByRole('button', { name: '5번 좌석, 빈 좌석' }).click()
+  await page.getByRole('button', { name: '5번 좌석에 앉기' }).click()
+  await page.getByRole('checkbox', { name: /내 차례 음성 기록에 동의합니다/ }).check()
+  await page.getByRole('checkbox', { name: /전체 패 공개에 동의합니다/ }).check()
+  await page.getByRole('button', { name: '다음: 마이크 점검' }).click()
+  await page.getByRole('button', { name: '마이크 점검 시작' }).click()
+  await page.getByRole('button', { name: '준비 완료' }).click()
+
+  await expect(page.getByRole('heading', { name: /게임을 시작하기를 기다리는 중/ })).toBeVisible()
+  await expect(page).toHaveURL(/screen=table&role=guest&scenario=opp/, { timeout: 8_000 })
+  await expect(page.getByRole('banner')).toContainText('참가자')
 })
 
 test('내 차례 → 처리 중 → 액션 확정 → 다음 차례', async ({ page }) => {

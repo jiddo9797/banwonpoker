@@ -46,6 +46,7 @@ export function SessionSummaryScreen({ onOpenReplay, onExit }: SessionSummaryScr
                 <th scope="col">참가자</th>
                 <th scope="col">최종 칩</th>
                 <th scope="col">증감</th>
+                <th scope="col">상태</th>
               </tr>
             </thead>
             <tbody>
@@ -57,6 +58,9 @@ export function SessionSummaryScreen({ onOpenReplay, onExit }: SessionSummaryScr
                   <td className={`numeric delta ${result.delta >= 0 ? 'is-up' : 'is-down'}`}>
                     {formatSignedChips(result.delta)}
                     <span className="visually-hidden">{result.delta >= 0 ? ' 이익' : ' 손실'}</span>
+                  </td>
+                  <td className={result.eliminatedAtHand ? 'status-cell is-out' : 'status-cell'}>
+                    {result.eliminatedAtHand ? `탈락 · 핸드 #${result.eliminatedAtHand}` : '끝까지 참여'}
                   </td>
                 </tr>
               ))}

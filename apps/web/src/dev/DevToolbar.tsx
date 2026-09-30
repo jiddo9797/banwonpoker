@@ -1,19 +1,21 @@
 import { Wrench20Regular } from '@fluentui/react-icons'
 import { useState } from 'react'
 import { exportOutcomes, micOutcomes, screenKeys } from '../app/flow'
-import type { ExportOutcome, FlowAction, FlowState, MicOutcome, ScreenKey } from '../app/flow'
+import type { ExportOutcome, FlowAction, FlowState, MicOutcome, Role, ScreenKey } from '../app/flow'
 import { scenarioKeys } from '../features/table/model'
 import type { ScenarioKey } from '../features/table/model'
 import './devtools.css'
 
 const screenLabels: Record<ScreenKey, string> = {
-  entry: '1 · 입장',
+  create: '0 · 방 만들기(방장)',
+  entry: '1 · 입장(참가자)',
   seat: '2 · 좌석 선택',
   consent: '3 · 동의',
   mic: '4 · 마이크 점검',
-  table: '5 · 테이블',
-  summary: '6 · 세션 요약',
-  replay: '7 · 복기',
+  lobby: '5 · 대기실',
+  table: '6 · 테이블',
+  summary: '7 · 세션 요약',
+  replay: '8 · 복기',
 }
 
 const scenarioLabels: Record<ScenarioKey, string> = {
@@ -25,6 +27,7 @@ const scenarioLabels: Record<ScenarioKey, string> = {
   showdown: '쇼다운',
   disc: '연결 끊김',
   micfail: '마이크 실패',
+  elim: '탈락 · 다음 핸드 참가',
 }
 
 const micLabels: Record<MicOutcome, string> = {
@@ -127,6 +130,17 @@ export default function DevToolbar({ state, dispatch }: DevToolbarProps) {
                   {exportLabels[key]}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label>
+            <span>내 역할</span>
+            <select
+              onChange={(event) => dispatch({ type: 'role.changed', role: event.target.value as Role })}
+              value={state.role}
+            >
+              <option value="host">방장</option>
+              <option value="guest">참가자</option>
             </select>
           </label>
 
