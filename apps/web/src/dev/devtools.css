@@ -1,0 +1,78 @@
+.devtools {
+  position: fixed;
+  z-index: 500;
+  top: 0;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  font-family: var(--font-sans);
+}
+
+.devtools-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px dashed #a78bfa;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  color: #ddd6fe;
+  background: #1b1530;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.devtools-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.devtools-current {
+  color: #a5a0b8;
+  font-weight: 500;
+}
+
+.devtools-panel {
+  display: grid;
+  gap: 8px;
+  width: 260px;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px dashed #a78bfa;
+  border-radius: 6px;
+  background: #1b1530;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+.devtools-panel label {
+  display: grid;
+  gap: 4px;
+  color: #c4bdd8;
+  font-size: 11px;
+}
+
+.devtools-panel select {
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid #4c3f78;
+  border-radius: 4px;
+  color: #f2f5f8;
+  background: #110d20;
+  font-size: 12px;
+}
+
+.devtools-panel .devtools-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.devtools-hint {
+  margin: 0;
+  color: #8b84a3;
+  font-size: 10px;
+}
