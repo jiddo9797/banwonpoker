@@ -1,4 +1,4 @@
-import { ChevronDown20Regular, ChevronUp20Regular } from '@fluentui/react-icons'
+import { ChevronDown20Regular, ChevronUp20Regular, PersonDelete20Regular } from '@fluentui/react-icons'
 import { useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import { formatChips } from '../../../shared/format'
@@ -15,6 +15,16 @@ interface SidePanelProps {
   collapsed: boolean
   onTabChange: (tab: PanelTab) => void
   onToggleCollapsed: () => void
+  /** 방장: 참가자를 내보낸다. 있으면 참가자마다 내보내기 버튼을 보여준다. */
+  onKick?: (target: { id: string; name: string }) => void
+}
+
+function KickButton({ id, name, onKick }: { id: string; name: string; onKick: NonNullable<SidePanelProps['onKick']> }) {
+  return (
+    <button aria-label={`${name} 내보내기`} className="kick-icon-button" onClick={() => onKick({ id, name })} title="내보내기" type="button">
+      <PersonDelete20Regular aria-hidden="true" />
+    </button>
+  )
 }
 
 export function SidePanel({
@@ -23,6 +33,7 @@ export function SidePanel({
   collapsed,
   onTabChange,
   onToggleCollapsed,
+  onKick,
 }: SidePanelProps) {
   const tabRefs = useRef<Partial<Record<PanelTab, HTMLButtonElement | null>>>({})
 
@@ -106,7 +117,7 @@ export function SidePanel({
         >
           <ul className="participant-list">
             {snapshot.seats.map((seat) => (
-              <li key={seat.id}>
+              <li className={onKick && seat.status !== 'empty' ? 'can-kick' : undefined} key={seat.id}>
                 <span className={`participant-state participant-state--${seat.status}`}>
                   <span aria-hidden="true" />
                   {seat.status === 'disconnected'
@@ -119,6 +130,7 @@ export function SidePanel({
                 </span>
                 <strong>{seat.name}</strong>
                 <span>{formatChips(seat.stack)}</span>
+                {onKick && seat.status !== 'empty' ? <KickButton id={seat.id} name={seat.name} onKick={onKick} /> : null}
               </li>
             ))}
             <li>
@@ -128,15 +140,19 @@ export function SidePanel({
               <strong>나</strong>
               <span>{formatChips(snapshot.heroStack)}</span>
             </li>
-            {snapshot.waitingPlayers?.map((name) => (
-              <li className="is-waiting" key={name}>
+            {snapshot.waitingPlayers?.map((name, index) => {
+              const id = snapshot.waitingPlayerIds?.[index]
+              return (
+              <li className={`is-waiting ${onKick && id ? 'can-kick' : ''}`} key={name}>
                 <span className="participant-state participant-state--waiting">
                   <span aria-hidden="true" /> 대기
                 </span>
                 <strong>{name}</strong>
                 <span>다음 핸드부터</span>
+                {onKick && id ? <KickButton id={id} name={name} onKick={onKick} /> : null}
               </li>
-            ))}
+              )
+            })}
           </ul>
         </div>
       ) : null}

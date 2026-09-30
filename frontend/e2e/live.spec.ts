@@ -129,6 +129,8 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await host.getByRole('button', { name: '복기 보기' }).click()
   await expect(host.getByRole('heading', { level: 1, name: '복기 · 핸드 #1' })).toBeVisible()
   await expect(host.getByRole('group', { name: '민수의 홀카드' }).getByRole('img')).toHaveCount(2)
+  // 좌석에는 액션 글자·금액을 쓰지 않는다(음성을 듣기 전에 무엇을 했는지 보이지 않게).
+  await expect(host.locator('.replay-seat').filter({ hasText: /콜|체크|베팅|레이즈|폴드|대기/ })).toHaveCount(0)
   const timeline = host.getByRole('group', { name: '액션 타임라인' })
   await expect(timeline.getByRole('button', { name: /^3번째 액션, 나 콜 100, 음성 \d+초/ })).toBeVisible()
   // 가짜 마이크는 1초마다 삑 소리만 내서 짧은 차례는 무발언으로 잡힐 수 있다. 둘 다 기록된 것이다.
@@ -184,4 +186,60 @@ test('서버에 없는 방 코드는 알려준다', async ({ browser }) => {
   await page.getByLabel('닉네임').fill('민수')
   await page.getByRole('button', { name: '입장하기' }).click()
   await expect(page.getByRole('alert')).toHaveText('방을 찾을 수 없습니다. 초대 링크를 확인하세요.')
+})
+
+test('방장이 참가자를 내보내고, 베팅 금액을 직접 입력한다', async ({ browser }) => {
+  test.setTimeout(60_000)
+  const host = await newPlayer(browser)
+  const guest = await newPlayer(browser)
+  const late = await newPlayer(browser)
+
+  await host.goto('/')
+  await host.getByRole('button', { name: '방 만들기' }).click()
+  await host.getByLabel('내 닉네임 (방장)').fill('하늘')
+  await host.getByLabel('방 이름').fill('내보내기 홀덤')
+  await host.getByRole('button', { name: '방 만들기' }).click()
+  await expect(host).toHaveURL(/\?room=[A-Z0-9]{6}$/)
+  const roomCode = new URL(host.url()).searchParams.get('room')!
+  await prepare(host, 1)
+
+  for (const [page, nickname] of [[guest, '민수'], [late, '유진']] as const) {
+    await page.goto(`/?room=${roomCode}`)
+    await page.getByLabel('닉네임').fill(nickname)
+    await page.getByRole('button', { name: '입장하기' }).click()
+  }
+  await prepare(guest, 2)
+
+  // 대기실: 방장이 유진을 내보낸다.
+  const participants = host.getByRole('complementary', { name: '방 정보' })
+  await participants.getByRole('button', { name: '내보내기 유진' }).click()
+  await expect(host.getByRole('dialog', { name: '유진을(를) 내보낼까요?' })).toBeVisible()
+  await expectAccessible(host)
+  await host.getByRole('dialog').getByRole('button', { name: '내보내기' }).click()
+  await expect(late.getByRole('heading', { level: 1, name: '방장이 방에서 내보냈습니다' })).toBeVisible()
+  await expect(participants).not.toContainText('유진')
+  // 새로고침해도 그 자리로 돌아가지 않는다.
+  await late.reload()
+  await expect(late.getByRole('button', { name: '입장하기' })).toBeVisible()
+  // 참가자는 내보내기 버튼을 볼 수 없다.
+  await expect(guest.getByRole('button', { name: /내보내기/ })).toHaveCount(0)
+
+  // 게임: 방장이 레이즈 금액을 직접 입력한다.
+  await host.getByRole('button', { name: '게임 시작 · 2명' }).click()
+  await expect(host.getByRole('heading', { level: 1, name: /핸드 #1 포커 테이블/ })).toBeAttached()
+  const amount = dock(host).getByRole('textbox', { name: '베팅 금액 직접 입력' })
+  await amount.fill('350')
+  await amount.press('Enter')
+  await expect(amount).toHaveValue('350')
+  await dock(host).getByRole('button', { name: /^레이즈 350/ }).click()
+  await expect(guest.locator('.game-log')).toContainText('하늘이 350으로 레이즈')
+
+  // 게임 중: 참가자 탭에서 민수를 내보내면 한 명만 남아 세션이 끝난다.
+  await host.getByRole('tab', { name: '참가자' }).click()
+  await host.getByRole('button', { name: '민수 내보내기' }).click()
+  await host.getByRole('dialog').getByRole('button', { name: '내보내기' }).click()
+  await expect(guest.getByRole('heading', { level: 1, name: '방장이 방에서 내보냈습니다' })).toBeVisible()
+  // 민수가 폴드되어 방장이 이번 핸드를 가져가고, 다음 핸드 대신 세션이 끝난다.
+  await expect(host.getByText('나 승리 +450')).toBeVisible()
+  await expect(host.getByRole('heading', { level: 1, name: '내보내기 홀덤' })).toBeVisible({ timeout: 10_000 })
 })

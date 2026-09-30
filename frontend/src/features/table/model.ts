@@ -101,6 +101,8 @@ export interface TableSnapshot {
   logs: string[]
   /** 게임 중에 들어와 다음 핸드부터 참여할 참가자 */
   waitingPlayers?: string[]
+  /** 실제 게임: 대기 중인 참가자의 id(방장이 내보낼 때 쓴다). waitingPlayers와 순서가 같다. */
+  waitingPlayerIds?: string[]
   toast?: ToastMessage
   connection: 'connected' | 'reconnecting' | 'disconnected'
 }

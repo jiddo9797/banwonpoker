@@ -400,8 +400,7 @@
   box-shadow: none;
 }
 
-.replay-seat.is-folded .replay-seat-name strong,
-.replay-seat.is-folded .replay-seat-action {
+.replay-seat.is-folded .replay-seat-name strong {
   color: var(--text-tertiary);
 }
 
@@ -416,6 +415,8 @@
 }
 
 .replay-seat-panel {
+  display: flex;
+  align-items: center;
   width: 118px;
   height: 62px;
   margin-left: -10px;
@@ -453,16 +454,6 @@
   font-family: "Inter Variable", "Inter", sans-serif;
   font-size: 9px;
   font-weight: 700;
-}
-
-.replay-seat-action {
-  display: block;
-  margin-top: 6px;
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .speaking-chip {

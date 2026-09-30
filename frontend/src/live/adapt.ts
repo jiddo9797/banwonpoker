@@ -276,9 +276,10 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
     .reverse()
     .slice(0, 30)
 
-  const waitingPlayers = state.room.participants
-    .filter((participant) => participant.status === 'lobby' && participant.id !== state.you.playerId)
-    .map((participant) => participant.nickname)
+  const waiting = state.room.participants.filter(
+    (participant) => participant.status === 'lobby' && participant.id !== state.you.playerId,
+  )
+  const waitingPlayers = waiting.map((participant) => participant.nickname)
 
   return {
     key: 'my',
@@ -309,6 +310,7 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
     tableMessage,
     logs,
     waitingPlayers: waitingPlayers.length > 0 ? waitingPlayers : undefined,
+    waitingPlayerIds: waiting.length > 0 ? waiting.map((participant) => participant.id) : undefined,
     connection: connectionOf(status),
   }
 }
