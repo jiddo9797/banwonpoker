@@ -24,7 +24,7 @@ async function passSeatConsentAndMic(user: User) {
 describe('App 클릭 프로토타입', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
-    window.history.replaceState(null, '', '/?devtools=0')
+    window.history.replaceState(null, '', '/?screen=entry&devtools=0')
   })
 
   afterEach(() => {

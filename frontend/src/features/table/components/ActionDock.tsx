@@ -12,6 +12,8 @@ interface ActionDockProps {
   pendingAction?: ActionOption['id']
   onBetAmountChange: (amount: number) => void
   onAction: (action: ActionOption['id']) => void
+  /** 슬라이더 간격과 빠른 선택 반올림 단위. 기본 50 */
+  betStep?: number
 }
 
 export function ActionDock({
@@ -21,13 +23,16 @@ export function ActionDock({
   pendingAction,
   onBetAmountChange,
   onAction,
+  betStep = 50,
 }: ActionDockProps) {
   const potTotal = snapshot.pots.reduce((sum, pot) => sum + pot.amount, 0)
+  // 빠른 선택은 최소 레이즈 이상, 올인 금액 이하로 맞춘다.
+  const clampBet = (value: number) => Math.min(snapshot.maxRaise, Math.max(snapshot.minRaise, value))
   const quickBets = [
     { label: '최소', value: snapshot.minRaise },
-    { label: '½팟', value: Math.max(snapshot.minRaise, roundToStep(potTotal * 0.5, 50)) },
-    { label: '¾팟', value: Math.max(snapshot.minRaise, roundToStep(potTotal * 0.75, 50)) },
-    { label: '팟', value: Math.max(snapshot.minRaise, roundToStep(potTotal, 50)) },
+    { label: '½팟', value: clampBet(roundToStep(potTotal * 0.5, betStep)) },
+    { label: '¾팟', value: clampBet(roundToStep(potTotal * 0.75, betStep)) },
+    { label: '팟', value: clampBet(roundToStep(potTotal, betStep)) },
     { label: '올인', value: snapshot.maxRaise },
   ]
   const hasBetControl = snapshot.actions.find((action) => action.id === 'raise')?.enabled ?? false
@@ -62,7 +67,7 @@ export function ActionDock({
               max={snapshot.maxRaise}
               min={snapshot.minRaise}
               onChange={(event) => onBetAmountChange(Number(event.target.value))}
-              step={50}
+              step={betStep}
               type="range"
               value={selectedBetAmount}
             />
@@ -82,11 +87,11 @@ export function ActionDock({
           const label = isSubmitted
             ? '처리 중…'
             : action.id === 'raise' && action.enabled
-              ? `레이즈 ${formatChips(selectedBetAmount)}`
+              ? `${action.label} ${formatChips(selectedBetAmount)}`
               : action.label
           const detail = isSubmitted
             ? action.id === 'raise'
-              ? `레이즈 ${formatChips(selectedBetAmount)}`
+              ? `${action.label === '처리 중…' ? '레이즈' : action.label} ${formatChips(selectedBetAmount)}`
               : action.label
             : action.detail
 

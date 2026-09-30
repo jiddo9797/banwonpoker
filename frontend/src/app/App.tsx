@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useReducer, useRef } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { ConsentScreen } from '../features/lobby/ConsentScreen'
 import { CreateRoomScreen } from '../features/lobby/CreateRoomScreen'
 import { EntryScreen } from '../features/lobby/EntryScreen'
@@ -9,6 +9,7 @@ import { SeatScreen } from '../features/lobby/SeatScreen'
 import { ReplayScreen } from '../features/replay/ReplayScreen'
 import { SessionSummaryScreen } from '../features/replay/SessionSummaryScreen'
 import { TablePrototype } from '../features/table/TablePrototype'
+import { LiveApp } from '../live/LiveApp'
 import { CanvasStage } from '../shared/CanvasStage'
 import { createInitialFlowState, flowReducer, hostNameOf } from './flow'
 import type { FlowAction, FlowState } from './flow'
@@ -139,7 +140,19 @@ function ScreenRouter({ state, dispatch }: { state: FlowState; dispatch: (action
   }
 }
 
+/** 목업 파라미터(?screen=, ?scenario=, ?prototype)가 있으면 클릭 프로토타입, 없으면 실제 서버에 연결한다. */
+export function isPrototypeUrl(search: string) {
+  const params = new URLSearchParams(search)
+  return params.has('screen') || params.has('scenario') || params.has('prototype')
+}
+
 export function App() {
+  const [prototype] = useState(() => isPrototypeUrl(typeof window === 'undefined' ? '' : window.location.search))
+  return prototype ? <PrototypeApp /> : <LiveApp />
+}
+
+/** 목 데이터로 움직이는 클릭 프로토타입. 화면 검토와 시각 회귀 테스트에 쓴다. */
+export function PrototypeApp() {
   const [state, dispatch] = useReducer(flowReducer, undefined, () => createInitialFlowState(readSearchParams()))
   const showDevTools = DevToolbar !== null && readSearchParams().get('devtools') !== '0'
 

@@ -13,6 +13,16 @@ export const GUEST_AUTO_START_MS = 4000
 
 export const INVITE_URL = `https://banwonpoker.app/r/${ROOM_CODE}`
 
+/** 실제 게임에서 서버 상태로 계산해 넘기는 대기실 정보. 없으면 목 데이터를 쓴다. */
+export interface LiveLobbyInfo {
+  inviteUrl: string
+  headcount: number
+  readyCount: number
+  lateNames: string[]
+  /** 서버가 거절한 이유(시작 실패, 설정 오류 등) */
+  errorMessage?: string
+}
+
 interface LobbyScreenProps {
   context: PrepContext
   nickname: string
@@ -21,14 +31,15 @@ interface LobbyScreenProps {
   onSettingsChange: (settings: RoomSettings) => void
   onStart: () => void
   onBack: () => void
+  live?: LiveLobbyInfo
 }
 
-function InviteBox() {
+function InviteBox({ url = INVITE_URL }: { url?: string }) {
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
     try {
-      await navigator.clipboard?.writeText(INVITE_URL)
+      await navigator.clipboard?.writeText(url)
     } catch {
       // 목 프로토타입에서는 클립보드 권한이 없어도 같은 안내를 보여준다.
     }
@@ -39,7 +50,7 @@ function InviteBox() {
     <div className="invite-box">
       <div>
         <span className="field-label">초대 링크</span>
-        <code className="numeric">{INVITE_URL}</code>
+        <code className="numeric">{url}</code>
       </div>
       <button className="btn btn--secondary btn--sm" onClick={copy} type="button">
         <Copy20Regular aria-hidden="true" />
@@ -52,26 +63,26 @@ function InviteBox() {
   )
 }
 
-function HostLobby({ context, seatNumber, onSettingsChange, onStart, onBack }: LobbyScreenProps) {
+function HostLobby({ context, seatNumber, onSettingsChange, onStart, onBack, live }: LobbyScreenProps) {
   const reasonId = useId()
   const errors = validateRoomSettings(context.room)
-  const ready = readyHeadcount('host', seatNumber)
-  const late = lateJoiners('host', seatNumber)
+  const ready = live ? live.readyCount : readyHeadcount('host', seatNumber)
+  const lateNames = live ? live.lateNames : lateJoiners('host', seatNumber).map((participant) => participant.name)
   const invalid = hasErrors(errors)
   const canStart = !invalid && ready >= MIN_PLAYERS
   const reason = invalid
     ? '설정 오류를 고쳐야 시작할 수 있습니다.'
     : ready < MIN_PLAYERS
       ? `준비된 참가자가 ${MIN_PLAYERS}명 이상이어야 합니다.`
-      : undefined
+      : live?.errorMessage
 
   return (
     <div className="prep-panel prep-panel--compact">
-      <InviteBox />
+      <InviteBox url={live?.inviteUrl} />
 
       <RoomSettingsForm
         errors={errors}
-        headcount={headcount('host')}
+        headcount={live ? live.headcount : headcount('host')}
         onChange={onSettingsChange}
         settings={context.room}
         showErrors
@@ -83,8 +94,8 @@ function HostLobby({ context, seatNumber, onSettingsChange, onStart, onBack }: L
             준비 완료 <span className="numeric">{ready}</span>명으로 시작합니다
           </strong>
           <span>
-            {late.length > 0
-              ? `${late.map((participant) => participant.name).join('·')}은(는) 준비를 마치면 다음 핸드부터 참여합니다.`
+            {lateNames.length > 0
+              ? `${lateNames.join('·')}은(는) 준비를 마치면 다음 핸드부터 참여합니다.`
               : '모든 참가자가 준비를 마쳤습니다.'}{' '}
             게임을 시작하면 설정을 바꿀 수 없습니다.
           </span>
@@ -114,12 +125,13 @@ function HostLobby({ context, seatNumber, onSettingsChange, onStart, onBack }: L
   )
 }
 
-function GuestLobby({ context, onStart, onBack }: LobbyScreenProps) {
-  // 목: 방장이 곧 게임을 시작한 것처럼 일정 시간 뒤 테이블로 넘어간다.
+function GuestLobby({ context, onStart, onBack, live }: LobbyScreenProps) {
+  // 목: 방장이 곧 게임을 시작한 것처럼 일정 시간 뒤 테이블로 넘어간다. 실제 게임에서는 서버가 알려 준다.
   useEffect(() => {
+    if (live) return
     const timer = window.setTimeout(onStart, GUEST_AUTO_START_MS)
     return () => window.clearTimeout(timer)
-  }, [onStart])
+  }, [onStart, live])
 
   return (
     <div className="prep-panel">

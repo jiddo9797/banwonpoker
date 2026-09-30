@@ -46,7 +46,7 @@ export function settledSnapshot(snapshot: TableSnapshot, amount: number, actionI
   }
 }
 
-function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () => void }) {
+export function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () => void }) {
   const Icon = toast.kind === 'warning' ? Warning20Filled : toast.kind === 'success' ? CheckmarkCircle20Filled : Info20Regular
 
   return (
@@ -63,13 +63,13 @@ function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () => voi
   )
 }
 
-interface ConfirmDialogProps {
+export interface ConfirmDialogProps {
   open: boolean
   onCancel: () => void
   onConfirm: () => void
 }
 
-function LeaveDialog({ open, onCancel, onConfirm }: ConfirmDialogProps) {
+export function LeaveDialog({ open, onCancel, onConfirm }: ConfirmDialogProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
 
   return (
@@ -92,7 +92,7 @@ function LeaveDialog({ open, onCancel, onConfirm }: ConfirmDialogProps) {
   )
 }
 
-function SettingsDialog({ open, room, onClose }: { open: boolean; room: RoomSettings; onClose: () => void }) {
+export function SettingsDialog({ open, room, onClose }: { open: boolean; room: RoomSettings; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null)
 
   return (
@@ -116,7 +116,7 @@ function SettingsDialog({ open, room, onClose }: { open: boolean; room: RoomSett
   )
 }
 
-function EndSessionDialog({ open, onCancel, onConfirm }: ConfirmDialogProps) {
+export function EndSessionDialog({ open, onCancel, onConfirm }: ConfirmDialogProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
 
   return (

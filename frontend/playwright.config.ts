@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 4173
+/** E2E 전용 게임 서버 포트. 개발용 8787과 겹치지 않게 둔다. */
+const GAME_SERVER_PORT = 8788
 const isCI = Boolean(process.env.CI)
 
 export default defineConfig({
@@ -31,11 +33,22 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], deviceScaleFactor: 1 },
     },
   ],
-  // 프로덕션 빌드로 검사한다. 개발 도구가 빠진 실제 화면이 기준 이미지가 된다.
-  webServer: {
-    command: `pnpm exec vite build && pnpm exec vite preview --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: !isCI,
-    timeout: 180_000,
-  },
+  webServer: [
+    // 실제 게임 서버. live.spec.ts가 여기에 붙는다.
+    {
+      command: 'pnpm --filter @banwonpoker/server start',
+      url: `http://127.0.0.1:${GAME_SERVER_PORT}/health`,
+      env: { PORT: String(GAME_SERVER_PORT), HOST: '127.0.0.1', ALLOWED_ORIGINS: `http://localhost:${PORT}` },
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    // 프로덕션 빌드로 검사한다. 개발 도구가 빠진 실제 화면이 기준 이미지가 된다.
+    {
+      command: `pnpm exec vite build && pnpm exec vite preview --port ${PORT} --strictPort`,
+      url: `http://localhost:${PORT}`,
+      env: { VITE_SERVER_URL: `ws://127.0.0.1:${GAME_SERVER_PORT}/ws` },
+      reuseExistingServer: !isCI,
+      timeout: 180_000,
+    },
+  ],
 })

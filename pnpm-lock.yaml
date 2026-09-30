@@ -53,6 +53,12 @@ importers:
 
   frontend:
     dependencies:
+      '@banwonpoker/engine':
+        specifier: workspace:*
+        version: link:../backend/engine
+      '@banwonpoker/server':
+        specifier: workspace:*
+        version: link:../backend/server
       '@fluentui/react-icons':
         specifier: ^2.0.343
         version: 2.0.343(react@19.3.0)

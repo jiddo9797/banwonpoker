@@ -35,6 +35,9 @@ import { MIN_PLAYERS, normalizeSettings, scheduleOf, TURN_MS, validateNickname, 
 
 export type Send = (message: ServerMessage) => void
 
+/** 연결을 끊는 함수. 같은 자리에 새 연결이 들어오면 이전 연결을 닫는 데 쓴다. */
+export type Close = () => void
+
 export interface RoomOptions {
   turnMs?: number
   /** 핸드가 끝나고 다음 핸드까지 쉬는 시간(쇼다운 결과를 볼 시간) */
@@ -90,6 +93,7 @@ export class Room {
   private phase: RoomPhase = 'lobby'
   private readonly participants = new Map<string, Participant>()
   private readonly connections = new Map<string, Send>()
+  private readonly closers = new Map<string, Close>()
   private table: TableState | null = null
   private startedAt: number | null = null
   private turn: { playerId: string; deadline: number; timer: TimerHandle } | null = null
@@ -181,10 +185,21 @@ export class Room {
   }
 
   /** 연결을 참가자에게 붙이고 입장 확인, 현재 상태, 최근 이벤트를 보낸다. 기존 연결은 대체된다. */
-  attach(playerId: string, send: Send) {
+  attach(playerId: string, send: Send, close?: Close) {
     const participant = this.participants.get(playerId)
     if (!participant || participant.left) return
+    const previous = this.connections.get(playerId)
+    if (previous && previous !== send) {
+      // 같은 사람이 다른 탭·기기에서 들어왔다. 이전 화면이 멈춘 채 남지 않게 알리고 닫는다.
+      previous({
+        type: 'error',
+        error: { code: 'SESSION_REPLACED', message: '다른 탭이나 기기에서 같은 자리로 들어와 이 화면의 연결을 끊었습니다.' },
+      })
+      this.closers.get(playerId)?.()
+    }
     this.connections.set(playerId, send)
+    if (close) this.closers.set(playerId, close)
+    else this.closers.delete(playerId)
     participant.connected = true
     if (this.idleTimer) {
       this.deps.clock.clearTimeout(this.idleTimer)
@@ -199,6 +214,7 @@ export class Room {
   detach(playerId: string, send: Send) {
     if (this.connections.get(playerId) !== send) return
     this.connections.delete(playerId)
+    this.closers.delete(playerId)
     const participant = this.participants.get(playerId)
     if (participant) participant.connected = false
     this.broadcastState()
@@ -386,6 +402,7 @@ export class Room {
     if (this.phase !== 'ended') participant.seat = null
     participant.connected = false
     this.connections.delete(participant.id)
+    this.closers.delete(participant.id)
 
     if (this.isHost(participant)) {
       // 방장이 나가면 가장 먼저 들어온 사람이 방장이 된다.

@@ -17,7 +17,7 @@ interface PlayerSeatProps {
 }
 
 export function PlayerSeat({ seat }: PlayerSeatProps) {
-  const label = statusLabel(seat)
+  const label = seat.statusNote ?? statusLabel(seat)
   const classes = [
     'player-seat',
     `player-seat--${seat.position}`,
@@ -38,7 +38,7 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
 
   return (
     <div className={classes}>
-      {seat.status === 'folded' || seat.status === 'eliminated' ? (
+      {seat.status === 'folded' || seat.status === 'eliminated' || seat.inHand === false ? (
         <div className="opponent-card-stack" />
       ) : (
         <div

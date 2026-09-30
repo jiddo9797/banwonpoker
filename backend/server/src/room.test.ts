@@ -363,6 +363,18 @@ describe('퇴장과 재접속', () => {
     expect(room.stateFor(minsu).game!.view.seats.find((seat) => seat.id === minsu)?.holeCards).toHaveLength(2)
   })
 
+  it('같은 자리로 새 연결이 들어오면 이전 연결에 알리고 닫는다', () => {
+    const { room, minsu } = startedRoom()
+    const closed: string[] = []
+    const oldBox: unknown[] = []
+    room.attach(minsu, (message) => oldBox.push(message), () => closed.push('old'))
+    room.attach(minsu, () => undefined, () => closed.push('new'))
+    expect(oldBox.at(-1)).toMatchObject({ type: 'error', error: { code: 'SESSION_REPLACED' } })
+    expect(closed).toEqual(['old'])
+    // 닫힌 이전 연결이 끊겼다고 알려도 새 연결은 그대로다.
+    expect(room.stateFor(minsu).room.participants.find((participant) => participant.id === minsu)?.connected).toBe(true)
+  })
+
   it('아무도 접속하지 않은 채 오래 지나면 방을 닫고, 그 전에 돌아오면 유지한다', () => {
     const harness = setupRoom()
     harness.disconnect(harness.hostId)

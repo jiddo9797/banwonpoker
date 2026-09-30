@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { MAX_PLAYERS } from '../room/settings'
 import { seatOccupantFor } from './fixtures'
+import type { LobbyParticipant } from './fixtures'
 import { PrepLayout } from './PrepLayout'
 import type { PrepContext } from './PrepLayout'
 
@@ -10,11 +11,15 @@ interface SeatScreenProps {
   initialSeat?: number
   onBack: () => void
   onSelect: (seatNumber: number) => void
+  /** 실제 게임: 좌석(1부터)에 앉은 사람. 없으면 목 데이터를 쓴다. */
+  occupantOf?: (seatNumber: number) => LobbyParticipant | undefined
+  /** 실제 게임: 좌석 요청 결과(이미 누가 앉음 등) */
+  errorMessage?: string
 }
 
 const seatNumbers = Array.from({ length: MAX_PLAYERS }, (_, index) => index + 1)
 
-export function SeatScreen({ context, nickname, initialSeat, onBack, onSelect }: SeatScreenProps) {
+export function SeatScreen({ context, nickname, initialSeat, onBack, onSelect, occupantOf, errorMessage }: SeatScreenProps) {
   const [selectedSeat, setSelectedSeat] = useState(initialSeat)
   const [showHint, setShowHint] = useState(false)
   const hintId = useId()
@@ -37,7 +42,7 @@ export function SeatScreen({ context, nickname, initialSeat, onBack, onSelect }:
         <div aria-label="좌석 배치" className="seat-map" role="group">
           <div aria-hidden="true" className="seat-map-felt" />
           {seatNumbers.map((seatNumber) => {
-            const occupant = seatOccupantFor(context.role, seatNumber)
+            const occupant = occupantOf ? occupantOf(seatNumber) : seatOccupantFor(context.role, seatNumber)
             const selected = selectedSeat === seatNumber
             const closed = seatNumber > context.room.maxPlayers
 
@@ -90,6 +95,12 @@ export function SeatScreen({ context, nickname, initialSeat, onBack, onSelect }:
             )
           })}
         </div>
+
+        {errorMessage ? (
+          <p className="field-error" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
 
         {showHint ? (
           <p className="field-error" id={hintId} role="alert">
