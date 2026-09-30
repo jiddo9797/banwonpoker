@@ -42,6 +42,7 @@ function build(names: string[], viewer: string, options: { maxPlayers?: number; 
     serverTime: NOW,
     room: {
       code: 'ABC234',
+      sessionId: 'S1',
       name: '테스트',
       hostId: names[0],
       phase: 'playing',
@@ -53,7 +54,7 @@ function build(names: string[], viewer: string, options: { maxPlayers?: number; 
     game: {
       startedAt: NOW - 1_000,
       view: playerView(table, viewer),
-      turn: table.hand?.toAct ? { playerId: table.hand.toAct, deadline: NOW + 42_000, durationMs: 60_000 } : null,
+      turn: table.hand?.toAct ? { playerId: table.hand.toAct, turnSeq: table.eventSeq, deadline: NOW + 42_000, durationMs: 60_000 } : null,
       blinds: { level: { smallBlind: 50, bigBlind: 100 }, levelIndex: 0, nextLevel: null, nextLevelAt: null },
       nextHandAt: null,
     },

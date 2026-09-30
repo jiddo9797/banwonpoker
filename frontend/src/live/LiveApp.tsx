@@ -1,14 +1,17 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ClientState } from '@banwonpoker/server/protocol'
 import { CanvasStage } from '../shared/CanvasStage'
 import type { LiveClient } from './client'
+import { readHistory, rememberSession } from './history'
+import type { PastSession } from './history'
 import { getLiveClient, useLiveSnapshot } from './hooks'
 import { LiveHome, Reconnecting, Replaced } from './LiveHome'
 import { LivePrep } from './LivePrep'
+import { LiveReplay } from './LiveReplay'
 import { LiveSummary } from './LiveSummary'
 import { LiveTable } from './LiveTable'
 
-type LiveScreen = 'home' | 'reconnecting' | 'replaced' | 'prep' | 'table' | 'summary'
+type LiveScreen = 'home' | 'reconnecting' | 'replaced' | 'prep' | 'table' | 'summary' | 'replay'
 
 const titles: Record<LiveScreen, string> = {
   home: '시작',
@@ -17,6 +20,7 @@ const titles: Record<LiveScreen, string> = {
   prep: '게임 준비',
   table: '테이블',
   summary: '세션 요약',
+  replay: '복기',
 }
 
 function screenOf(state: ClientState | null, resuming: boolean, replaced: boolean): LiveScreen {
@@ -37,7 +41,25 @@ function roomFromUrl() {
 export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
   const snapshot = useLiveSnapshot(client)
   const invitedRoom = useRef(roomFromUrl())
-  const screen = screenOf(snapshot.state, snapshot.resuming, snapshot.replaced)
+  const [replaying, setReplaying] = useState<PastSession | null>(null)
+  const [history, setHistory] = useState(readHistory)
+  const screen: LiveScreen = replaying ? 'replay' : screenOf(snapshot.state, snapshot.resuming, snapshot.replaced)
+
+  // 세션이 끝나면 이 브라우저에 남겨 두어 나중에도 복기할 수 있게 한다.
+  const summary = snapshot.state?.room.summary
+  const token = client.savedSession?.token
+  const playerId = snapshot.state?.you.playerId
+  const roomName = snapshot.state?.room.name
+  useEffect(() => {
+    if (!summary?.sessionId || !token || !playerId || !roomName) return
+    rememberSession({ sessionId: summary.sessionId, token, playerId, name: roomName, endedAt: summary.endedAt })
+    setHistory(readHistory())
+  }, [summary?.sessionId, summary?.endedAt, token, playerId, roomName])
+
+  const currentPast: PastSession | null =
+    summary?.sessionId && token && playerId && roomName
+      ? { sessionId: summary.sessionId, token, playerId, name: roomName, endedAt: summary.endedAt }
+      : null
 
   // 저장한 방이 있으면 다시 들어간다. 초대 링크가 다른 방이면 새 방 입장을 우선한다.
   useEffect(() => {
@@ -76,14 +98,32 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
 
   return (
     <CanvasStage>
-      {screen === 'home' ? <LiveHome client={client} initialRoomCode={invitedRoom.current} snapshot={snapshot} /> : null}
+      {screen === 'home' ? (
+        <LiveHome
+          client={client}
+          initialRoomCode={invitedRoom.current}
+          onOpenReplay={setReplaying}
+          pastSessions={history}
+          snapshot={snapshot}
+        />
+      ) : null}
       {screen === 'reconnecting' ? <Reconnecting /> : null}
       {screen === 'replaced' ? <Replaced onLeave={leave} onResume={() => client.resumeSaved()} /> : null}
       {screen === 'prep' && snapshot.state ? (
         <LivePrep client={client} key={snapshot.state.room.code} lastError={snapshot.lastError} state={snapshot.state} />
       ) : null}
       {screen === 'table' && snapshot.state ? <LiveTable client={client} snapshot={snapshot} state={snapshot.state} /> : null}
-      {screen === 'summary' && snapshot.state ? <LiveSummary onExit={leave} state={snapshot.state} /> : null}
+      {screen === 'summary' && snapshot.state ? (
+        <LiveSummary onExit={leave} onReplay={currentPast ? () => setReplaying(currentPast) : undefined} state={snapshot.state} />
+      ) : null}
+      {screen === 'replay' && replaying ? (
+        <LiveReplay
+          backLabel={snapshot.state ? '세션 요약' : '처음 화면'}
+          key={replaying.sessionId}
+          onBack={() => setReplaying(null)}
+          session={replaying}
+        />
+      ) : null}
     </CanvasStage>
   )
 }

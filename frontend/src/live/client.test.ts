@@ -74,7 +74,7 @@ function setup(storages: MemoryStorage[] = [new MemoryStorage(), new MemoryStora
 const state = (overrides: Partial<ClientState> = {}): ClientState =>
   ({
     serverTime: 5_000,
-    room: { code: 'ABC234', name: '방', hostId: 'p1', phase: 'lobby', settings: {} as never, participants: [], summary: null },
+    room: { code: 'ABC234', sessionId: null, name: '방', hostId: 'p1', phase: 'lobby', settings: {} as never, participants: [], summary: null },
     you: { playerId: 'p1', isHost: true, seat: null, ready: false, voiceless: false },
     game: null,
     ...overrides,

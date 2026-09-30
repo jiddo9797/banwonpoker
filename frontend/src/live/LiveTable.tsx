@@ -11,6 +11,7 @@ import { blindNoteOf, toPlayerAction, toTableSnapshot } from './adapt'
 import type { ActionSlot, LiveClient, LiveSnapshot } from './client'
 import { useServerNow } from './hooks'
 import { inviteUrlFor } from './LivePrep'
+import { useTurnRecording } from './useTurnRecording'
 
 interface LiveTableProps {
   client: LiveClient
@@ -21,7 +22,8 @@ interface LiveTableProps {
 /** 실제 게임 테이블. 서버 상태를 기존 테이블 부품에 맞춰 그린다. */
 export function LiveTable({ client, snapshot, state }: LiveTableProps) {
   const now = useServerNow(snapshot.clockOffset)
-  const table = toTableSnapshot(state, snapshot.events, { now, status: snapshot.status })
+  const recordingState = useTurnRecording({ client, state, clockOffset: snapshot.clockOffset, pending: snapshot.pending !== null })
+  const table = { ...toTableSnapshot(state, snapshot.events, { now, status: snapshot.status }), recordingState }
   const game = state.game!
   const legal = game.view.legal
   const step = Math.max(1, game.blinds.level.smallBlind)
@@ -93,10 +95,8 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
       />
       <GameTable
         heroLabel={me && me.status === 'active' ? '나' : '관전 중'}
-        showRecordingNote={false}
         snapshot={table}
-        // 녹음은 다음 단계에서 연결한다. 그때까지 `기록 중` 같은 문구를 띄우지 않는다.
-        voiceless
+        voiceless={state.you.voiceless}
       />
       <SidePanel
         activeTab={panelTab}

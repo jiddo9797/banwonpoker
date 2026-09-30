@@ -1,38 +1,45 @@
-import { getReplayHand, LATEST_HAND_NUMBER } from './fixtures'
-import type { ExportStatus, MixerChannel, ReplayAction, ReplayState } from './model'
+import { replayHands } from './fixtures'
+import type { ExportStatus, MixerChannel, ReplayAction, ReplayHand, ReplayState } from './model'
 
 export const DEFAULT_VOLUME = 80
 
-function clampIndex(index: number, handNumber: number) {
-  const lastIndex = getReplayHand(handNumber).actions.length - 1
-  return Math.min(lastIndex, Math.max(0, index))
+/** 번호로 핸드를 찾는다. 없으면 마지막 핸드 */
+export function handOf(hands: ReplayHand[], handNumber: number): ReplayHand {
+  return hands.find((hand) => hand.number === handNumber) ?? hands[hands.length - 1]
 }
 
-function createMixer(handNumber: number): Record<string, MixerChannel> {
-  return Object.fromEntries(
-    getReplayHand(handNumber).players.map((player) => [player.id, { volume: DEFAULT_VOLUME, muted: false }]),
-  )
+function clampIndex(index: number, hand: ReplayHand) {
+  return Math.min(hand.actions.length - 1, Math.max(0, index))
+}
+
+/** 세션에 나온 모든 참가자의 음량. 핸드를 바꿔도 설정이 유지된다. */
+function createMixer(hands: ReplayHand[]): Record<string, MixerChannel> {
+  const ids = new Set(hands.flatMap((hand) => hand.players.map((player) => player.id)))
+  return Object.fromEntries([...ids].map((id) => [id, { volume: DEFAULT_VOLUME, muted: false }]))
 }
 
 interface InitialReplayOptions {
+  hands?: ReplayHand[]
   handNumber?: number
   index?: number
   exportStatus?: ExportStatus
 }
 
 export function createInitialReplayState({
-  handNumber = LATEST_HAND_NUMBER,
+  hands = replayHands,
+  handNumber,
   index = 0,
   exportStatus = 'closed',
 }: InitialReplayOptions = {}): ReplayState {
-  const hand = getReplayHand(handNumber)
+  const hand = handOf(hands, handNumber ?? hands[hands.length - 1].number)
 
   return {
+    hands,
     handNumber: hand.number,
-    index: clampIndex(index, hand.number),
+    index: clampIndex(index, hand),
     playing: false,
     speed: 1,
-    mixer: createMixer(hand.number),
+    mixer: createMixer(hands),
     exportStatus,
     exportProgress: exportStatus === 'done' ? 100 : exportStatus === 'failed' ? 60 : exportStatus === 'generating' ? 40 : 0,
     exportScope: 'hand',
@@ -42,27 +49,27 @@ export function createInitialReplayState({
 export function replayReducer(state: ReplayState, action: ReplayAction): ReplayState {
   switch (action.type) {
     case 'hand.changed': {
-      const hand = getReplayHand(action.handNumber)
+      const hand = handOf(state.hands, action.handNumber)
       if (hand.number === state.handNumber) return state
       return { ...state, handNumber: hand.number, index: 0, playing: false }
     }
 
     case 'action.selected':
-      return { ...state, index: clampIndex(action.index, state.handNumber) }
+      return { ...state, index: clampIndex(action.index, handOf(state.hands, state.handNumber)) }
 
     case 'playback.toggled': {
-      const lastIndex = getReplayHand(state.handNumber).actions.length - 1
+      const lastIndex = handOf(state.hands, state.handNumber).actions.length - 1
       // 마지막 칸에서 재생을 누르면 처음부터 다시 재생한다.
       if (!state.playing && state.index >= lastIndex) return { ...state, index: 0, playing: true }
       return { ...state, playing: !state.playing }
     }
 
     case 'playback.stepped':
-      return { ...state, index: clampIndex(state.index + action.delta, state.handNumber) }
+      return { ...state, index: clampIndex(state.index + action.delta, handOf(state.hands, state.handNumber)) }
 
     case 'playback.ticked': {
       if (!state.playing) return state
-      const lastIndex = getReplayHand(state.handNumber).actions.length - 1
+      const lastIndex = handOf(state.hands, state.handNumber).actions.length - 1
       if (state.index >= lastIndex) return { ...state, playing: false }
       const index = state.index + 1
       return { ...state, index, playing: index < lastIndex }
