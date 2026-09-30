@@ -540,6 +540,27 @@ button.seat-map-seat.is-selected > span:last-child {
   border-bottom: 1px solid var(--stroke-panel);
 }
 
+.lobby-participants .kick-button {
+  display: inline-flex;
+  grid-column: 1 / -1;
+  justify-self: end;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 6px;
+  color: var(--critical-text);
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.lobby-participants .kick-button svg {
+  width: 16px;
+  height: 16px;
+}
+
 .lobby-participants li:last-child {
   border-bottom: 0;
 }

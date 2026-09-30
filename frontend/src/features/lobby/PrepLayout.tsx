@@ -1,4 +1,4 @@
-import { Checkmark20Regular } from '@fluentui/react-icons'
+import { Checkmark20Regular, PersonDelete20Regular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import type { ScreenKey } from '../../app/flow'
 import { formatChips } from '../../shared/format'
@@ -34,6 +34,8 @@ export interface PrepContext {
   participants?: LobbyParticipant[]
   /** 실제 게임: 방 코드 */
   roomCode?: string
+  /** 실제 게임, 방장: 참가자를 내보낸다. 있으면 참가자마다 내보내기 버튼을 보여준다. */
+  onKick?: (participant: LobbyParticipant) => void
 }
 
 interface PrepLayoutProps extends PrepContext {
@@ -60,6 +62,7 @@ export function PrepLayout({
   selfMicLabel,
   participants: liveParticipants,
   roomCode,
+  onKick,
   children,
 }: PrepLayoutProps) {
   const steps = stepsByRole[role]
@@ -171,6 +174,14 @@ export function PrepLayout({
                   <span aria-hidden="true" className="dot" />
                   {participant.connection === 'connected' ? '연결됨' : '연결 끊김'}
                 </span>
+                {onKick && role === 'host' ? (
+                  <button className="kick-button" onClick={() => onKick(participant)} type="button">
+                    <PersonDelete20Regular aria-hidden="true" />
+                    <span>
+                      내보내기<span className="visually-hidden"> {participant.name}</span>
+                    </span>
+                  </button>
+                ) : null}
               </li>
             ))}
             {participants.length === 0 && role === 'host' ? (

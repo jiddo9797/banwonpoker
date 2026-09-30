@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ActionOption, DemoPhase, TableSnapshot } from '../model'
 import { formatChips } from '../../../shared/format'
 
@@ -38,6 +39,15 @@ export function ActionDock({
   const hasBetControl = snapshot.actions.find((action) => action.id === 'raise')?.enabled ?? false
   const isPending = phase === 'pending' || snapshot.key === 'pending'
 
+  // 직접 입력: 입력하는 동안은 적은 그대로 두고, 칸을 벗어나거나 Enter를 누르면 금액을 정한다(범위 밖이면 가장 가까운 값으로 맞춘다).
+  const [draft, setDraft] = useState<string | null>(null)
+  const commitDraft = () => {
+    if (draft === null) return
+    const amount = Number(draft.replace(/[^\d]/g, ''))
+    if (draft.trim() !== '' && Number.isFinite(amount) && amount > 0) onBetAmountChange(amount)
+    setDraft(null)
+  }
+
   return (
     <section aria-label="포커 액션" className="action-dock">
       {hasBetControl ? (
@@ -71,7 +81,32 @@ export function ActionDock({
               type="range"
               value={selectedBetAmount}
             />
-            <output aria-live="polite">{formatChips(selectedBetAmount)}</output>
+            <input
+              aria-describedby="bet-amount-range"
+              aria-label="베팅 금액 직접 입력"
+              className="bet-amount-input"
+              enterKeyHint="done"
+              inputMode="numeric"
+              onBlur={commitDraft}
+              onChange={(event) => setDraft(event.target.value.replace(/[^\d,]/g, ''))}
+              onFocus={(event) => {
+                setDraft(String(selectedBetAmount))
+                event.target.select()
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  commitDraft()
+                } else if (event.key === 'Escape') {
+                  setDraft(null)
+                }
+              }}
+              type="text"
+              value={draft ?? formatChips(selectedBetAmount)}
+            />
+            <span className="visually-hidden" id="bet-amount-range">
+              {formatChips(snapshot.minRaise)}부터 {formatChips(snapshot.maxRaise)}까지 입력할 수 있습니다
+            </span>
           </div>
         </div>
       ) : null}

@@ -202,6 +202,25 @@ export function Replaced({ onResume, onLeave }: { onResume: () => void; onLeave:
   )
 }
 
+export function Kicked({ onHome }: { onHome: () => void }) {
+  return (
+    <div className="live-home">
+      <header className="chrome-header">
+        <div className="wordmark">banwonpoker</div>
+      </header>
+      <main aria-labelledby="kicked-title" className="live-home-main">
+        <h1 id="kicked-title">방장이 방에서 내보냈습니다</h1>
+        <p className="live-home-lead">이 자리로는 다시 들어갈 수 없습니다. 게임 중이었다면 그 핸드는 폴드 처리되었습니다.</p>
+        <div className="live-home-actions">
+          <button className="btn btn--primary" onClick={onHome} type="button">
+            처음 화면으로
+          </button>
+        </div>
+      </main>
+    </div>
+  )
+}
+
 export function Reconnecting() {
   return (
     <div className="live-home">

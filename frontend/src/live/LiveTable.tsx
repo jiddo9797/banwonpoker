@@ -10,6 +10,8 @@ import { EndSessionDialog, LeaveDialog, SettingsDialog, Toast } from '../feature
 import { blindNoteOf, toPlayerAction, toTableSnapshot } from './adapt'
 import type { ActionSlot, LiveClient, LiveSnapshot } from './client'
 import { useServerNow } from './hooks'
+import { KickDialog } from './KickDialog'
+import type { KickTarget } from './KickDialog'
 import { inviteUrlFor } from './LivePrep'
 import { useTurnRecording } from './useTurnRecording'
 
@@ -33,6 +35,7 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialog, setDialog] = useState<'leave' | 'end' | 'settings' | null>(null)
   const [notice, setNotice] = useState<ToastMessage>()
+  const [kickTarget, setKickTarget] = useState<KickTarget | null>(null)
 
   // 새 차례가 올 때마다 베팅 금액을 최소 금액으로 되돌린다.
   const turnKey = `${game.view.handNumber}:${game.turn?.playerId}:${game.turn?.deadline}`
@@ -102,6 +105,7 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
         activeTab={panelTab}
         collapsed={panelCollapsed}
         onTabChange={setPanelTab}
+        onKick={state.you.isHost ? setKickTarget : undefined}
         onToggleCollapsed={() => setPanelCollapsed((collapsed) => !collapsed)}
         snapshot={table}
       />
@@ -131,6 +135,15 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
           client.send({ type: 'session.end' })
         }}
         open={dialog === 'end'}
+      />
+      <KickDialog
+        onCancel={() => setKickTarget(null)}
+        onConfirm={(target) => {
+          setKickTarget(null)
+          client.send({ type: 'player.kick', playerId: target.id })
+          setNotice({ kind: 'success', message: `${target.name}을(를) 내보냈습니다` })
+        }}
+        target={kickTarget}
       />
       <SettingsDialog onClose={() => setDialog(null)} open={dialog === 'settings'} room={state.room.settings} />
     </>

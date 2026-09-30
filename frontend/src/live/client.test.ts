@@ -183,6 +183,23 @@ describe('LiveClient', () => {
     expect(client.getSnapshot().replaced).toBe(false)
   })
 
+  it('방장이 내보내면 저장을 지우고 다시 연결하지 않는다', () => {
+    const { client, sockets, storages, runTimers } = setup()
+    client.joinRoom('ABC234', '민수')
+    sockets[0].open()
+    sockets[0].receive({ type: 'joined', roomCode: 'ABC234', playerId: 'p2', token: 'tok', protocolVersion: 1 })
+    sockets[0].receive({ type: 'state', state: state() })
+    sockets[0].receive({ type: 'error', error: { code: 'KICKED', message: '방장이 방에서 내보냈습니다.' } })
+    sockets[0].drop()
+    runTimers()
+
+    expect(sockets).toHaveLength(1)
+    expect(client.getSnapshot()).toMatchObject({ kicked: true, state: null })
+    expect(storages.every((storage) => storage.getItem(SESSION_KEY) === null)).toBe(true)
+    client.leave()
+    expect(client.getSnapshot().kicked).toBe(false)
+  })
+
   it('저장한 자리로 돌아가지 못하면 저장을 지운다', () => {
     const storage = new MemoryStorage()
     storage.setItem(SESSION_KEY, JSON.stringify({ roomCode: 'GONE00', token: 'old', playerId: 'p9' }))
