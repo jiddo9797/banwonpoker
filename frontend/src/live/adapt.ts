@@ -17,7 +17,7 @@ export function englishHandName({ category, tiebreak }: Pick<HandValue, 'categor
     case 'straight-flush':
       return tiebreak[0] === 14 ? 'ROYAL STRAIGHT FLUSH' : 'STRAIGHT FLUSH'
     case 'four-of-a-kind':
-      return `QUADS(${first})`
+      return `FOUR OF A KIND(${first})`
     case 'full-house':
       return `FULL HOUSE(${first},${second})`
     case 'flush':
@@ -25,7 +25,7 @@ export function englishHandName({ category, tiebreak }: Pick<HandValue, 'categor
     case 'straight':
       return 'STRAIGHT'
     case 'three-of-a-kind':
-      return `TRIPS(${first})`
+      return `THREE OF A KIND(${first})`
     case 'two-pair':
       // 작은 페어부터 쓴다. 예: TWO PAIR(2,6)
       return `TWO PAIR(${second},${first})`
