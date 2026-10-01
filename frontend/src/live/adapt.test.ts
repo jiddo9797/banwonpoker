@@ -2,7 +2,7 @@ import { act, createTable, playerView, seatPlayer, seededRng, startHand } from '
 import type { EngineResult, TableState } from '@banwonpoker/engine'
 import type { ClientState, ParticipantSnapshot, RoomSettings, TimedEvent } from '@banwonpoker/server/protocol'
 import { describe, expect, it } from 'vitest'
-import { actionOptions, blindNoteOf, formatEvent, toCard, toLobbyParticipants, toPlayerAction, toTableSnapshot } from './adapt'
+import { actionOptions, blindNoteOf, formatEvent, madeHandName, toCard, toLobbyParticipants, toPlayerAction, toTableSnapshot } from './adapt'
 
 const settings: RoomSettings = {
   name: '테스트',
@@ -70,7 +70,30 @@ describe('toCard', () => {
   })
 })
 
+describe('madeHandName', () => {
+  const c = (rank: number, suit: 'spade' | 'heart' | 'diamond' | 'club') => ({ rank: rank as never, suit })
+  it('프리플랍에는 두 장만으로 페어나 하이카드를 부른다', () => {
+    expect(madeHandName([c(12, 'spade'), c(12, 'heart')], [])).toBe('퀸 원 페어')
+    expect(madeHandName([c(9, 'spade'), c(14, 'heart')], [])).toBe('에이스 하이')
+  })
+
+  it('보드가 열리면 가장 좋은 다섯 장의 족보를 부른다', () => {
+    expect(madeHandName([c(13, 'spade'), c(7, 'heart')], [c(13, 'club'), c(7, 'diamond'), c(2, 'spade')])).toBe('킹·세븐 투 페어')
+    expect(madeHandName([c(14, 'heart'), c(3, 'heart')], [c(9, 'heart'), c(6, 'heart'), c(2, 'spade'), c(11, 'heart')])).toBe('에이스 하이 플러시')
+  })
+})
+
 describe('toTableSnapshot', () => {
+  it('핸드 중이면 내 족보를 보여주고, 폴드하면 지운다', () => {
+    const live = build(['a', 'b', 'c'], 'a')
+    const snapshot = toTableSnapshot(live.state, live.events, { now: NOW, status: 'open' })
+    const hole = live.state.game!.view.seats.find((seat) => seat.id === 'a')!.holeCards!
+    expect(snapshot.heroHandName).toBe(madeHandName(hole, []))
+
+    const folded = build(['a', 'b', 'c'], 'a', { mutate: (table) => ok(act(table, 'a', { type: 'fold' })).table })
+    expect(toTableSnapshot(folded.state, folded.events, { now: NOW, status: 'open' }).heroHandName).toBeUndefined()
+  })
+
   it('내 좌석을 아래 가운데에 두고 나머지를 시계 방향으로 돌려 놓는다', () => {
     // 나는 좌석 2. 좌석 3 → 좌하, 4 → 좌상, 5 → 상단, 0 → 우상, 1 → 우하
     const { state, events } = build(['a', 'b', 'me', 'c', 'd', 'e'], 'me')

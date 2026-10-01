@@ -1,3 +1,4 @@
+import { evaluateBest, handName, rankNames } from '@banwonpoker/engine'
 import type { Card as EngineCard, HandPhase, LegalActions, SeatView } from '@banwonpoker/engine'
 import type { ClientState, ParticipantSnapshot, TimedEvent } from '@banwonpoker/server/protocol'
 import { formatChips } from '../shared/format'
@@ -6,6 +7,17 @@ import type { ActionOption, Card, Seat, SeatPosition, TableSnapshot } from '../f
 import type { ActionSlot, ConnectionStatus } from './client'
 
 const rankLabels: Record<number, string> = { 14: 'A', 13: 'K', 12: 'Q', 11: 'J' }
+
+/**
+ * 지금 내 패로 만든 족보 이름. 보드가 3장 이상이면 가장 좋은 다섯 장으로, 프리플랍이면 두 장만으로 부른다.
+ * 예: `킹·세븐 투 페어`, 프리플랍 `퀸 원 페어`·`에이스 하이`
+ */
+export function madeHandName(hole: [EngineCard, EngineCard], board: EngineCard[]) {
+  if (board.length >= 3) return handName(evaluateBest([...hole, ...board]))
+  const [first, second] = hole
+  if (first.rank === second.rank) return `${rankNames[first.rank]} 원 페어`
+  return `${rankNames[first.rank > second.rank ? first.rank : second.rank]} 하이`
+}
 
 export function toCard(card: EngineCard): Card {
   return { rank: rankLabels[card.rank] ?? String(card.rank), suit: card.suit }
@@ -300,6 +312,7 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
     heroBet: me?.streetCommitted || undefined,
     heroRemainingSeconds: me && view.toAct === me.id ? remainingSeconds : undefined,
     heroIsWinner: complete && winnings.has(state.you.playerId),
+    heroHandName: me?.holeCards && me.inHand && !me.folded ? madeHandName(me.holeCards, view.board) : undefined,
     recordingState: 'hidden',
     actionHint,
     actions,
