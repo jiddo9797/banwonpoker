@@ -90,6 +90,8 @@ export interface TableSnapshot {
   heroRemainingSeconds?: number
   /** 이번 핸드에서 내가 이겼는지. 없으면 테이블 문구로 판단한다(목 데이터) */
   heroIsWinner?: boolean
+  /** 지금 내 족보 이름(예: `TWO PAIR(2,6)`). 폴드했거나 패가 없으면 없다. */
+  heroHandName?: string
   recordingState: RecordingState
   actionHint: string
   actions: ActionOption[]

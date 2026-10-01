@@ -103,6 +103,8 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await guest.waitForTimeout(1_500)
   await dock(guest).getByRole('button', { name: /^체크/ }).click()
   await expect(guest.getByRole('group', { name: '플랍 커뮤니티 카드' }).getByRole('img')).toHaveCount(3)
+  // 내 카드 위에 지금 내 족보가 보인다.
+  await expect(guest.locator('.hero-hand-name')).toContainText(/내 족보: (HIGH CARD|ONE PAIR|TWO PAIR|THREE OF A KIND|STRAIGHT|FLUSH|FULL HOUSE|FOUR OF A KIND)/)
 
   // 플랍: 민수가 먼저 베팅, 하늘 폴드
   await dock(guest).getByRole('button', { name: /^베팅 100/ }).click()
