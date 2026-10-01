@@ -73,13 +73,20 @@ describe('toCard', () => {
 describe('madeHandName', () => {
   const c = (rank: number, suit: 'spade' | 'heart' | 'diamond' | 'club') => ({ rank: rank as never, suit })
   it('프리플랍에는 두 장만으로 페어나 하이카드를 부른다', () => {
-    expect(madeHandName([c(12, 'spade'), c(12, 'heart')], [])).toBe('퀸 원 페어')
-    expect(madeHandName([c(9, 'spade'), c(14, 'heart')], [])).toBe('에이스 하이')
+    expect(madeHandName([c(12, 'spade'), c(12, 'heart')], [])).toBe('ONE PAIR(Q)')
+    expect(madeHandName([c(9, 'spade'), c(14, 'heart')], [])).toBe('HIGH CARD(A)')
   })
 
   it('보드가 열리면 가장 좋은 다섯 장의 족보를 부른다', () => {
-    expect(madeHandName([c(13, 'spade'), c(7, 'heart')], [c(13, 'club'), c(7, 'diamond'), c(2, 'spade')])).toBe('킹·세븐 투 페어')
-    expect(madeHandName([c(14, 'heart'), c(3, 'heart')], [c(9, 'heart'), c(6, 'heart'), c(2, 'spade'), c(11, 'heart')])).toBe('에이스 하이 플러시')
+    expect(madeHandName([c(6, 'spade'), c(2, 'heart')], [c(6, 'club'), c(2, 'diamond'), c(13, 'spade')])).toBe('TWO PAIR(2,6)')
+    expect(madeHandName([c(14, 'heart'), c(3, 'heart')], [c(9, 'heart'), c(6, 'heart'), c(2, 'spade'), c(11, 'heart')])).toBe('FLUSH')
+    expect(madeHandName([c(10, 'spade'), c(9, 'heart')], [c(8, 'club'), c(7, 'diamond'), c(6, 'spade')])).toBe('STRAIGHT')
+    expect(madeHandName([c(13, 'spade'), c(13, 'heart')], [c(13, 'club'), c(7, 'diamond'), c(7, 'spade')])).toBe('FULL HOUSE(K,7)')
+    expect(madeHandName([c(9, 'spade'), c(9, 'heart')], [c(9, 'club'), c(4, 'diamond'), c(2, 'spade')])).toBe('TRIPS(9)')
+    expect(madeHandName([c(9, 'spade'), c(9, 'heart')], [c(9, 'club'), c(9, 'diamond'), c(2, 'spade')])).toBe('QUADS(9)')
+    expect(madeHandName([c(9, 'spade'), c(8, 'spade')], [c(7, 'spade'), c(6, 'spade'), c(5, 'spade')])).toBe('STRAIGHT FLUSH')
+    expect(madeHandName([c(14, 'spade'), c(13, 'spade')], [c(12, 'spade'), c(11, 'spade'), c(10, 'spade')])).toBe('ROYAL STRAIGHT FLUSH')
+    expect(madeHandName([c(14, 'spade'), c(10, 'heart')], [c(14, 'club'), c(7, 'diamond'), c(2, 'spade')])).toBe('ONE PAIR(A)')
   })
 })
 

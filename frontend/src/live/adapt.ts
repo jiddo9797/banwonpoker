@@ -1,5 +1,5 @@
-import { evaluateBest, handName, rankNames } from '@banwonpoker/engine'
-import type { Card as EngineCard, HandPhase, LegalActions, SeatView } from '@banwonpoker/engine'
+import { evaluateBest } from '@banwonpoker/engine'
+import type { Card as EngineCard, HandPhase, HandValue, LegalActions, Rank, SeatView } from '@banwonpoker/engine'
 import type { ClientState, ParticipantSnapshot, TimedEvent } from '@banwonpoker/server/protocol'
 import { formatChips } from '../shared/format'
 import type { LobbyParticipant } from '../features/lobby/fixtures'
@@ -8,15 +8,40 @@ import type { ActionSlot, ConnectionStatus } from './client'
 
 const rankLabels: Record<number, string> = { 14: 'A', 13: 'K', 12: 'Q', 11: 'J' }
 
-/**
- * 지금 내 패로 만든 족보 이름. 보드가 3장 이상이면 가장 좋은 다섯 장으로, 프리플랍이면 두 장만으로 부른다.
- * 예: `킹·세븐 투 페어`, 프리플랍 `퀸 원 페어`·`에이스 하이`
- */
+const shortRank = (rank: Rank) => rankLabels[rank] ?? String(rank)
+
+/** 족보를 영어 대문자로 쓴다. 예: `ONE PAIR(A)`, `TWO PAIR(2,6)`, `STRAIGHT`, `ROYAL STRAIGHT FLUSH` */
+export function englishHandName({ category, tiebreak }: Pick<HandValue, 'category' | 'tiebreak'>) {
+  const [first, second] = tiebreak.map(shortRank)
+  switch (category) {
+    case 'straight-flush':
+      return tiebreak[0] === 14 ? 'ROYAL STRAIGHT FLUSH' : 'STRAIGHT FLUSH'
+    case 'four-of-a-kind':
+      return `QUADS(${first})`
+    case 'full-house':
+      return `FULL HOUSE(${first},${second})`
+    case 'flush':
+      return 'FLUSH'
+    case 'straight':
+      return 'STRAIGHT'
+    case 'three-of-a-kind':
+      return `TRIPS(${first})`
+    case 'two-pair':
+      // 작은 페어부터 쓴다. 예: TWO PAIR(2,6)
+      return `TWO PAIR(${second},${first})`
+    case 'one-pair':
+      return `ONE PAIR(${first})`
+    case 'high-card':
+      return `HIGH CARD(${first})`
+  }
+}
+
+/** 지금 내 패로 만든 족보. 보드가 3장 이상이면 가장 좋은 다섯 장으로, 프리플랍이면 두 장만으로 부른다. */
 export function madeHandName(hole: [EngineCard, EngineCard], board: EngineCard[]) {
-  if (board.length >= 3) return handName(evaluateBest([...hole, ...board]))
+  if (board.length >= 3) return englishHandName(evaluateBest([...hole, ...board]))
   const [first, second] = hole
-  if (first.rank === second.rank) return `${rankNames[first.rank]} 원 페어`
-  return `${rankNames[first.rank > second.rank ? first.rank : second.rank]} 하이`
+  if (first.rank === second.rank) return englishHandName({ category: 'one-pair', tiebreak: [first.rank] })
+  return englishHandName({ category: 'high-card', tiebreak: [first.rank > second.rank ? first.rank : second.rank] })
 }
 
 export function toCard(card: EngineCard): Card {
