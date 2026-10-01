@@ -891,6 +891,27 @@ input:focus-visible {
   left: 130px;
 }
 
+/* 지금 내 족보. 내 카드 바로 위에 둔다. */
+.hero-hand-name {
+  position: absolute;
+  z-index: 8;
+  top: -32px;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgba(53, 163, 212, 0.45);
+  border-radius: 999px;
+  color: var(--text-primary);
+  background: rgba(10, 12, 14, 0.78);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 .recording-status {
   position: absolute;
   z-index: 10;
