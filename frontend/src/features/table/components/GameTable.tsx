@@ -54,6 +54,12 @@ function HeroSeat({ snapshot, voiceless, heroLabel }: { snapshot: TableSnapshot;
   return (
     <div className={`hero-seat ${isTurn ? 'is-turn' : ''} ${(snapshot.heroIsWinner ?? snapshot.tableMessage?.includes('승리')) ? 'is-winner' : ''}`}>
       {snapshot.heroBet ? <div className="hero-bet-pill">{formatChips(snapshot.heroBet)}</div> : null}
+      {snapshot.heroHandName ? (
+        <div className="hero-hand-name">
+          <span className="visually-hidden">내 족보: </span>
+          {snapshot.heroHandName}
+        </div>
+      ) : null}
       <div className="hero-card-stack">
         {snapshot.heroCards ? (
           <>
