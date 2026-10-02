@@ -141,6 +141,15 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await expect(timeline.getByRole('button', { name: /누락|기록 실패/ })).toHaveCount(0)
   await expectAccessible(host)
 
+  // 음성 위치 막대: 음성이 있는 칸에서 원하는 지점으로 옮겨 듣는다.
+  await timeline.getByRole('button', { name: /^3번째 액션/ }).click()
+  const scrubber = host.getByRole('slider', { name: '음성 위치' })
+  await expect(scrubber).toBeEnabled()
+  await scrubber.fill('0.5')
+  await expect(scrubber).toHaveValue('0.5')
+  await timeline.getByRole('button', { name: /^1번째 액션/ }).click()
+  await expect(host.getByRole('slider', { name: '음성 위치' })).toBeDisabled()
+
   // 재생하면 음성이 있는 칸을 틀며 넘어간다.
   await host.getByRole('button', { name: '재생' }).click()
   await expect(timeline.getByRole('button', { name: /^5번째 액션/ })).toHaveAttribute('aria-current', 'step', { timeout: 15_000 })
