@@ -1,29 +1,30 @@
 import { Next20Regular, Pause20Filled, Play20Filled, Previous20Regular } from '@fluentui/react-icons'
-import { streetLabels } from '../fixtures'
-import type { PlaybackSpeed, Street } from '../model'
+import type { ReactNode } from 'react'
+import type { PlaybackSpeed } from '../model'
 
 const speeds: PlaybackSpeed[] = [1, 1.5, 2]
 
 interface ReplayControlsProps {
   index: number
   total: number
-  street: Street
   playing: boolean
   speed: PlaybackSpeed
   onTogglePlay: () => void
   onStep: (delta: number) => void
   onSpeedChange: (speed: PlaybackSpeed) => void
+  /** 음성 위치 막대(실제 게임 복기) */
+  scrubber?: ReactNode
 }
 
 export function ReplayControls({
   index,
   total,
-  street,
   playing,
   speed,
   onTogglePlay,
   onStep,
   onSpeedChange,
+  scrubber,
 }: ReplayControlsProps) {
   const atStart = index === 0
   const atEnd = index === total - 1
@@ -57,13 +58,9 @@ export function ReplayControls({
         >
           <Next20Regular aria-hidden="true" />
         </button>
-        <span aria-live="polite" className="replay-position">
-          <strong className="numeric">
-            {index + 1} / {total}
-          </strong>
-          <span>{streetLabels[street]}</span>
-        </span>
       </div>
+
+      {scrubber}
 
       <div aria-label="재생 속도" className="segmented" role="group">
         {speeds.map((option) => (

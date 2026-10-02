@@ -1,7 +1,9 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { replayHands } from './fixtures'
 import { EXPORT_TICK_MS, PLAYBACK_STEP_MS, ReplayScreen } from './ReplayScreen'
+import type { ReplayAudioPlayer } from './ReplayScreen'
 
 /** act 안에서는 렌더가 끝날 때 한 번에 반영되므로, 이어지는 타이머는 한 틱씩 나눠 진행한다. */
 async function advanceTicks(ms: number, ticks: number) {
@@ -34,6 +36,69 @@ describe('ReplayScreen', () => {
     }
     expect(screen.getByRole('img', { name: '7 클럽' })).toBeInTheDocument()
     expect(timelineCell(1)).toHaveAttribute('aria-current', 'step')
+  })
+
+  it('핸드 번호를 누르면 목록이 열리고, 고른 핸드로 바로 간다', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<ReplayScreen exportOutcome="success" onBack={vi.fn()} />)
+
+    const toggle = screen.getByRole('button', { name: /#24 · 핸드 목록 열기/ })
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    const list = screen.getByRole('group', { name: '핸드 목록 · 2개' })
+    const current = within(list).getByRole('button', { name: /#24/ })
+    expect(current).toHaveAttribute('aria-current', 'true')
+    expect(current).toHaveFocus()
+
+    await user.click(within(list).getByRole('button', { name: /#23/ }))
+    expect(screen.getByRole('heading', { name: '복기 · 핸드 #23' })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: /핸드 목록/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /#23 · 핸드 목록 열기/ })).toHaveFocus()
+
+    // Escape로 닫는다.
+    await user.click(screen.getByRole('button', { name: /핸드 목록 열기/ }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('group', { name: /핸드 목록/ })).toBeNull()
+  })
+
+  it('음성 위치 막대로 원하는 지점부터 듣고, 멈췄다 다시 틀면 멈춘 곳부터 이어간다', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const hands = replayHands.map((hand) => ({ ...hand, actions: hand.actions.map((action, index) => ({ ...action, turnSeq: index + 1 })) }))
+    const calls: Array<{ startAt?: number; onTime?: (current: number, duration: number) => void; signal: AbortSignal }> = []
+    const audio: ReplayAudioPlayer = {
+      play: (action, options) => {
+        if (action.audio.status !== 'voice') return undefined
+        calls.push(options)
+        return new Promise<void>(() => undefined)
+      },
+    }
+    // 3번째 칸: 민수 콜, 음성 4초
+    render(<ReplayScreen audio={audio} exportOutcome="success" hands={hands} initialHandNumber={24} initialIndex={2} onBack={vi.fn()} />)
+    const slider = screen.getByRole('slider', { name: '음성 위치' })
+    expect(slider).toBeEnabled()
+    expect(slider).toHaveAttribute('aria-valuetext', '0:00 / 0:04')
+
+    await user.click(screen.getByRole('button', { name: '재생' }))
+    expect(calls.at(-1)?.startAt).toBe(0)
+    act(() => calls.at(-1)?.onTime?.(1.5, 4.2))
+    expect(slider).toHaveValue('1.5')
+
+    // 재생 중에 옮기면 그 지점부터 다시 튼다.
+    fireEvent.change(slider, { target: { value: '3' } })
+    expect(calls.at(-2)?.signal.aborted).toBe(true)
+    expect(calls.at(-1)?.startAt).toBe(3)
+
+    // 멈췄다가 다시 틀면 멈춘 곳부터
+    act(() => calls.at(-1)?.onTime?.(3.4, 4.2))
+    await user.click(screen.getByRole('button', { name: '일시정지' }))
+    await user.click(screen.getByRole('button', { name: '재생' }))
+    expect(calls.at(-1)?.startAt).toBe(3.4)
+
+    // 음성이 없는 칸이면 막대를 쓸 수 없다.
+    await user.click(screen.getByRole('button', { name: '일시정지' }))
+    await user.click(screen.getByRole('button', { name: '다음 액션' }))
+    expect(screen.getByRole('slider', { name: '음성 위치' })).toBeDisabled()
+    expect(screen.queryByText('3 / 25')).toBeNull()
   })
 
   it('재생하면 액션 단위로 넘어가고 마지막 칸에서 멈춘다', async () => {

@@ -26,21 +26,30 @@ const hasAudio = (action: HandAction) => action.turnSeq !== undefined && action.
 /** 복기 재생: 음성이 있는 칸이면 끝까지 틀고, 참가자별 음량·음소거·재생 속도를 적용한다. */
 export function createAudioPlayer(source: AudioSource): ReplayAudioPlayer {
   return {
-    play(action, { channel, speed, signal }) {
+    play(action, { channel, speed, signal, startAt = 0, onTime }) {
       if (!hasAudio(action)) return undefined
+      const knownDuration = (action.audio.seconds ?? 0)
       return source(action.turnSeq as number).then(
         (blob) =>
           new Promise<void>((resolve, reject) => {
             if (signal.aborted) return resolve()
             const url = URL.createObjectURL(blob)
             const audio = new Audio(url)
+            let frame = 0
+            const duration = () => (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : knownDuration)
+            const report = () => {
+              onTime?.(audio.currentTime, duration())
+              frame = requestAnimationFrame(report)
+            }
             const cleanup = () => {
+              cancelAnimationFrame(frame)
               audio.pause()
               URL.revokeObjectURL(url)
             }
             audio.volume = channel?.muted ? 0 : (channel?.volume ?? 80) / 100
             audio.playbackRate = speed
             audio.onended = () => {
+              onTime?.(duration(), duration())
               cleanup()
               resolve()
             }
@@ -52,7 +61,19 @@ export function createAudioPlayer(source: AudioSource): ReplayAudioPlayer {
               cleanup()
               resolve()
             })
-            audio.play().catch((error: unknown) => {
+            const start = async () => {
+              if (startAt > 0) {
+                await new Promise<void>((ready) => {
+                  if (audio.readyState >= 1) ready()
+                  else audio.addEventListener('loadedmetadata', () => ready(), { once: true })
+                })
+                audio.currentTime = Math.min(startAt, Math.max(0, duration() - 0.05))
+              }
+              if (signal.aborted) return
+              await audio.play()
+              frame = requestAnimationFrame(report)
+            }
+            start().catch((error: unknown) => {
               cleanup()
               reject(error instanceof Error ? error : new Error('음성을 재생하지 못했습니다.'))
             })
