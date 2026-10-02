@@ -1,9 +1,11 @@
 import { ArrowDownload20Regular, ArrowLeft20Regular, ChevronLeft20Regular, ChevronRight20Regular } from '@fluentui/react-icons'
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import type { ExportOutcome } from '../../app/flow'
 import { formatChips } from '../../shared/format'
+import { AudioScrubber } from './components/AudioScrubber'
 import { AudioTrackStatus, audioStatusDescription, audioStatusOrder } from './components/AudioTrackStatus'
 import { ExportModal } from './components/ExportModal'
+import { HandPicker } from './components/HandPicker'
 import { ParticipantMixer } from './components/ParticipantMixer'
 import { ReplayControls } from './components/ReplayControls'
 import { ReplayTable } from './components/ReplayTable'
@@ -22,7 +24,18 @@ const EXPORT_FAILURE_AT = 60
 
 /** 실제 게임: 차례 음성을 재생한다. 음성이 없는 칸이면 undefined를 돌려준다. */
 export interface ReplayAudioPlayer {
-  play(action: HandAction, options: { channel: MixerChannel | undefined; speed: number; signal: AbortSignal }): Promise<void> | undefined
+  play(
+    action: HandAction,
+    options: {
+      channel: MixerChannel | undefined
+      speed: number
+      signal: AbortSignal
+      /** 이 위치(초)부터 튼다 */
+      startAt?: number
+      /** 재생 중 지금 위치와 전체 길이(초)를 알린다 */
+      onTime?: (current: number, duration: number) => void
+    },
+  ): Promise<void> | undefined
 }
 
 export interface ExportFile {
@@ -85,6 +98,20 @@ export function ReplayScreen({
   const previousHand = state.hands[handPosition - 1]
   const nextHand = state.hands[handPosition + 1]
 
+  // 음성 위치: 칸이 바뀌면 처음으로. 멈췄다 다시 틀면 멈춘 곳부터, 막대를 옮기면 그곳부터 튼다.
+  const hasVoice = audio !== undefined && current.audio.status === 'voice' && current.turnSeq !== undefined
+  const [audioClock, setAudioClock] = useState({ key: '', current: 0, duration: 0 })
+  const clipKey = `${hand.number}:${state.index}`
+  const clip = audioClock.key === clipKey ? audioClock : { key: clipKey, current: 0, duration: current.audio.seconds ?? 0 }
+  const positionRef = useRef({ key: clipKey, at: 0 })
+  if (positionRef.current.key !== clipKey) positionRef.current = { key: clipKey, at: 0 }
+  const [seekCount, setSeekCount] = useState(0)
+  const seek = (seconds: number) => {
+    positionRef.current = { key: clipKey, at: seconds }
+    setAudioClock({ ...clip, current: seconds })
+    if (state.playing) setSeekCount((count) => count + 1)
+  }
+
   // 재생: 음성이 있으면 끝까지 듣고, 없으면 정해진 간격 뒤 다음 칸으로 간다.
   useEffect(() => {
     if (!state.playing) return
@@ -93,7 +120,18 @@ export function ReplayScreen({
     const next = (delay: number) => {
       timer = window.setTimeout(() => dispatch({ type: 'playback.ticked' }), delay / state.speed)
     }
-    const playing = audio?.play(current, { channel: current.playerId ? state.mixer[current.playerId] : undefined, speed: state.speed, signal: controller.signal })
+    const key = clipKey
+    const playing = audio?.play(current, {
+      channel: current.playerId ? state.mixer[current.playerId] : undefined,
+      speed: state.speed,
+      signal: controller.signal,
+      startAt: positionRef.current.key === key ? positionRef.current.at : 0,
+      onTime: (time, duration) => {
+        if (controller.signal.aborted) return
+        positionRef.current = { key, at: time }
+        setAudioClock({ key, current: time, duration })
+      },
+    })
     if (playing) {
       playing.then(
         () => !controller.signal.aborted && next(AFTER_AUDIO_MS),
@@ -107,7 +145,7 @@ export function ReplayScreen({
       window.clearTimeout(timer)
     }
     // 음량을 바꿀 때마다 처음부터 다시 틀지 않도록 mixer는 의존성에서 뺀다.
-  }, [state.playing, state.index, state.speed, state.handNumber, audio])
+  }, [state.playing, state.index, state.speed, state.handNumber, audio, seekCount])
 
   // 실제 내보내기
   useEffect(() => {
@@ -176,7 +214,11 @@ export function ReplayScreen({
             <ChevronLeft20Regular aria-hidden="true" />
             <span className="visually-hidden">이전 핸드</span>
           </button>
-          <span className="numeric">#{hand.number}</span>
+          <HandPicker
+            currentNumber={hand.number}
+            hands={state.hands}
+            onSelect={(handNumber) => dispatch({ type: 'hand.changed', handNumber })}
+          />
           <button
             aria-disabled={!nextHand}
             className="icon-button"
@@ -243,8 +285,10 @@ export function ReplayScreen({
             onStep={(delta) => dispatch({ type: 'playback.stepped', delta })}
             onTogglePlay={() => dispatch({ type: 'playback.toggled' })}
             playing={state.playing}
+            scrubber={
+              audio ? <AudioScrubber available={hasVoice} current={clip.current} duration={clip.duration} onSeek={seek} /> : undefined
+            }
             speed={state.speed}
-            street={current.street}
             total={hand.actions.length}
           />
           <ReplayTimeline

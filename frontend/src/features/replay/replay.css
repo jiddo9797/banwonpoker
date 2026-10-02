@@ -284,6 +284,95 @@
   font-size: 13px;
 }
 
+.hand-picker {
+  position: relative;
+}
+
+.hand-picker-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 8px 0 12px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 6px;
+  color: var(--text-primary);
+  background: var(--control);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hand-picker-toggle svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+
+.hand-picker-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+
+.hand-picker-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--stroke-panel);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.hand-picker-panel ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hand-picker-panel button {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-primary);
+  background: transparent;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hand-picker-panel button:hover {
+  background: var(--control);
+}
+
+.hand-picker-panel button.is-current {
+  border-color: var(--accent);
+  background: var(--card-active);
+}
+
+.hand-picker-number {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.hand-picker-result {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .replay-stage {
   position: absolute;
   top: 80px;
@@ -618,18 +707,59 @@
   min-width: 132px;
 }
 
-.replay-position {
+.audio-scrubber {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-left: 8px;
-  color: var(--text-tertiary);
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  margin: 0 32px;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
-.replay-position strong {
-  color: var(--text-primary);
-  font-size: 14px;
+.audio-scrubber > span {
+  min-width: 36px;
+  text-align: center;
+}
+
+.audio-scrubber input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--scrub-percent, 0%), var(--stroke-control) var(--scrub-percent, 0%));
+  accent-color: var(--accent);
+  cursor: pointer;
+  appearance: none;
+}
+
+.audio-scrubber input[type="range"]::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  appearance: none;
+}
+
+.audio-scrubber input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text-primary);
+}
+
+.audio-scrubber.is-empty input[type="range"] {
+  cursor: default;
+}
+
+.audio-scrubber.is-empty input[type="range"]::-webkit-slider-thumb {
+  visibility: hidden;
+}
+
+.audio-scrubber.is-empty input[type="range"]::-moz-range-thumb {
+  visibility: hidden;
 }
 
 .replay-timeline {
