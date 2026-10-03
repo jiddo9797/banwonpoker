@@ -1,5 +1,6 @@
 import type { PlayerAction } from '@banwonpoker/engine'
 import type {
+  ChatMessage,
   ClientMessage,
   ClientState,
   ErrorBody,
@@ -27,6 +28,8 @@ export interface LiveSnapshot {
   state: ClientState | null
   /** 이번 연결에서 받은 엔진 이벤트(순번 순, 중복 없음) */
   events: TimedEvent[]
+  /** 이 방의 채팅(오래된 것부터, 최근 것만) */
+  chat: ChatMessage[]
   lastError: LiveError | null
   /** 서버 확인을 기다리는 액션(중복 입력 잠금) */
   pending: { clientActionId: string; slot: ActionSlot } | null
@@ -48,6 +51,7 @@ export interface SavedSession {
 
 export const SESSION_KEY = 'banwonpoker.session'
 const MAX_EVENTS = 400
+const MAX_CHAT = 100
 const RECONNECT_DELAYS = [500, 1_000, 2_000, 4_000, 5_000]
 
 type SocketLike = Pick<WebSocket, 'send' | 'close' | 'readyState'> & {
@@ -107,6 +111,7 @@ export class LiveClient {
     status: 'idle',
     state: null,
     events: [],
+    chat: [],
     lastError: null,
     pending: null,
     clockOffset: 0,
@@ -180,6 +185,13 @@ export class LiveClient {
     this.send({ type: 'action', clientActionId, action })
   }
 
+  /** 채팅을 보낸다. 앞뒤 공백을 빼고 비어 있으면 보내지 않는다. */
+  sendChat(text: string) {
+    const trimmed = text.trim()
+    if (trimmed.length === 0) return
+    this.send({ type: 'chat.send', text: trimmed })
+  }
+
   send(message: ClientMessage) {
     if (this.socket && this.snapshot.status === 'open' && this.socket.readyState === OPEN) {
       this.socket.send(JSON.stringify(message))
@@ -197,7 +209,7 @@ export class LiveClient {
     this.socket?.close()
     this.socket = null
     this.queue = []
-    this.update({ status: 'idle', state: null, events: [], pending: null, lastError: null, resuming: false, replaced: false, kicked: false })
+    this.update({ status: 'idle', state: null, events: [], chat: [], pending: null, lastError: null, resuming: false, replaced: false, kicked: false })
   }
 
   dismissError() {
@@ -348,14 +360,14 @@ export class LiveClient {
         if (message.error.code === 'SESSION_REPLACED') {
           // 다른 탭이 이 자리를 가져갔다. 서로 번갈아 뺏지 않도록 자동 재접속을 멈춘다.
           this.intentionalClose = true
-          this.update({ replaced: true, state: null, events: [], pending: null, resuming: false })
+          this.update({ replaced: true, state: null, events: [], chat: [], pending: null, resuming: false })
           return
         }
         if (message.error.code === 'KICKED') {
           // 방장이 내보냈다. 같은 자리로 돌아갈 수 없으니 저장을 지우고 다시 연결하지 않는다.
           this.forget()
           this.intentionalClose = true
-          this.update({ kicked: true, state: null, events: [], pending: null, resuming: false })
+          this.update({ kicked: true, state: null, events: [], chat: [], pending: null, resuming: false })
           return
         }
         const resumeFailed = message.requestType === 'room.resume'
@@ -371,6 +383,17 @@ export class LiveClient {
       case 'pong':
         this.update({ clockOffset: message.serverTime - this.options.now() })
         return
+
+      case 'chat.history':
+        this.update({ chat: message.messages.slice(-MAX_CHAT) })
+        return
+
+      case 'chat': {
+        const chat: ChatMessage = { id: message.id, playerId: message.playerId, name: message.name, text: message.text, sentAt: message.sentAt }
+        if (this.snapshot.chat.some((item) => item.id === chat.id)) return
+        this.update({ chat: [...this.snapshot.chat, chat].slice(-MAX_CHAT) })
+        return
+      }
     }
   }
 }

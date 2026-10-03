@@ -11,6 +11,7 @@ const allowedSeatFields = new Set<keyof Seat>([
   'position',
   'badge',
   'bet',
+  'checked',
   'status',
   'isTurn',
   'remainingSeconds',

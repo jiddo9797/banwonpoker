@@ -118,6 +118,23 @@ describe('ReplayScreen', () => {
     expect(screen.getAllByText('나 승리 · 에이스 하이 플러시 +6,650').length).toBeGreaterThan(0)
   })
 
+  it('좌석과 현재 액션 카드에 그 시점의 남은 칩을, 좌석 앞에 이번 스트리트에 낸 칩을 보여준다', () => {
+    const { container } = render(<ReplayScreen exportOutcome="success" initialIndex={12} onBack={vi.fn()} />)
+
+    expect(screen.getByLabelText('나 남은 칩 13,350')).toBeInTheDocument()
+    expect(screen.getByLabelText('서준 남은 칩 3,800')).toBeInTheDocument()
+    const facts = screen.getByText('나 남은 칩').closest('div')!
+    expect(facts).toHaveTextContent('13,350−900')
+    expect([...container.querySelectorAll('.replay-bet-pill')].map((pill) => pill.textContent)).toEqual(['300', '300', '900', '900'])
+  })
+
+  it('결과 칸에서는 승자의 남은 칩과 받은 칩을 보여주고 좌석 앞 칩은 숨긴다', () => {
+    const { container } = render(<ReplayScreen exportOutcome="success" initialIndex={22} onBack={vi.fn()} />)
+
+    expect(screen.getByText('나 남은 칩').closest('div')).toHaveTextContent('18,450+6,650')
+    expect(container.querySelectorAll('.replay-bet-pill')).toHaveLength(0)
+  })
+
   it('2배속이면 절반 시간에 다음 칸으로 간다', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<ReplayScreen exportOutcome="success" onBack={vi.fn()} />)

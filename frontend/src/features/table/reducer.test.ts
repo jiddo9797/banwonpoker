@@ -8,12 +8,12 @@ function stateFor(scenario: Parameters<typeof createInitialPrototypeState>[0], o
 }
 
 describe('createInitialPrototypeState', () => {
-  it('기본값은 상대 차례, 로그 탭, 펼친 패널이다', () => {
+  it('기본값은 상대 차례, 채팅 탭, 펼친 패널이다', () => {
     const state = createInitialPrototypeState()
 
     expect(state).toMatchObject({
       scenarioKey: 'opp',
-      panelTab: 'log',
+      panelTab: 'chat',
       panelCollapsed: false,
       demoPhase: 'idle',
       pendingAction: undefined,

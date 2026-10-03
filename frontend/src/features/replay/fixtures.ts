@@ -25,7 +25,7 @@ type ActionSpec = [
   audioSeconds?: number,
 ]
 
-/** 액션 목록에서 칸 id와 누적 팟을 계산한다. */
+/** 액션 목록에서 칸 id, 낸 칩, 누적 팟을 계산한다. */
 function buildActions(handNumber: number, specs: ActionSpec[]): HandAction[] {
   let pot = 0
   return specs.map(([street, playerId, kind, label, added, thinkSeconds, status, seconds], index) => {
@@ -37,6 +37,7 @@ function buildActions(handNumber: number, specs: ActionSpec[]): HandAction[] {
       kind,
       label,
       pot,
+      added,
       thinkSeconds,
       audio: { status, seconds },
     }
@@ -48,6 +49,8 @@ const hand24: ReplayHand = {
   board: [card('K', 'spade'), card('9', 'heart'), card('4', 'heart'), card('2', 'club'), card('J', 'heart')],
   players,
   result: '나 승리 · 에이스 하이 플러시 +6,650',
+  startStacks: { eugene: 9_150, seojun: 4_200, minsu: 12_600, jihun: 7_400, subin: 10_500, [HERO_ID]: 14_350 },
+  payouts: { [HERO_ID]: 6_650 },
   actions: buildActions(24, [
     ['preflop', 'eugene', 'blind', 'SB 50', 50, undefined, 'none'],
     ['preflop', 'seojun', 'blind', 'BB 100', 100, undefined, 'none'],
@@ -89,6 +92,8 @@ const hand23: ReplayHand = {
           : player.cards,
   })),
   result: '민수 승리 · 퀸 트리플 +1,000',
+  startStacks: { eugene: 9_150, seojun: 4_500, minsu: 12_300, jihun: 7_400, subin: 10_500, [HERO_ID]: 14_350 },
+  payouts: { minsu: 1_000 },
   actions: buildActions(23, [
     ['preflop', 'seojun', 'blind', 'SB 50', 50, undefined, 'none'],
     ['preflop', 'minsu', 'blind', 'BB 100', 100, undefined, 'none'],

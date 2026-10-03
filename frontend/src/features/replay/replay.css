@@ -505,7 +505,8 @@
 
 .replay-seat-panel {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
   width: 118px;
   height: 62px;
   margin-left: -10px;
@@ -530,6 +531,55 @@
 .replay-seat-name strong {
   font-size: 14px;
   font-weight: 600;
+}
+
+/* 이 칸까지 반영한 남은 칩 */
+.replay-seat-stack {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.replay-seat--hero .replay-seat-stack {
+  color: var(--text-primary);
+}
+
+.replay-seat.is-folded .replay-seat-stack {
+  color: var(--text-tertiary);
+}
+
+/* 이번 스트리트에 낸 칩. 모양은 실제 테이블의 .bet-pill을 그대로 쓰고, 좌석마다 테이블 안쪽에 둔다. */
+.replay-seat--top-center .replay-bet-pill {
+  top: 90px;
+  left: 68px;
+}
+
+.replay-seat--top-left .replay-bet-pill {
+  top: 48px;
+  left: 196px;
+}
+
+.replay-seat--top-right .replay-bet-pill {
+  top: 48px;
+  left: -84px;
+}
+
+.replay-seat--bottom-left .replay-bet-pill {
+  top: 16px;
+  left: 196px;
+}
+
+.replay-seat--bottom-right .replay-bet-pill {
+  top: 16px;
+  left: -84px;
+}
+
+.replay-seat--hero .replay-bet-pill {
+  top: -36px;
+  left: 68px;
 }
 
 .replay-badge {
@@ -590,7 +640,7 @@
 
 .action-detail-facts {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto auto auto 1fr;
   gap: 8px 20px;
   margin: 0;
 }
@@ -608,6 +658,21 @@
 .action-detail-facts dd {
   margin: 0;
   font-size: 13px;
+}
+
+/* 이번 칸으로 바뀐 남은 칩 */
+.stack-change {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stack-change.is-loss {
+  color: var(--text-secondary);
+}
+
+.stack-change.is-gain {
+  color: var(--ok-text);
 }
 
 .action-detail-note {
