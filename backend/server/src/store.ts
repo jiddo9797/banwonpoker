@@ -176,6 +176,11 @@ export class SessionStore {
       .run(sessionId, turn.turnSeq, turn.handNumber, turn.playerId, turn.startedMs, turn.voiceless ? 1 : 0)
   }
 
+  /** 차례 도중에 음성 기록을 끄거나 켰다. 끈 차례는 받은 조각이 있어도 `음성 없이`로 본다. */
+  setTurnVoiceless(sessionId: string, turnSeq: number, voiceless: boolean) {
+    this.db.prepare('UPDATE turns SET voiceless = ? WHERE session_id = ? AND turn_seq = ?').run(voiceless ? 1 : 0, sessionId, turnSeq)
+  }
+
   endTurn(sessionId: string, turnSeq: number, endedMs: number) {
     this.db.prepare('UPDATE turns SET ended_ms = ? WHERE session_id = ? AND turn_seq = ? AND ended_ms IS NULL').run(endedMs, sessionId, turnSeq)
   }

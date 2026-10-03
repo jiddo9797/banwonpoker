@@ -56,6 +56,12 @@ export function useTurnRecording({ client, state, clockOffset, pending, api, cre
   const isMyTurn = state.room.phase === 'playing' && turn?.playerId === state.you.playerId
   const myTurnSeq = isMyTurn && turn && !state.you.voiceless ? turn.turnSeq : null
 
+  // 게임 중에 음성 기록을 끄면 지금 녹음을 바로 버린다. 아래 효과보다 먼저 돌아 stop()이 결과를 올리지 않게 한다.
+  const voiceless = state.you.voiceless
+  useEffect(() => {
+    if (voiceless) recorder.discard()
+  }, [recorder, voiceless])
+
   useEffect(() => {
     if (myTurnSeq === null) void recorder.stop()
     else void recorder.start(myTurnSeq)

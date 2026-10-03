@@ -1,7 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { streetBetTotal } from '../model'
 import type { ActionOption, DemoPhase, TableSnapshot } from '../model'
 import { formatChips } from '../../../shared/format'
+
+/** 액션 단축키. 한/영 상태와 상관없이 같은 자리의 키로 동작하도록 key가 아니라 code로 본다. */
+const hotkeys: Record<string, ActionOption['id']> = { KeyC: 'call', KeyK: 'check', KeyR: 'raise', KeyF: 'fold' }
+const hotkeyLabels: Record<ActionOption['id'], string> = { call: 'C', check: 'K', raise: 'R', fold: 'F' }
+
+/** 글자를 입력하는 칸이면 단축키를 쓰지 않는다(채팅·금액 입력). 슬라이더·버튼에 포커스가 있을 때는 쓴다. */
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true
+  return target instanceof HTMLInputElement && !['range', 'checkbox', 'radio', 'button', 'submit'].includes(target.type)
+}
 
 function roundToStep(value: number, step: number) {
   return Math.round(value / step) * step
@@ -50,6 +61,25 @@ export function ActionDock({
   }
   const hasBetControl = snapshot.actions.find((action) => action.id === 'raise')?.enabled ?? false
   const isPending = phase === 'pending' || snapshot.key === 'pending'
+  const canAct = (id: ActionOption['id']) => !isPending && (snapshot.actions.find((action) => action.id === id)?.enabled ?? false)
+
+  // 키보드 단축키: C 콜, K 체크, R 레이즈(지금 금액), F 폴드
+  const latest = useRef({ canAct, onAction })
+  latest.current = { canAct, onAction }
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      if (isTypingTarget(event.target)) return
+      // 확인창이나 메뉴가 열려 있으면 테이블 액션을 하지 않는다.
+      if (document.querySelector('[role="dialog"], .menu-popover')) return
+      const id = hotkeys[event.code]
+      if (!id || !latest.current.canAct(id)) return
+      event.preventDefault()
+      latest.current.onAction(id)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   // 직접 입력: 입력하는 동안은 적은 그대로 두고, 칸을 벗어나거나 Enter를 누르면 금액을 정한다(범위 밖이면 가장 가까운 값으로 맞춘다).
   const [draft, setDraft] = useState<string | null>(null)
@@ -120,7 +150,10 @@ export function ActionDock({
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault()
-                  commitDraft()
+                  if (event.nativeEvent.isComposing) return
+                  // 첫 Enter는 입력한 금액을 정하고, 정한 상태에서 한 번 더 누르면 레이즈한다.
+                  if (draft !== null) commitDraft()
+                  else if (canAct('raise')) onAction('raise')
                 } else if (event.key === 'Escape') {
                   setDraft(null)
                 } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -147,7 +180,8 @@ export function ActionDock({
               +
             </button>
             <span className="visually-hidden" id="bet-amount-range">
-              {formatChips(snapshot.minRaise)}부터 {formatChips(snapshot.maxRaise)}까지 입력할 수 있습니다
+              {formatChips(snapshot.minRaise)}부터 {formatChips(snapshot.maxRaise)}까지 입력할 수 있습니다. 금액을 정한 뒤 Enter를 한 번
+              더 누르면 레이즈합니다
             </span>
           </div>
         </div>
@@ -175,6 +209,7 @@ export function ActionDock({
           return (
             <button
               aria-disabled={!enabled}
+              aria-keyshortcuts={hotkeyLabels[action.id]}
               className={`action-button action-button--${action.tone} ${isSubmitted ? 'is-pending' : ''}`}
               key={action.id}
               onClick={() => {
@@ -184,6 +219,9 @@ export function ActionDock({
             >
               <strong>{label}</strong>
               <span>{detail}</span>
+              <kbd aria-hidden="true" className="action-key">
+                {hotkeyLabels[action.id]}
+              </kbd>
             </button>
           )
         })}

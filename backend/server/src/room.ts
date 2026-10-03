@@ -274,11 +274,25 @@ export class Room {
         return this.leave(participant)
       case 'chat.send':
         return reply(this.chat(participant, message.text))
+      case 'voice.set':
+        return reply(this.setVoice(participant, message.voiceless))
       case 'ping':
         return this.sendTo(playerId, { type: 'pong', serverTime: this.deps.clock.now() })
       default:
         return reply(failure('BAD_REQUEST', '방에 들어온 뒤에는 쓸 수 없는 요청입니다.'))
     }
+  }
+
+  /** 게임 중에 내 음성 기록을 끄거나 켠다. 내 차례 도중이면 그 차례부터 바로 적용한다. */
+  private setVoice(participant: Participant, voiceless: boolean): Result {
+    if (this.phase !== 'playing') return failure('WRONG_PHASE', '음성 기록은 게임 중에만 바꿀 수 있습니다.')
+    if (participant.voiceless === voiceless) return { ok: true, value: undefined }
+    participant.voiceless = voiceless
+    if (this.turn?.playerId === participant.id && this.openTurnSeq !== null && this.sessionId) {
+      this.deps.store?.setTurnVoiceless(this.sessionId, this.openTurnSeq, voiceless)
+    }
+    this.broadcastState()
+    return { ok: true, value: undefined }
   }
 
   private chat(participant: Participant, text: string): Result {

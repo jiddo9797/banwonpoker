@@ -1004,6 +1004,26 @@ input:focus-visible {
   height: 16px;
 }
 
+/* 게임 중 내 음성 기록 끄기·켜기 */
+.voice-toggle {
+  height: 22px;
+  margin-right: -6px;
+  padding: 0 9px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 999px;
+  color: var(--text-primary);
+  background: var(--control);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.voice-toggle.is-off {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
 .action-dock {
   position: absolute;
   z-index: 20;
@@ -1070,6 +1090,38 @@ input:focus-visible {
   cursor: pointer;
 }
 
+/* 액션 버튼 오른쪽 위의 단축키 */
+.action-key {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+}
+
+/* 파란 레이즈 버튼 위에서는 버튼 글자색을 따라 보이게 한다. */
+.action-button--accent .action-key {
+  border-color: currentColor;
+  color: inherit;
+  opacity: 0.6;
+}
+
+/* 키보드가 없는 기기(폰)에서는 단축키 표시를 숨긴다. */
+@media (hover: none) {
+  .action-key {
+    display: none;
+  }
+}
+
 /* 빅 블라인드만큼 내리기·올리기 */
 .bet-nudge {
   display: inline-flex;
@@ -1126,6 +1178,7 @@ input:focus-visible {
 }
 
 .action-button {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1198,7 +1251,12 @@ input:focus-visible {
   color: var(--text-primary);
 }
 
+/*
+ * 왼쪽 아래 패널(채팅·로그·참가자). 왼쪽 아래 좌석(top 432 + 높이 98 = 530px)을 가리지 않는 데까지 키운다.
+ * 패널 위 끝 = 900 − 24(아래 여백) − 42(탭 줄) − 1(구분선) − 본문 높이 280 = 553px
+ */
 .side-panel {
+  --panel-body-height: 280px;
   position: absolute;
   z-index: 20;
   bottom: 24px;
@@ -1286,7 +1344,7 @@ input:focus-visible {
 }
 
 .panel-body {
-  height: 132px;
+  height: var(--panel-body-height);
   padding: 10px 14px;
   overflow: auto;
 }
@@ -1295,7 +1353,7 @@ input:focus-visible {
 .chat-panel {
   display: flex;
   flex-direction: column;
-  height: 132px;
+  height: var(--panel-body-height);
 }
 
 .chat-messages {
