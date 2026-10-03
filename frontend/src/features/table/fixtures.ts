@@ -1,6 +1,7 @@
 import type {
   ActionOption,
   Card,
+  ChatLine,
   ScenarioKey,
   Seat,
   TableSnapshot,
@@ -37,7 +38,7 @@ const baseSeats: Seat[] = [
     stack: 9_950,
     position: 'bottom-left',
     badge: 'SB',
-    bet: 50,
+    checked: true,
     status: 'active',
   },
   {
@@ -211,6 +212,7 @@ const baseSnapshot: TableSnapshot = {
   }),
   heroId: 'hero',
   heroCards,
+  heroHandName: 'ONE PAIR(K)',
   heroBadge: 'D',
   heroStack: 9_750,
   recordingState: 'hidden',
@@ -325,7 +327,10 @@ export const tableFixtures = {
           { rank: '7', suit: 'diamond' },
         ],
         handRank: '세븐 원 페어',
+        bet: undefined,
       },
+      minsu: { bet: undefined },
+      eugene: { checked: false },
       subin: {
         showdownCards: [
           { rank: 'K', suit: 'diamond' },
@@ -336,6 +341,7 @@ export const tableFixtures = {
       jihun: { status: 'folded' },
     }),
     tableMessage: '나 승리 · 에이스 하이 플러시 +6,650',
+    heroHandName: 'FLUSH',
     actionHint: '다음 핸드 준비 중',
     actions: showdownActions,
     callAmount: 0,
@@ -385,13 +391,14 @@ export const tableFixtures = {
     board: [null, null, null, null, null],
     pots: [{ label: '팟', amount: 150 }],
     seats: seatsWith({
-      eugene: { badge: 'D', bet: undefined },
+      eugene: { badge: 'D', bet: undefined, checked: false },
       seojun: { status: 'eliminated', stack: 0, badge: undefined, bet: undefined },
       minsu: { badge: 'SB', bet: 50, stack: 12_300 },
       jihun: { badge: 'BB', bet: 100, stack: 7_300 },
       subin: { isTurn: true, remainingSeconds: 45, stack: 8_950 },
     }),
     heroBadge: 'none',
+    heroHandName: 'HIGH CARD(A)',
     heroStack: 16_400,
     actionHint: '수빈 차례를 기다리는 중',
     logs: ['핸드 #25 시작', '서준 탈락 · 칩 0', '나 승리 · 에이스 하이 플러시 +6,650'],
@@ -399,6 +406,13 @@ export const tableFixtures = {
     toast: { kind: 'info', message: '서준이 칩을 모두 잃어 탈락했습니다' },
   }),
 } satisfies Record<ScenarioKey, TableSnapshot>
+
+/** 목업 채팅 */
+export const chatFixture: ChatLine[] = [
+  { id: 'c1', name: '민수', text: '오늘 패가 너무 안 들어오네', mine: false },
+  { id: 'c2', name: '나', text: '블라인드 오르기 전에 한 번은 이겨야지', mine: true },
+  { id: 'c3', name: '수빈', text: '서준 베팅 크다 ㅋㅋ', mine: false },
+]
 
 function copySnapshot(snapshot: TableSnapshot): TableSnapshot {
   return {

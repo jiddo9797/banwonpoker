@@ -30,6 +30,8 @@ export interface HandAction {
   kind: 'blind' | 'check' | 'call' | 'bet' | 'raise' | 'fold' | 'result'
   /** 이 액션까지 반영된 팟 */
   pot: number
+  /** 이 액션으로 낸 칩 */
+  added: number
   thinkSeconds?: number
   audio: { status: AudioStatus; seconds?: number }
   /** 실제 게임: 이 차례의 음성을 받을 번호 */
@@ -43,6 +45,10 @@ export interface ReplayHand {
   players: ReplayPlayer[]
   actions: HandAction[]
   result: string
+  /** 핸드를 시작할 때 참가자별 칩. 기록이 없는 참가자는 빠져 있다. */
+  startStacks: Record<string, number>
+  /** 결과 칸에서 참가자별로 받은 칩(나눠 가진 경우 포함) */
+  payouts: Record<string, number>
 }
 
 export interface SessionResult {

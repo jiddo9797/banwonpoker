@@ -73,7 +73,11 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
       </div>
 
       {label ? <div className="seat-status-chip">{label}</div> : null}
-      {seat.bet ? <div className="bet-pill">{formatChips(seat.bet)}</div> : null}
+      {seat.bet ? (
+        <div className="bet-pill">{formatChips(seat.bet)}</div>
+      ) : seat.checked ? (
+        <div className="bet-pill">check</div>
+      ) : null}
     </div>
   )
 }

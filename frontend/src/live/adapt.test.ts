@@ -156,6 +156,38 @@ describe('toTableSnapshot', () => {
     expect(snapshot.pots).toEqual([{ label: '팟', amount: 150 }])
   })
 
+  it('팟 큰 숫자는 지난 스트리트까지, 이번 스트리트에 낸 칩은 좌석 앞에, 체크는 check로 둔다', () => {
+    const played: TimedEvent[] = []
+    const play = (table: TableState, id: string, action: Parameters<typeof act>[2]) => {
+      const result = ok(act(table, id, action))
+      played.push(...result.events.map((event) => ({ ...event, sessionTimeMs: 0 })))
+      return result.table
+    }
+    // 프리플랍: a 콜, b 콜, c 체크 → 플랍에서 b 체크, c 베팅 200
+    const { state, events } = build(['a', 'b', 'c'], 'a', {
+      mutate: (table) => {
+        let next = play(table, 'a', { type: 'call' })
+        next = play(next, 'b', { type: 'call' })
+        next = play(next, 'c', { type: 'check' })
+        next = play(next, 'b', { type: 'check' })
+        return play(next, 'c', { type: 'bet', amount: 200 })
+      },
+    })
+    const snapshot = toTableSnapshot(state, [...events, ...played], { now: NOW, status: 'open' })
+    expect(snapshot.pots).toEqual([{ label: '팟', amount: 300 }])
+    expect(snapshot.seats.find((seat) => seat.id === 'b')).toMatchObject({ checked: true, bet: undefined })
+    // 프리플랍 체크는 스트리트가 바뀌면 지운다. 베팅이 있으면 금액이 먼저다.
+    expect(snapshot.seats.find((seat) => seat.id === 'c')).toMatchObject({ checked: false, bet: 200 })
+    expect(snapshot.heroChecked).toBe(false)
+  })
+
+  it('프리플랍에는 지난 스트리트 팟이 0이고 블라인드는 좌석 앞에 있다', () => {
+    const { state, events } = build(['a', 'b', 'c'], 'a')
+    const snapshot = toTableSnapshot(state, events, { now: NOW, status: 'open' })
+    expect(snapshot.pots).toEqual([{ label: '팟', amount: 0 }])
+    expect(snapshot.seats.map((seat) => seat.bet)).toEqual([50, 100])
+  })
+
   it('연결이 끊긴 참가자와 다음 핸드를 기다리는 참가자를 구분한다', () => {
     const { state, events } = build(['a', 'b', 'c'], 'a', {
       mutate: (table) => ok(seatPlayer(table, { id: 'late', name: 'late', seat: 4 })).table,

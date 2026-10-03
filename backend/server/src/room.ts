@@ -15,6 +15,7 @@ import {
 import type { EngineResult, Rng, TableState } from '@banwonpoker/engine'
 import type { Clock, TimerHandle } from './clock'
 import type {
+  ChatMessage,
   ClientMessage,
   ClientState,
   Consent,
@@ -47,6 +48,10 @@ export interface RoomOptions {
   idleCloseMs?: number
   /** 재접속 시 다시 보내 줄 최근 이벤트 수 */
   eventBacklog?: number
+  /** 재접속 시 다시 보내 줄 최근 채팅 수 */
+  chatBacklog?: number
+  /** 한 사람이 채팅을 보낼 수 있는 최소 간격 */
+  chatIntervalMs?: number
 }
 
 export interface RoomDeps {
@@ -80,6 +85,8 @@ interface Participant {
   joinedAt: number
   /** 중복 입력 잠금: 최근에 처리한 clientActionId와 결과 */
   recentActions: Map<string, { ok: boolean; error?: ErrorBody }>
+  /** 마지막으로 채팅을 보낸 시각(도배 방지) */
+  lastChatAt: number | null
 }
 
 type Result<T = void> = { ok: true; value: T } | { ok: false; error: ErrorBody }
@@ -109,11 +116,15 @@ export class Room {
   private idleTimer: TimerHandle | null = null
   private summary: SessionSummary | null = null
   private eventLog: TimedEvent[] = []
+  private chatLog: ChatMessage[] = []
+  private chatSeq = 0
   private readonly deps: RoomDeps
   private readonly turnMs: number
   private readonly nextHandDelayMs: number
   private readonly idleCloseMs: number
   private readonly eventBacklog: number
+  private readonly chatBacklog: number
+  private readonly chatIntervalMs: number
 
   private constructor(code: string, settings: RoomSettings, host: Participant, deps: RoomDeps) {
     this.code = code
@@ -124,6 +135,8 @@ export class Room {
     this.nextHandDelayMs = deps.options?.nextHandDelayMs ?? 5_000
     this.idleCloseMs = deps.options?.idleCloseMs ?? 10 * 60_000
     this.eventBacklog = deps.options?.eventBacklog ?? 300
+    this.chatBacklog = deps.options?.chatBacklog ?? 50
+    this.chatIntervalMs = deps.options?.chatIntervalMs ?? 1_000
     this.participants.set(host.id, host)
   }
 
@@ -152,6 +165,7 @@ export class Room {
       inGame: false,
       joinedAt: deps.clock.now(),
       recentActions: new Map(),
+      lastChatAt: null,
     }
   }
 
@@ -215,6 +229,7 @@ export class Room {
     }
     send({ type: 'joined', roomCode: this.code, playerId, token: participant.token, protocolVersion: PROTOCOL_VERSION })
     if (this.eventLog.length > 0) send({ type: 'events', events: this.eventLog.slice(-this.eventBacklog) })
+    if (this.chatLog.length > 0) send({ type: 'chat.history', messages: [...this.chatLog] })
     this.broadcastState()
   }
 
@@ -257,11 +272,28 @@ export class Room {
         return reply(this.kick(participant, message.playerId))
       case 'room.leave':
         return this.leave(participant)
+      case 'chat.send':
+        return reply(this.chat(participant, message.text))
       case 'ping':
         return this.sendTo(playerId, { type: 'pong', serverTime: this.deps.clock.now() })
       default:
         return reply(failure('BAD_REQUEST', '방에 들어온 뒤에는 쓸 수 없는 요청입니다.'))
     }
+  }
+
+  private chat(participant: Participant, text: string): Result {
+    if (this.phase !== 'playing') return failure('WRONG_PHASE', '채팅은 게임 중에만 할 수 있습니다.')
+    const now = this.deps.clock.now()
+    if (participant.lastChatAt !== null && now - participant.lastChatAt < this.chatIntervalMs) {
+      return failure('TOO_FAST', '메시지를 너무 빨리 보내고 있습니다. 잠시 뒤에 보내세요.')
+    }
+    participant.lastChatAt = now
+    this.chatSeq += 1
+    const message: ChatMessage = { id: String(this.chatSeq), playerId: participant.id, name: participant.nickname, text, sentAt: now }
+    this.chatLog.push(message)
+    if (this.chatLog.length > this.chatBacklog) this.chatLog.splice(0, this.chatLog.length - this.chatBacklog)
+    this.broadcast({ type: 'chat', ...message })
+    return { ok: true, value: undefined }
   }
 
   private isHost(participant: Participant) {
@@ -612,7 +644,12 @@ export class Room {
           handNumber: hand.number,
           dealerSeat: hand.dealerSeat,
           blinds: hand.blinds,
-          holeCards: hand.players.map((player) => ({ playerId: player.id, seat: player.seat, cards: player.holeCards })),
+          holeCards: hand.players.map((player) => ({
+            playerId: player.id,
+            seat: player.seat,
+            cards: player.holeCards,
+            startStack: player.startingStack,
+          })),
           board: hand.board,
         })
       }

@@ -27,9 +27,10 @@ const replay: ReplayData = {
       blinds: { smallBlind: 50, bigBlind: 100 },
       cancelled: false,
       players: [
-        { playerId: 'me', nickname: '하늘', seat: 0, cards: [card(14, 'heart'), card(13, 'heart')] },
-        { playerId: 'b', nickname: '민수', seat: 1, cards: [card(7, 'club'), card(7, 'diamond')] },
-        { playerId: 'c', nickname: '유진', seat: 2, cards: [card(10, 'spade'), card(2, 'club')] },
+        { playerId: 'me', nickname: '하늘', seat: 0, cards: [card(14, 'heart'), card(13, 'heart')], startStack: 10_000 },
+        { playerId: 'b', nickname: '민수', seat: 1, cards: [card(7, 'club'), card(7, 'diamond')], startStack: 9_500 },
+        // 예전 기록: 시작 칩이 없다
+        { playerId: 'c', nickname: '유진', seat: 2, cards: [card(10, 'spade'), card(2, 'club')], startStack: null },
       ],
       board: [card(13, 'spade'), card(9, 'heart'), card(4, 'heart')],
       streets: [{ street: 'flop', seq: 10 }],
@@ -72,6 +73,17 @@ describe('toReplayHands', () => {
     expect(hand.actions.at(-1)).toMatchObject({ kind: 'result', street: 'showdown', pot: 650 })
     expect(hand.result).toBe('나 승리 · 킹 원 페어 +650')
     expect(hand.board).toHaveLength(3)
+  })
+
+  it('시작 칩, 받은 칩, 액션마다 낸 칩을 채운다', () => {
+    expect(hand.startStacks).toEqual({ me: 10_000, b: 9_500 })
+    expect(hand.payouts).toEqual({ me: 650 })
+    expect(hand.actions.map((action) => action.added)).toEqual([50, 100, 300, 0, 200, 0])
+  })
+
+  it('무효 핸드는 낸 칩을 그대로 돌려받는다', () => {
+    const [cancelled] = toReplayHands({ ...replay, hands: [{ ...replay.hands[0], cancelled: true, awards: [] }] }, 'me')
+    expect(cancelled.payouts).toEqual({ b: 50, c: 300, me: 300 })
   })
 
   it('관전자로 보면 빈 좌석을 기준으로 돌린다', () => {

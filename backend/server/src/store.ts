@@ -25,7 +25,8 @@ export interface StoredHand {
   dealerSeat: number
   blinds: BlindLevel
   /** 전체 패 공개용. 게임 중에는 누구에게도 보내지 않는다. */
-  holeCards: Array<{ playerId: string; seat: number; cards: [Card, Card] }>
+  /** startStack: 핸드를 시작할 때의 칩. 이 필드를 넣기 전에 저장된 핸드에는 없다. */
+  holeCards: Array<{ playerId: string; seat: number; cards: [Card, Card]; startStack?: number }>
   board: Card[]
 }
 
