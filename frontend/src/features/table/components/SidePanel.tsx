@@ -179,7 +179,7 @@ export function SidePanel({
       {!collapsed && activeTab === 'log' ? (
         <div aria-labelledby="log-tab" className="panel-body" id="log-panel" role="tabpanel" tabIndex={0}>
           <ol className="game-log">
-            {snapshot.logs.slice(0, 5).map((log, index) => (
+            {snapshot.logs.slice(0, 10).map((log, index) => (
               <li className={index === 0 ? 'is-latest' : ''} key={`${log}-${index}`}>
                 <span>{String(index + 1).padStart(2, '0')}</span>
                 {log}

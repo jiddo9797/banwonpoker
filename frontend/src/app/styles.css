@@ -1251,7 +1251,12 @@ input:focus-visible {
   color: var(--text-primary);
 }
 
+/*
+ * 왼쪽 아래 패널(채팅·로그·참가자). 왼쪽 아래 좌석(top 432 + 높이 98 = 530px)을 가리지 않는 데까지 키운다.
+ * 패널 위 끝 = 900 − 24(아래 여백) − 42(탭 줄) − 1(구분선) − 본문 높이 280 = 553px
+ */
 .side-panel {
+  --panel-body-height: 280px;
   position: absolute;
   z-index: 20;
   bottom: 24px;
@@ -1339,7 +1344,7 @@ input:focus-visible {
 }
 
 .panel-body {
-  height: 132px;
+  height: var(--panel-body-height);
   padding: 10px 14px;
   overflow: auto;
 }
@@ -1348,7 +1353,7 @@ input:focus-visible {
 .chat-panel {
   display: flex;
   flex-direction: column;
-  height: 132px;
+  height: var(--panel-body-height);
 }
 
 .chat-messages {
