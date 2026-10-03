@@ -430,6 +430,20 @@ describe('퇴장과 재접속', () => {
   })
 })
 
+describe('음성 기록 끄기·켜기', () => {
+  it('대기실에서는 바꿀 수 없고, 게임 중에는 나에게만 바뀐 상태가 보인다', () => {
+    const lobby = setupRoom()
+    lobby.send(lobby.hostId, { type: 'voice.set', voiceless: true })
+    expect(lobby.lastError(lobby.hostId)?.code).toBe('WRONG_PHASE')
+
+    const { send, hostId, minsu, state } = startedRoom()
+    send(hostId, { type: 'voice.set', voiceless: true })
+    expect(state(hostId).you.voiceless).toBe(true)
+    expect(state(minsu).you.voiceless).toBe(false)
+    expect(JSON.stringify(state(minsu).room)).not.toMatch(/voiceless/)
+  })
+})
+
 describe('채팅', () => {
   it('대기실과 세션이 끝난 뒤에는 보낼 수 없다', () => {
     const lobby = setupRoom()

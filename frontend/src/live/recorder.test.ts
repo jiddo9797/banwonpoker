@@ -1,6 +1,6 @@
 import type { TurnReport } from '@banwonpoker/server/protocol'
 import { describe, expect, it } from 'vitest'
-import { CHUNK_MS, TurnRecorder } from './recorder'
+import { CHUNK_MS, loudestBlockRms, TurnRecorder } from './recorder'
 import type { RecorderStatus } from './recorder'
 
 class FakeTrack {
@@ -48,7 +48,7 @@ class FakeRecorder {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-function setup(options: { deny?: boolean; peak?: number; failUploads?: number; slowMic?: boolean } = {}) {
+function setup(options: { deny?: boolean; peak?: number | null; failUploads?: number; failStatus?: number; slowMic?: boolean } = {}) {
   let now = 10_000
   const uploads: Array<[number, number, string]> = []
   const reports: Array<[number, TurnReport]> = []
@@ -65,7 +65,7 @@ function setup(options: { deny?: boolean; peak?: number; failUploads?: number; s
       uploadChunk: async (turnSeq, index, chunk) => {
         if (failures > 0) {
           failures -= 1
-          throw new Error('network')
+          throw options.failStatus ? Object.assign(new Error('rejected'), { status: options.failStatus }) : new Error('network')
         }
         uploads.push([turnSeq, index, await chunk.text()])
       },
@@ -85,7 +85,7 @@ function setup(options: { deny?: boolean; peak?: number; failUploads?: number; s
       recorders.push(created)
       return created as never
     },
-    createLevelMeter: () => ({ peak: () => options.peak ?? 0.3, close: () => undefined }),
+    createLevelMeter: () => ({ peak: () => (options.peak === null ? undefined : (options.peak ?? 0.3)), close: () => undefined }),
     setTimer: (callback) => timers.push(callback),
     onStatus: (status, detail) => statuses.push([status, detail.retrying]),
   })
@@ -151,6 +151,14 @@ describe('TurnRecorder', () => {
     expect(reports[0][1].silent).toBe(true)
   })
 
+  it('음량을 한 번도 재지 못했으면(오디오가 멈춘 채) 무발언으로 단정하지 않는다', async () => {
+    const { recorder, reports } = setup({ peak: null })
+    await recorder.start(1)
+    await recorder.stop()
+    await flush()
+    expect(reports[0][1].silent).toBe(false)
+  })
+
   it('마이크 권한이 없으면 실패로 표시하고, 게임은 막지 않은 채 기록 실패를 알린다', async () => {
     const { recorder, reports, statuses } = setup({ deny: true })
     await recorder.start(7)
@@ -181,6 +189,32 @@ describe('TurnRecorder', () => {
     expect(reports[0][1].chunks).toBe(2)
   })
 
+  it('다시 보내도 같은 거절(4xx)은 다시 시도하지 않고 다음 조각으로 넘어간다', async () => {
+    const { recorder, uploads, statuses, recorders } = setup({ failUploads: 1, failStatus: 403 })
+    await recorder.start(3)
+    recorders[0].emit('a')
+    recorders[0].emit('b')
+    await flush()
+    await flush()
+    expect(uploads).toEqual([[3, 1, 'b']])
+    expect(statuses.some(([, retrying]) => retrying)).toBe(false)
+  })
+
+  it('차례 도중에 음성 기록을 끄면 마이크를 바로 끄고 남은 조각과 결과를 보내지 않는다', async () => {
+    const { recorder, uploads, reports, streams, recorders } = setup()
+    await recorder.start(5)
+    recorders[0].emit('a')
+    await flush()
+    recorder.discard()
+    await recorder.stop()
+    await flush()
+
+    expect(uploads).toEqual([[5, 0, 'a']])
+    expect(reports).toEqual([])
+    expect(streams[0].tracks[0].stopped).toBe(true)
+    expect(recorder.state).toBe('idle')
+  })
+
   it('마이크를 여는 사이 차례가 끝나면 바로 끄고 아무것도 녹음하지 않는다', async () => {
     const { recorder, recorders, streams, reports, releaseMic } = setup({ slowMic: true })
     const starting = recorder.start(9)
@@ -202,5 +236,27 @@ describe('TurnRecorder', () => {
     expect(recorder.activeTurn).toBe(2)
     await flush()
     expect(reports.map(([turnSeq]) => turnSeq)).toEqual([1])
+  })
+})
+
+describe('loudestBlockRms', () => {
+  // 48kHz에서 20ms짜리 삑 소리(가짜 마이크와 같은 모양)
+  const withBeep = (length: number, at: number) => {
+    const samples = new Float32Array(length)
+    for (let index = at; index < at + 960; index += 1) samples[index] = index % 2 === 0 ? 1 : -1
+    return samples
+  }
+
+  it('최근 구간 어디에 있든 짧은 소리를 놓치지 않는다', () => {
+    // 버퍼 끝이 아니라 중간(최근 0.12초 안)에 있는 삑 소리
+    const samples = withBeep(32_768, 32_768 - 4_000)
+    expect(loudestBlockRms(samples, 5_760)).toBeGreaterThan(0.4)
+    // 구간 경계에 걸쳐도 잡는다
+    expect(loudestBlockRms(withBeep(32_768, 32_768 - 1_500), 5_760)).toBeGreaterThan(0.4)
+  })
+
+  it('지난번에 이미 잰 구간(최근 범위 밖)의 소리는 다시 세지 않고, 조용하면 0이다', () => {
+    expect(loudestBlockRms(withBeep(32_768, 1_000), 5_760)).toBe(0)
+    expect(loudestBlockRms(new Float32Array(32_768), 32_768)).toBe(0)
   })
 })

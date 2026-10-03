@@ -152,6 +152,8 @@ interface TablePrototypeProps {
   hostName?: string
   /** `음성 없이 참여`를 선택했는지. 내 좌석의 기록 상태 문구만 바뀐다. */
   voiceless?: boolean
+  /** 게임 중에 음성 기록을 끄거나 켠다 */
+  onVoicelessChange?: (voiceless: boolean) => void
   onLeave?: () => void
   onEndSession?: () => void
 }
@@ -162,6 +164,7 @@ export function TablePrototype({
   isHost = true,
   hostName = '나',
   voiceless = false,
+  onVoicelessChange,
   onLeave,
   onEndSession,
 }: TablePrototypeProps) {
@@ -240,7 +243,11 @@ export function TablePrototype({
         onToggleMenu={() => dispatch({ type: 'menu.toggled' })}
         snapshot={headerSnapshot}
       />
-      <GameTable snapshot={snapshot} voiceless={voiceless} />
+      <GameTable
+        onToggleVoice={onVoicelessChange ? () => onVoicelessChange(!voiceless) : undefined}
+        snapshot={snapshot}
+        voiceless={voiceless}
+      />
       <SidePanel
         activeTab={state.panelTab}
         chatMessages={chatMessages}

@@ -112,6 +112,7 @@ function ScreenRouter({ state, dispatch }: { state: FlowState; dispatch: (action
           onEndSession={() => dispatch({ type: 'session.ended' })}
           onLeave={leaveTable}
           room={state.room}
+          onVoicelessChange={(voiceless) => dispatch({ type: 'mic.voicelessChanged', voiceless })}
           scenarioKey={state.scenarioKey}
           voiceless={state.voiceless}
         />

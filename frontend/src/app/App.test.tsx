@@ -21,7 +21,9 @@ async function passSeatConsentAndMic(user: User) {
   await user.click(screen.getByRole('button', { name: '준비 완료' }))
 }
 
-describe('App 클릭 프로토타입', () => {
+// 방 만들기부터 복기까지 클릭·입력 수십 번을 한 테스트에서 이어 하는 흐름 테스트다.
+// 혼자 돌면 2~3초지만 모든 테스트 파일이 동시에 돌면 기본 제한(5초)을 넘을 때가 있어 넉넉히 둔다.
+describe('App 클릭 프로토타입', { timeout: 15_000 }, () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     window.history.replaceState(null, '', '/?screen=entry&devtools=0')
