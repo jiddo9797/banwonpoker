@@ -37,6 +37,7 @@ describe('TablePrototype', () => {
     expect(screen.getByRole('status')).toHaveTextContent('레이즈 액션이 확정되었습니다')
     expect(screen.getByText('유진 차례를 기다리는 중')).toBeInTheDocument()
     expect(screen.queryByText(/음성 기록 중/)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: '로그' }))
     expect(screen.getByText('내가 2,400으로 레이즈')).toBeInTheDocument()
   })
 
@@ -86,11 +87,14 @@ describe('TablePrototype', () => {
     expect(screen.getByText('연결 끊김 · 재접속 대기')).toBeInTheDocument()
   })
 
-  it('로그·참가자 탭은 방향키로 선택과 포커스를 함께 옮긴다', async () => {
+  it('채팅·로그·참가자 탭은 방향키로 선택과 포커스를 함께 옮긴다', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<TablePrototype scenarioKey="opp" />)
+    const chatTab = screen.getByRole('tab', { name: '채팅' })
     const logTab = screen.getByRole('tab', { name: '로그' })
     const participantsTab = screen.getByRole('tab', { name: '참가자' })
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['채팅', '로그', '참가자'])
+    expect(chatTab).toHaveAttribute('aria-selected', 'true')
 
     await user.click(logTab)
     await user.keyboard('{ArrowRight}')
@@ -100,12 +104,30 @@ describe('TablePrototype', () => {
     expect(logTab).toHaveAttribute('tabindex', '-1')
 
     await user.keyboard('{ArrowRight}')
-    expect(logTab).toHaveFocus()
+    expect(chatTab).toHaveFocus()
     await user.keyboard('{End}')
     expect(participantsTab).toHaveFocus()
     await user.keyboard('{Home}')
-    expect(logTab).toHaveFocus()
-    expect(screen.getByRole('tabpanel', { name: '로그' })).toBeInTheDocument()
+    expect(chatTab).toHaveFocus()
+    expect(screen.getByRole('tabpanel', { name: '채팅' })).toBeInTheDocument()
+  })
+
+  it('채팅은 Enter나 보내기로 보내고, 비어 있으면 보내지 않는다', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<TablePrototype scenarioKey="opp" />)
+    const input = screen.getByRole('textbox', { name: '채팅 입력' })
+    const sendButton = screen.getByRole('button', { name: '보내기' })
+    expect(input).toHaveAttribute('maxlength', '200')
+    expect(sendButton).toHaveAttribute('aria-disabled', 'true')
+
+    await user.type(input, '   ')
+    await user.click(sendButton)
+    expect(screen.getAllByRole('listitem').filter((item) => item.closest('.chat-messages'))).toHaveLength(3)
+
+    await user.clear(input)
+    await user.type(input, '좋은 콜이었어{Enter}')
+    expect(screen.getByText('좋은 콜이었어')).toBeInTheDocument()
+    expect(input).toHaveValue('')
   })
 
   it('나가기 확인창은 결과를 알리고, 확인하면 onLeave를 부른다', async () => {

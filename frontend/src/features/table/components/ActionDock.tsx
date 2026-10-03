@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { streetBetTotal } from '../model'
 import type { ActionOption, DemoPhase, TableSnapshot } from '../model'
 import { formatChips } from '../../../shared/format'
 
@@ -26,7 +27,8 @@ export function ActionDock({
   onAction,
   betStep = 50,
 }: ActionDockProps) {
-  const potTotal = snapshot.pots.reduce((sum, pot) => sum + pot.amount, 0)
+  // ½팟·팟은 이번 스트리트에 낸 칩까지 더한 팟으로 계산한다.
+  const potTotal = snapshot.pots.reduce((sum, pot) => sum + pot.amount, 0) + streetBetTotal(snapshot)
   // 빠른 선택은 최소 레이즈 이상, 올인 금액 이하로 맞춘다.
   const clampBet = (value: number) => Math.min(snapshot.maxRaise, Math.max(snapshot.minRaise, value))
   const quickBets = [
@@ -36,6 +38,16 @@ export function ActionDock({
     { label: '팟', value: clampBet(roundToStep(potTotal, betStep)) },
     { label: '올인', value: snapshot.maxRaise },
   ]
+  // −/+ 버튼과 ↑/↓ 키는 한 번에 지금 빅 블라인드만큼 바꾼다.
+  const nudgeUnit = Math.max(1, snapshot.bigBlind)
+  const nudgeLabel = formatChips(nudgeUnit)
+  const canDecrease = selectedBetAmount > snapshot.minRaise
+  const canIncrease = selectedBetAmount < snapshot.maxRaise
+  const nudge = (from: number, direction: 1 | -1) => {
+    const amount = clampBet(from + direction * nudgeUnit)
+    onBetAmountChange(amount)
+    return amount
+  }
   const hasBetControl = snapshot.actions.find((action) => action.id === 'raise')?.enabled ?? false
   const isPending = phase === 'pending' || snapshot.key === 'pending'
 
@@ -81,6 +93,18 @@ export function ActionDock({
               type="range"
               value={selectedBetAmount}
             />
+            <button
+              aria-disabled={!canDecrease}
+              aria-label={`${nudgeLabel} 내리기`}
+              className="bet-nudge"
+              onClick={() => {
+                if (canDecrease) nudge(selectedBetAmount, -1)
+              }}
+              title={`${nudgeLabel} 내리기`}
+              type="button"
+            >
+              −
+            </button>
             <input
               aria-describedby="bet-amount-range"
               aria-label="베팅 금액 직접 입력"
@@ -99,11 +123,29 @@ export function ActionDock({
                   commitDraft()
                 } else if (event.key === 'Escape') {
                   setDraft(null)
+                } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                  event.preventDefault()
+                  const typed = draft === null ? NaN : Number(draft.replace(/[^\d]/g, ''))
+                  const from = Number.isFinite(typed) && typed > 0 ? typed : selectedBetAmount
+                  const amount = nudge(from, event.key === 'ArrowUp' ? 1 : -1)
+                  if (draft !== null) setDraft(String(amount))
                 }
               }}
               type="text"
               value={draft ?? formatChips(selectedBetAmount)}
             />
+            <button
+              aria-disabled={!canIncrease}
+              aria-label={`${nudgeLabel} 올리기`}
+              className="bet-nudge"
+              onClick={() => {
+                if (canIncrease) nudge(selectedBetAmount, 1)
+              }}
+              title={`${nudgeLabel} 올리기`}
+              type="button"
+            >
+              +
+            </button>
             <span className="visually-hidden" id="bet-amount-range">
               {formatChips(snapshot.minRaise)}부터 {formatChips(snapshot.maxRaise)}까지 입력할 수 있습니다
             </span>

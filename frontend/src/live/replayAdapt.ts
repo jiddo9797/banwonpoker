@@ -83,6 +83,7 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
           kind: action.kind,
           label,
           pot: action.pot,
+          added: action.amount,
           thinkSeconds: action.thinkMs === null ? undefined : Math.max(1, Math.round(action.thinkMs / 1_000)),
           audio: {
             status: action.audio.status,
@@ -99,8 +100,23 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
         kind: 'result',
         label: hand.cancelled ? '무효' : result.split(' · ')[0],
         pot: hand.actions.at(-1)?.pot ?? 0,
+        added: 0,
         audio: { status: 'none' },
       })
+
+      const startStacks: Record<string, number> = {}
+      for (const player of hand.players) {
+        if (player.startStack !== null) startStacks[player.playerId] = player.startStack
+      }
+      // 무효 핸드는 낸 칩을 그대로 돌려받는다.
+      const payouts: Record<string, number> = {}
+      if (hand.cancelled) {
+        for (const action of hand.actions) payouts[action.playerId] = (payouts[action.playerId] ?? 0) + action.amount
+      } else {
+        for (const award of hand.awards) {
+          for (const winner of award.winners) payouts[winner.playerId] = (payouts[winner.playerId] ?? 0) + winner.amount
+        }
+      }
 
       return {
         number: hand.number,
@@ -108,6 +124,8 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
         players,
         actions,
         result,
+        startStacks,
+        payouts,
       }
     })
 }

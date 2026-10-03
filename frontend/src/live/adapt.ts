@@ -225,6 +225,21 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
   const anchor = me?.seat ?? Array.from({ length: maxSeats }, (_, index) => index).find((seat) => !occupied.has(seat)) ?? 0
   const layout = layouts[maxSeats] ?? layouts[6]
 
+  // 이번 스트리트에 마지막으로 한 액션이 체크인 참가자. 핸드가 끝나면 비운다.
+  const checkedIds = new Set<string>()
+  if (!complete) {
+    const lastAction = new Map<string, string>()
+    // 뒤에서부터 이번 핸드 시작까지만 본다. 같은 사람의 더 늦은 액션이 먼저 들어간다.
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+      const event = events[index]
+      if (event.type === 'hand-started') break
+      if (event.type === 'action' && event.street === phase && !lastAction.has(event.playerId)) {
+        lastAction.set(event.playerId, event.action)
+      }
+    }
+    for (const [playerId, action] of lastAction) if (action === 'check') checkedIds.add(playerId)
+  }
+
   const remainingSeconds = game.turn ? Math.max(0, Math.ceil((game.turn.deadline - now) / 1_000)) : undefined
   const revealed = new Map(view.showdown.map((reveal) => [reveal.playerId, reveal.handName]))
   const winnings = new Map<string, number>()
@@ -257,7 +272,9 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
         stack: seat.stack,
         position,
         badge: badgeOf(seat),
-        bet: seat.streetCommitted || undefined,
+        // 핸드가 끝나면 낸 칩은 팟(결과)에 들어가 있으므로 좌석 앞에 따로 그리지 않는다.
+        bet: complete ? undefined : seat.streetCommitted || undefined,
+        checked: checkedIds.has(seat.id),
         status,
         isTurn,
         remainingSeconds: isTurn ? remainingSeconds : undefined,
@@ -293,9 +310,11 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
     actionHint = toActName ? `${toActName} 차례를 기다리는 중` : '차례를 기다리는 중'
   }
 
+  // 진행 중: 서버 potTotal은 이번 스트리트 베팅을 포함하므로 빼서 지난 스트리트까지의 팟을 만든다.
+  const streetCommitted = view.seats.reduce((sum, seat) => sum + seat.streetCommitted, 0)
   const pots = complete && view.awards.length > 0
     ? view.awards.map((award, index) => ({ label: view.awards.length > 1 ? (index === 0 ? '메인 팟' : `사이드 팟 ${index}`) : '팟', amount: award.amount }))
-    : [{ label: '팟', amount: view.potTotal }]
+    : [{ label: '팟', amount: complete ? view.potTotal : Math.max(0, view.potTotal - streetCommitted) }]
 
   let tableMessage: string | undefined
   if (complete && winnings.size > 0) {
@@ -334,7 +353,8 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
     heroCards: me?.holeCards && (me.inHand || complete) ? [toCard(me.holeCards[0]), toCard(me.holeCards[1])] : null,
     heroBadge: (me && badgeOf(me)) ?? 'none',
     heroStack,
-    heroBet: me?.streetCommitted || undefined,
+    heroBet: complete ? undefined : me?.streetCommitted || undefined,
+    heroChecked: me ? checkedIds.has(me.id) : false,
     heroRemainingSeconds: me && view.toAct === me.id ? remainingSeconds : undefined,
     heroIsWinner: complete && winnings.has(state.you.playerId),
     heroHandName: me?.holeCards && me.inHand && !me.folded ? madeHandName(me.holeCards, view.board) : undefined,

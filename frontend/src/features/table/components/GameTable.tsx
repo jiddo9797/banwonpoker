@@ -1,4 +1,5 @@
 import { Clock20Regular, Mic20Regular, MicOff20Regular, Warning20Filled } from '@fluentui/react-icons'
+import { streetBetTotal } from '../model'
 import type { RecordingState, TableSnapshot } from '../model'
 import { EmptyCardSlot, FlipInCard, PlayingCard } from './PlayingCard'
 import { PlayerSeat } from './PlayerSeat'
@@ -53,7 +54,11 @@ function HeroSeat({ snapshot, voiceless, heroLabel }: { snapshot: TableSnapshot;
 
   return (
     <div className={`hero-seat ${isTurn ? 'is-turn' : ''} ${(snapshot.heroIsWinner ?? snapshot.tableMessage?.includes('승리')) ? 'is-winner' : ''}`}>
-      {snapshot.heroBet ? <div className="hero-bet-pill">{formatChips(snapshot.heroBet)}</div> : null}
+      {snapshot.heroBet ? (
+        <div className="hero-bet-pill">{formatChips(snapshot.heroBet)}</div>
+      ) : snapshot.heroChecked ? (
+        <div className="hero-bet-pill">check</div>
+      ) : null}
       {snapshot.heroHandName ? (
         <div className="hero-hand-name">
           <span className="visually-hidden">내 족보: </span>
@@ -107,6 +112,12 @@ interface GameTableProps {
 }
 
 export function GameTable({ snapshot, voiceless = false, heroLabel = '나', showRecordingNote = true }: GameTableProps) {
+  // 큰 숫자는 지난 스트리트까지 모인 팟, total 배지는 이번 스트리트에 낸 칩까지 더한 합이다.
+  // 사이드 팟이 있으면 total은 마지막 알약에만 붙인다(모든 팟의 합).
+  const streetBets = streetBetTotal(snapshot)
+  const potTotal = snapshot.pots.reduce((sum, pot) => sum + pot.amount, 0) + streetBets
+  const singlePot = snapshot.pots.length === 1
+
   return (
     <main aria-labelledby="table-title" className="game-table-area">
       <h1 className="visually-hidden" id="table-title">
@@ -118,10 +129,18 @@ export function GameTable({ snapshot, voiceless = false, heroLabel = '나', show
 
       <div aria-label="현재 팟" className="pot-cluster" role="group">
         <div className="pot-row">
-          {snapshot.pots.map((pot) => (
-            <div className="pot-pill" key={pot.label}>
-              <span>{pot.label}</span>
-              <strong>{formatChips(pot.amount)}</strong>
+          {snapshot.pots.map((pot, index) => (
+            <div aria-label={`${pot.label} ${formatChips(pot.amount)}`} className="pot-pill" key={pot.label} role="group">
+              {/* 팟이 하나면 글자 없이 금액만 쓴다. 사이드 팟이 있으면 어느 팟인지 보여야 하므로 남긴다. */}
+              {singlePot ? null : <span aria-hidden="true">{pot.label}</span>}
+              <strong aria-hidden="true">{formatChips(pot.amount)}</strong>
+              {streetBets > 0 && index === snapshot.pots.length - 1 ? (
+                <span className="pot-total">
+                  <span aria-hidden="true">total</span>
+                  <span className="visually-hidden">이번 스트리트 포함 합계</span>
+                  <strong>{formatChips(potTotal)}</strong>
+                </span>
+              ) : null}
             </div>
           ))}
         </div>

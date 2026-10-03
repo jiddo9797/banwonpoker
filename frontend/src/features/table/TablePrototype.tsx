@@ -4,7 +4,7 @@ import {
   Info20Regular,
   Warning20Filled,
 } from '@fluentui/react-icons'
-import { useEffect, useMemo, useReducer, useRef } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { isCompactViewport } from '../../shared/CanvasStage'
 import { Dialog } from '../../shared/Dialog'
 import { formatChips } from '../../shared/format'
@@ -15,8 +15,8 @@ import { ActionDock } from './components/ActionDock'
 import { GameTable } from './components/GameTable'
 import { SidePanel } from './components/SidePanel'
 import { TableChrome } from './components/TableChrome'
-import { getTableSnapshot } from './fixtures'
-import type { ActionOption, ScenarioKey, TableSnapshot, ToastMessage } from './model'
+import { chatFixture, getTableSnapshot } from './fixtures'
+import type { ActionOption, ChatLine, ScenarioKey, TableSnapshot, ToastMessage } from './model'
 import { createInitialPrototypeState, prototypeReducer } from './reducer'
 
 export const PENDING_CONFIRM_DELAY_MS = 1200
@@ -170,6 +170,7 @@ export function TablePrototype({
     undefined,
     () => createInitialPrototypeState(scenarioKey, isCompactViewport()),
   )
+  const [chatMessages, setChatMessages] = useState<ChatLine[]>(chatFixture)
 
   // 개발 도구나 URL로 시나리오가 바뀌면 목 상태를 새 시나리오로 맞춘다.
   if (state.scenarioKey !== scenarioKey) {
@@ -242,7 +243,11 @@ export function TablePrototype({
       <GameTable snapshot={snapshot} voiceless={voiceless} />
       <SidePanel
         activeTab={state.panelTab}
+        chatMessages={chatMessages}
         collapsed={state.panelCollapsed}
+        onSendChat={(text) =>
+          setChatMessages((messages) => [...messages, { id: `local-${messages.length + 1}`, name: '나', text, mine: true }])
+        }
         onTabChange={(tab) => dispatch({ type: 'panel.tabChanged', tab })}
         onToggleCollapsed={() => dispatch({ type: 'panel.collapsedChanged' })}
         snapshot={snapshot}

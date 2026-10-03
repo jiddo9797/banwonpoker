@@ -152,6 +152,7 @@ describe('buildReplay', () => {
     const replay = buildReplay(store.getSession('S1')!, store.participants('S1'), store.hands('S1'), store.events('S1'), store.turns('S1'))
     const [hand] = replay.hands
     expect(hand.players.map((player) => player.nickname)).toEqual(['하늘', '민수', '유진'])
+    expect(hand.players.map((player) => player.startStack)).toEqual([10_000, 10_000, 10_000])
     expect(hand.cancelled).toBe(true)
     expect(hand.actions.slice(0, 5).map((action) => [action.playerId, action.kind, action.to, action.pot, action.thinkMs, action.audio.status])).toEqual([
       [minsu, 'blind', 50, 50, null, 'none'],

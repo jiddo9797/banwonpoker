@@ -52,6 +52,7 @@ export function buildReplay(
           nickname: byPlayer.get(item.playerId)?.nickname ?? '알 수 없음',
           seat: item.seat,
           cards: item.cards,
+          startStack: item.startStack ?? null,
         })),
         board: stored?.board ?? [],
         actions: [],
