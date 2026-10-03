@@ -429,3 +429,57 @@ describe('퇴장과 재접속', () => {
     expect(harness.closed).toEqual(['ROOM01'])
   })
 })
+
+describe('채팅', () => {
+  it('대기실과 세션이 끝난 뒤에는 보낼 수 없다', () => {
+    const lobby = setupRoom()
+    lobby.send(lobby.hostId, { type: 'chat.send', text: '안녕' })
+    expect(lobby.lastError(lobby.hostId)).toMatchObject({ code: 'WRONG_PHASE', message: '채팅은 게임 중에만 할 수 있습니다.' })
+
+    const { send, hostId, lastError, messages, clock } = startedRoom()
+    send(hostId, { type: 'session.end' })
+    clock.advance(1_000)
+    send(hostId, { type: 'chat.send', text: '수고했어' })
+    expect(lastError(hostId)?.code).toBe('WRONG_PHASE')
+    expect(messages(hostId).some((message) => message.type === 'chat')).toBe(false)
+  })
+
+  it('게임 중에는 같은 방 전원에게 보내고, 다시 들어오면 최근 채팅을 받는다', () => {
+    const { send, hostId, minsu, messages, disconnect, connect, clock } = startedRoom()
+    clock.advance(1_000)
+    send(hostId, { type: 'chat.send', text: '안녕' })
+
+    const line = { id: '1', playerId: hostId, name: '하늘', text: '안녕', sentAt: clock.now() }
+    expect(messages(hostId).at(-1)).toEqual({ type: 'chat', ...line })
+    expect(messages(minsu).at(-1)).toEqual({ type: 'chat', ...line })
+
+    disconnect(minsu)
+    connect(minsu)
+    expect(messages(minsu).find((message) => message.type === 'chat.history')).toEqual({ type: 'chat.history', messages: [line] })
+  })
+
+  it('1초 안에 다시 보내면 거절한다', () => {
+    const { send, hostId, lastError, messages, clock } = startedRoom()
+    send(hostId, { type: 'chat.send', text: '하나' })
+    clock.advance(999)
+    send(hostId, { type: 'chat.send', text: '둘' })
+    expect(lastError(hostId)?.code).toBe('TOO_FAST')
+    clock.advance(1)
+    send(hostId, { type: 'chat.send', text: '셋' })
+    expect(messages(hostId).filter((message) => message.type === 'chat').map((message) => (message.type === 'chat' ? message.text : ''))).toEqual(['하나', '셋'])
+  })
+
+  it('최근 50개만 남긴다', () => {
+    const { send, hostId, messages, disconnect, connect, clock } = startedRoom()
+    for (let index = 1; index <= 55; index += 1) {
+      send(hostId, { type: 'chat.send', text: String(index) })
+      clock.advance(1_000)
+    }
+    disconnect(hostId)
+    connect(hostId)
+    const history = messages(hostId).find((message) => message.type === 'chat.history')
+    expect(history?.type === 'chat.history' && history.messages.map((message) => message.text)).toEqual(
+      Array.from({ length: 50 }, (_, index) => String(index + 6)),
+    )
+  })
+})

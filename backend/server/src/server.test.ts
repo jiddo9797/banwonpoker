@@ -172,6 +172,8 @@ describe('parseClientMessage', () => {
       ok: true,
       message: { type: 'action', clientActionId: 'a', action: { type: 'raise', amount: 300 } },
     })
+    expect(parseClientMessage({ type: 'chat.send', text: '  안녕  ' })).toEqual({ ok: true, message: { type: 'chat.send', text: '안녕' } })
+    expect(parseClientMessage({ type: 'chat.send', text: '가'.repeat(200) }).ok).toBe(true)
   })
 
   it.each([
@@ -188,6 +190,9 @@ describe('parseClientMessage', () => {
     { type: 'room.create', nickname: '하늘', settings: { ...fixedSettings, levels: [] } },
     { type: 'room.create', nickname: 'x'.repeat(65), settings: fixedSettings },
     { type: 'room.join', roomCode: 'A'.repeat(17), nickname: '민수' },
+    { type: 'chat.send', text: '   ' },
+    { type: 'chat.send', text: '가'.repeat(201) },
+    { type: 'chat.send', text: 1 },
   ])('%j → 거부', (input) => {
     expect(parseClientMessage(input)).toMatchObject({ ok: false, error: { code: 'BAD_REQUEST' } })
   })

@@ -19,7 +19,7 @@ export function createInitialPrototypeState(
 
   return {
     scenarioKey,
-    panelTab: 'log',
+    panelTab: 'chat',
     panelCollapsed: isCompactViewport,
     selectedBetAmount: normalizeBetAmount(
       defaultBet ?? snapshot.selectedBetAmount,

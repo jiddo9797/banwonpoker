@@ -40,6 +40,8 @@ export type ClientMessage =
   /** 방장이 다른 참가자를 내보낸다. */
   | { type: 'player.kick'; playerId: string }
   | { type: 'room.leave' }
+  /** 같은 방 전원에게 채팅을 보낸다. 게임 중에만, 앞뒤 공백을 뺀 1~200자 */
+  | { type: 'chat.send'; text: string }
   | { type: 'ping' }
 
 export type ClientMessageType = ClientMessage['type']
@@ -70,6 +72,8 @@ export type ErrorCode =
   /** 방장이 이 참가자를 내보냈다. */
   | 'KICKED'
   | 'NOT_FOUND'
+  /** 채팅을 너무 자주 보냈다. */
+  | 'TOO_FAST'
 
 export interface ErrorBody {
   code: ErrorCode
@@ -143,6 +147,17 @@ export interface ClientState {
   game: GameSnapshot | null
 }
 
+/** 채팅 한 줄. 세션 기록·복기에는 남기지 않는다. */
+export interface ChatMessage {
+  id: string
+  playerId: string
+  name: string
+  text: string
+  sentAt: number
+}
+
+export const CHAT_MAX_LENGTH = 200
+
 /** 엔진 이벤트에 세션 시작부터의 시각을 붙인 것. 녹음·복기 동기화에 쓴다. */
 export type TimedEvent = EngineEvent & { sessionTimeMs: number }
 
@@ -153,6 +168,9 @@ export type ServerMessage =
   | { type: 'action.result'; clientActionId: string; ok: boolean; error?: ErrorBody }
   | { type: 'error'; error: ErrorBody; requestType?: string }
   | { type: 'pong'; serverTime: number }
+  | ({ type: 'chat' } & ChatMessage)
+  /** 입장·재접속 때 최근 채팅(오래된 것부터) */
+  | { type: 'chat.history'; messages: ChatMessage[] }
 
 // ── 입력 검증 ─────────────────────────────────────────────────────
 
@@ -245,6 +263,11 @@ export function parseClientMessage(value: unknown): Parsed {
     case 'player.kick':
       if (!isString(value.playerId) || value.playerId.length === 0) return bad('내보낼 참가자가 필요합니다.')
       return { ok: true, message: { type: 'player.kick', playerId: value.playerId } }
+    case 'chat.send': {
+      const text = typeof value.text === 'string' ? value.text.trim() : ''
+      if (text.length === 0 || text.length > CHAT_MAX_LENGTH) return bad(`메시지는 1~${CHAT_MAX_LENGTH}자로 보내세요.`)
+      return { ok: true, message: { type: 'chat.send', text } }
+    }
     case 'game.start':
     case 'session.end':
     case 'room.leave':
@@ -292,7 +315,8 @@ export interface ReplayHandData {
   blinds: BlindLevel
   /** 세션을 도중에 끝내 무효가 된 핸드 */
   cancelled: boolean
-  players: Array<{ playerId: string; nickname: string; seat: number; cards: [Card, Card] }>
+  /** startStack: 핸드를 시작할 때의 칩. 예전 기록이면 null */
+  players: Array<{ playerId: string; nickname: string; seat: number; cards: [Card, Card]; startStack: number | null }>
   /** 실제로 펼쳐진 보드 카드 */
   board: Card[]
   actions: ReplayActionData[]

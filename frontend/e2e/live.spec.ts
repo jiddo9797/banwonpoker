@@ -111,6 +111,20 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await dock(host).getByRole('button', { name: /^폴드/ }).click()
   await expect(host.getByText('민수 승리 +300')).toBeVisible()
   await expect(guest.getByText('나 승리 +300')).toBeVisible()
+
+  // 채팅: 같은 방 전원에게 보이고, 내 이름은 `나`로 쓴다. 다른 탭을 보던 사람에게는 안 읽은 수가 뜬다.
+  await host.getByRole('tab', { name: '로그' }).click()
+  const chatInput = guest.getByRole('textbox', { name: '채팅 입력' })
+  await chatInput.fill('좋은 판이었어')
+  await chatInput.press('Enter')
+  await expect(host.getByRole('tab', { name: /안 읽은 메시지 1개/ })).toContainText('1')
+  await host.getByRole('tab', { name: /^채팅/ }).click()
+  await expect(host.getByRole('tab', { name: '채팅' })).toBeVisible()
+  await expect(host.locator('.chat-messages')).toContainText('민수좋은 판이었어')
+  await expect(guest.locator('.chat-messages')).toContainText('나좋은 판이었어')
+  await expect(chatInput).toHaveValue('')
+
+  await guest.getByRole('tab', { name: '로그' }).click()
   await expect(guest.locator('.game-log')).toContainText('하늘 폴드')
   await expect(guest.locator('.hero-stack')).toHaveText('10,100')
 
@@ -243,6 +257,7 @@ test('방장이 참가자를 내보내고, 베팅 금액을 직접 입력한다'
   await amount.press('Enter')
   await expect(amount).toHaveValue('350')
   await dock(host).getByRole('button', { name: /^레이즈 350/ }).click()
+  await guest.getByRole('tab', { name: '로그' }).click()
   await expect(guest.locator('.game-log')).toContainText('하늘이 350으로 레이즈')
 
   // 게임 중: 참가자 탭에서 민수를 내보내면 한 명만 남아 세션이 끝난다.

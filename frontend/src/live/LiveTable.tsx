@@ -30,7 +30,7 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
   const legal = game.view.legal
   const step = Math.max(1, game.blinds.level.smallBlind)
 
-  const [panelTab, setPanelTab] = useState<PanelTab>('log')
+  const [panelTab, setPanelTab] = useState<PanelTab>('chat')
   const [panelCollapsed, setPanelCollapsed] = useState(isCompactViewport)
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialog, setDialog] = useState<'leave' | 'end' | 'settings' | null>(null)
@@ -52,7 +52,9 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
   const error = snapshot.lastError
   const [dismissedError, setDismissedError] = useState(error?.id)
   const errorToast: ToastMessage | undefined =
-    error && error.id !== dismissedError && (error.requestType === 'action' || error.requestType === 'session.end')
+    error &&
+    error.id !== dismissedError &&
+    (error.requestType === 'action' || error.requestType === 'session.end' || error.requestType === 'chat.send')
       ? { kind: 'warning', message: error.error.message }
       : undefined
   const toast = errorToast ?? notice
@@ -103,6 +105,16 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
       />
       <SidePanel
         activeTab={panelTab}
+        chatMessages={snapshot.chat.map((message) => ({
+          id: message.id,
+          name: message.playerId === state.you.playerId ? '나' : message.name,
+          text: message.text,
+          mine: message.playerId === state.you.playerId,
+        }))}
+        onSendChat={(text) => {
+          setDismissedError(error?.id)
+          client.sendChat(text)
+        }}
         collapsed={panelCollapsed}
         onTabChange={setPanelTab}
         onKick={state.you.isHost ? setKickTarget : undefined}

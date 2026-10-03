@@ -13,6 +13,7 @@ import { ReplayTimeline } from './components/ReplayTimeline'
 import { replayHands, sessionSummary, streetLabels } from './fixtures'
 import type { ExportScope, ExportStatus, HandAction, MixerChannel, ReplayHand } from './model'
 import { createInitialReplayState, handOf, replayReducer } from './reducer'
+import { stackFactAt } from './stacks'
 import './replay.css'
 
 export const PLAYBACK_STEP_MS = 1600
@@ -94,6 +95,9 @@ export function ReplayScreen({
   const hand = handOf(state.hands, state.handNumber)
   const current = hand.actions[state.index]
   const actor = hand.players.find((player) => player.id === current.playerId)
+  // 남은 칩: 액션 칸은 액션한 사람, 결과 칸은 승자 기준
+  const stackFact = stackFactAt(hand, state.index)
+  const stackOwner = hand.players.find((player) => player.id === stackFact?.playerId)
   const handPosition = state.hands.findIndex((item) => item.number === hand.number)
   const previousHand = state.hands[handPosition - 1]
   const nextHand = state.hands[handPosition + 1]
@@ -260,6 +264,20 @@ export function ReplayScreen({
                 <dt>팟</dt>
                 <dd className="numeric">{formatChips(current.pot)}</dd>
               </div>
+              {stackFact && stackOwner ? (
+                <div>
+                  <dt>{stackOwner.name} 남은 칩</dt>
+                  <dd className="numeric">
+                    {formatChips(stackFact.stack)}
+                    {stackFact.change !== 0 ? (
+                      <span className={`stack-change ${stackFact.change > 0 ? 'is-gain' : 'is-loss'}`}>
+                        {stackFact.change > 0 ? '+' : '−'}
+                        {formatChips(Math.abs(stackFact.change))}
+                      </span>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt>음성</dt>
                 <dd>

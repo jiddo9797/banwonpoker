@@ -312,6 +312,7 @@ input:focus-visible {
 }
 
 .pot-pill {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -325,9 +326,35 @@ input:focus-visible {
   font-size: 13px;
 }
 
-.pot-pill strong {
+.pot-pill > strong {
   color: var(--text-primary);
   font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* 이번 스트리트에 낸 칩까지 더한 합. 팟 알약 오른쪽 위에 겹친다. */
+.pot-total {
+  position: absolute;
+  top: -11px;
+  right: -14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid rgba(207, 231, 227, 0.16);
+  border-radius: 999px;
+  color: var(--felt-text);
+  background: var(--felt-rim);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.pot-total strong {
+  color: var(--text-primary);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
@@ -1031,9 +1058,9 @@ input:focus-visible {
 
 .bet-slider-row {
   display: grid;
-  grid-template-columns: 1fr 120px;
+  grid-template-columns: 1fr 36px 112px 36px;
   align-items: center;
-  gap: 14px;
+  gap: 6px;
   margin-top: 12px;
 }
 
@@ -1041,6 +1068,31 @@ input:focus-visible {
   width: 100%;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+/* 빅 블라인드만큼 내리기·올리기 */
+.bet-nudge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--stroke-control);
+  border-radius: 4px;
+  color: var(--text-primary);
+  background: var(--control);
+  cursor: pointer;
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.bet-nudge[aria-disabled="true"] {
+  color: var(--text-disabled);
+  background: var(--panel);
+  cursor: not-allowed;
 }
 
 .bet-slider-row .bet-amount-input {
@@ -1202,6 +1254,25 @@ input:focus-visible {
   background: var(--control-selected);
 }
 
+/* 안 읽은 채팅 수 */
+.tab-unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 5px;
+  padding: 0 4px;
+  border-radius: 999px;
+  color: var(--on-accent);
+  background: var(--accent);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
 .panel-collapse {
   display: inline-flex;
   align-items: center;
@@ -1218,6 +1289,81 @@ input:focus-visible {
   height: 132px;
   padding: 10px 14px;
   overflow: auto;
+}
+
+/* 채팅: 목록은 스크롤하고 입력 줄은 아래에 고정한다. */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 132px;
+}
+
+.chat-messages {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 2px;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 14px 4px;
+  overflow: auto;
+  list-style: none;
+}
+
+.chat-messages li {
+  display: flex;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.chat-messages li strong {
+  flex: none;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.chat-messages li.is-mine strong {
+  color: var(--text-primary);
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px 10px 14px;
+}
+
+.chat-input-row input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 4px;
+  color: var(--text-primary);
+  background: var(--control);
+  font-size: 13px;
+}
+
+.chat-send {
+  height: 32px;
+  padding: 0 12px;
+  border: 1.5px solid var(--text-tertiary);
+  border-radius: 4px;
+  color: var(--text-primary);
+  background: var(--control);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chat-send[aria-disabled="true"] {
+  border-color: var(--control);
+  color: var(--text-disabled);
+  cursor: not-allowed;
 }
 
 .game-log,

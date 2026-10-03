@@ -113,7 +113,7 @@ test.describe('키보드 접근', () => {
       reached.add(info.name)
     }
 
-    for (const name of ['메뉴', '나가기', '초대', '로그', '최소', '올인', '레이즈 총액']) {
+    for (const name of ['메뉴', '나가기', '초대', '채팅', '채팅 입력', '최소', '올인', '레이즈 총액', '100 내리기', '100 올리기']) {
       expect([...reached].some((item) => item.includes(name)), name).toBe(true)
     }
     expect([...reached].some((item) => item.startsWith('레이즈 2,400'))).toBe(true)

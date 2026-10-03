@@ -3,11 +3,16 @@ import { formatChips } from '../../../shared/format'
 import { EmptyCardSlot, PlayingCard } from '../../table/components/PlayingCard'
 import { streetLabels, visibleBoardCount } from '../fixtures'
 import type { ReplayHand, ReplayPlayer } from '../model'
+import { stackAt, streetBetAt } from '../stacks'
 
 interface PlayerView {
   player: ReplayPlayer
   folded: boolean
   isActor: boolean
+  /** 이 칸까지 반영한 남은 칩. 기록이 없으면 undefined */
+  stack: number | undefined
+  /** 이번 스트리트에 낸 칩 */
+  streetBet: number
 }
 
 function playerViews(hand: ReplayHand, index: number): PlayerView[] {
@@ -20,6 +25,8 @@ function playerViews(hand: ReplayHand, index: number): PlayerView[] {
       player,
       folded: own.some((action) => action.kind === 'fold'),
       isActor: current?.playerId === player.id,
+      stack: stackAt(hand, player.id, index),
+      streetBet: streetBetAt(hand, player.id, index),
     }
   })
 }
@@ -59,8 +66,8 @@ export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
         {current.kind === 'result' ? <span className="table-message">{hand.result}</span> : null}
       </div>
 
-      {/* 좌석에는 액션 글자·금액을 쓰지 않는다. 음성을 듣기 전에 무엇을 했는지 먼저 보이지 않게, 액션은 현재 액션 칸에서만 보여준다. */}
-      {playerViews(hand, index).map(({ player, folded, isActor }) => {
+      {/* 좌석에는 남은 칩과 이번 스트리트에 낸 칩을 실제 테이블처럼 보여준다. 액션 글자(콜·레이즈 등)는 현재 액션 칸에서만 쓴다. */}
+      {playerViews(hand, index).map(({ player, folded, isActor, stack, streetBet }) => {
         const speaking = isActor && current.audio.status === 'voice'
         return (
           <div
@@ -81,7 +88,13 @@ export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
                 <strong>{player.name}</strong>
                 {player.badge ? <span className="replay-badge">{player.badge}</span> : null}
               </div>
+              {stack !== undefined ? (
+                <span aria-label={`${player.name} 남은 칩 ${formatChips(stack)}`} className="replay-seat-stack">
+                  {formatChips(stack)}
+                </span>
+              ) : null}
             </div>
+            {streetBet > 0 ? <div className="bet-pill replay-bet-pill">{formatChips(streetBet)}</div> : null}
             {speaking ? (
               <span className="speaking-chip">
                 <Speaker220Regular aria-hidden="true" />

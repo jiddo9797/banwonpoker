@@ -36,6 +36,8 @@ export interface Seat {
   position: SeatPosition
   badge?: 'D' | 'SB' | 'BB'
   bet?: number
+  /** 이번 스트리트에 체크했는지. 베팅 금액이 있으면 금액이 먼저다. */
+  checked?: boolean
   status: SeatStatus
   isTurn?: boolean
   remainingSeconds?: number
@@ -50,6 +52,7 @@ export interface Seat {
 
 export interface Pot {
   label: string
+  /** 지난 스트리트까지 모인 칩. 이번 스트리트에 낸 칩은 좌석 앞 bet-pill로 따로 보인다. */
   amount: number
 }
 
@@ -87,6 +90,8 @@ export interface TableSnapshot {
   heroBadge: 'D' | 'SB' | 'BB' | 'none'
   heroStack: number
   heroBet?: number
+  /** 이번 스트리트에 내가 체크했는지 */
+  heroChecked?: boolean
   heroRemainingSeconds?: number
   /** 이번 핸드에서 내가 이겼는지. 없으면 테이블 문구로 판단한다(목 데이터) */
   heroIsWinner?: boolean
@@ -109,7 +114,16 @@ export interface TableSnapshot {
   connection: 'connected' | 'reconnecting' | 'disconnected'
 }
 
-export type PanelTab = 'log' | 'participants'
+export type PanelTab = 'chat' | 'log' | 'participants'
+
+/** 채팅 패널 한 줄 */
+export interface ChatLine {
+  id: string
+  name: string
+  text: string
+  /** 내가 보낸 메시지 */
+  mine: boolean
+}
 
 export type DemoPhase = 'idle' | 'pending' | 'settled'
 
@@ -144,6 +158,11 @@ export type PrototypeAction =
   | { type: 'endSession.closed' }
   | { type: 'settings.opened' }
   | { type: 'settings.closed' }
+
+/** 이번 스트리트에 모두가 낸 칩(좌석 앞 bet-pill의 합) */
+export function streetBetTotal(snapshot: Pick<TableSnapshot, 'seats' | 'heroBet'>) {
+  return snapshot.seats.reduce((sum, seat) => sum + (seat.bet ?? 0), snapshot.heroBet ?? 0)
+}
 
 export function isScenarioKey(value: string | null): value is ScenarioKey {
   return scenarioKeys.includes(value as ScenarioKey)
