@@ -109,9 +109,11 @@ interface GameTableProps {
   heroLabel?: string
   /** 음성 기록 안내를 보여줄지. 녹음이 아직 연결되지 않은 실제 게임에서는 숨긴다. */
   showRecordingNote?: boolean
+  /** 게임 중에 내 음성 기록을 끄거나 켠다. 있으면 안내 옆에 버튼을 보여준다. */
+  onToggleVoice?: () => void
 }
 
-export function GameTable({ snapshot, voiceless = false, heroLabel = '나', showRecordingNote = true }: GameTableProps) {
+export function GameTable({ snapshot, voiceless = false, heroLabel = '나', showRecordingNote = true, onToggleVoice }: GameTableProps) {
   // 큰 숫자는 지난 스트리트까지 모인 팟, total 배지는 이번 스트리트에 낸 칩까지 더한 합이다.
   // 사이드 팟이 있으면 total은 마지막 알약에만 붙인다(모든 팟의 합).
   const streetBets = streetBetTotal(snapshot)
@@ -180,6 +182,11 @@ export function GameTable({ snapshot, voiceless = false, heroLabel = '나', show
             ? '음성 없이 참여 중입니다. 내 차례에도 음성이 기록되지 않습니다.'
             : '음성은 내 차례에만 기록되며 플레이 중 상대에게 전달되지 않습니다.'}
         </span>
+        {onToggleVoice ? (
+          <button className={voiceless ? 'voice-toggle is-off' : 'voice-toggle'} onClick={onToggleVoice} type="button">
+            {voiceless ? '음성 켜기' : '음성 끄기'}
+          </button>
+        ) : null}
       </div>
       ) : null}
     </main>

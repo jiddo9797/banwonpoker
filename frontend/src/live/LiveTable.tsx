@@ -99,6 +99,7 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
         snapshot={table}
       />
       <GameTable
+        onToggleVoice={() => client.send({ type: 'voice.set', voiceless: !state.you.voiceless })}
         heroLabel={me && me.status === 'active' ? '나' : '관전 중'}
         snapshot={table}
         voiceless={state.you.voiceless}

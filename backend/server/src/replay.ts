@@ -2,9 +2,10 @@ import type { AudioStatus, ReplayData, ReplayHandData, TimedEvent } from './prot
 import type { SessionRecord, StoredHand, StoredParticipant, StoredTurn } from './store'
 
 /** 차례 하나의 음성 상태를 정한다. */
-export function turnStatus(turn: StoredTurn | undefined, participant: StoredParticipant | undefined): { status: AudioStatus; durationMs: number | null } {
+export function turnStatus(turn: StoredTurn | undefined): { status: AudioStatus; durationMs: number | null } {
   if (!turn) return { status: 'missing', durationMs: null }
-  if (turn.voiceless || participant?.voiceless) return { status: 'voiceless', durationMs: null }
+  // 게임 중에 음성을 껐다 켤 수 있으므로 참가자 설정이 아니라 그 차례의 설정을 본다.
+  if (turn.voiceless) return { status: 'voiceless', durationMs: null }
   const report = turn.report
   if (report?.failed) return { status: 'failed', durationMs: null }
   if (report) {
@@ -92,7 +93,7 @@ export function buildReplay(
         pot += event.amount
         const turn = openTurn.get(event.playerId)
         openTurn.delete(event.playerId)
-        const audio = turn ? turnStatus(byTurn.get(turn.seq), byPlayer.get(event.playerId)) : { status: 'none' as const, durationMs: null }
+        const audio = turn ? turnStatus(byTurn.get(turn.seq)) : { status: 'none' as const, durationMs: null }
         current.actions.push({
           seq: event.seq,
           street: event.street,
