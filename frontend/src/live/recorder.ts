@@ -6,6 +6,12 @@ export const CHUNK_MS = 3_000
 export const SILENCE_RMS = 0.02
 const RETRY_DELAYS = [1_000, 2_000, 4_000, 8_000, 15_000]
 
+/** 다시 보내도 결과가 같은 오류(권한 없음·음성 없이 바뀐 차례 등). 408·429는 잠시 뒤 될 수 있으므로 다시 시도한다. */
+function isPermanentError(error: unknown) {
+  const status = (error as { status?: unknown } | null)?.status
+  return typeof status === 'number' && status >= 400 && status < 500 && status !== 408 && status !== 429
+}
+
 export type RecorderStatus = 'idle' | 'starting' | 'recording' | 'paused' | 'failed'
 
 /** 녹음 결과를 서버로 보내는 방법. 실패하면 던진다. */
@@ -28,7 +34,7 @@ export interface RecorderDeps {
   getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>
   createRecorder?: (stream: MediaStream) => MediaRecorderLike
   /** 소리 크기를 잰다. null이면 재지 않는다(무발언 판정 안 함). */
-  createLevelMeter?: (stream: MediaStream) => { peak: () => number; close: () => void } | null
+  createLevelMeter?: (stream: MediaStream) => { peak: () => number | undefined; close: () => void } | null
   setTimer?: (callback: () => void, ms: number) => unknown
   onStatus?: (status: RecorderStatus, detail: { uploading: number; retrying: boolean }) => void
 }
@@ -38,22 +44,53 @@ function pickMimeType() {
   return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((type) => MediaRecorder.isTypeSupported(type))
 }
 
+/** 음량을 잴 작은 구간(48kHz에서 약 21ms). 짧은 소리도 한 구간 안에 들어가 묻히지 않는다. */
+const LEVEL_BLOCK = 1024
+
+/**
+ * samples의 뒤쪽 recent개 샘플을 작은 구간으로 나눠, 가장 큰 구간의 RMS를 돌려준다.
+ * 구간을 반씩 겹쳐서 소리가 구간 경계에 걸려도 놓치지 않는다.
+ */
+export function loudestBlockRms(samples: Float32Array, recent: number, block = LEVEL_BLOCK) {
+  const from = Math.max(0, samples.length - Math.max(recent, block))
+  let loudest = 0
+  for (let start = from; start < samples.length; start += block / 2) {
+    const end = Math.min(start + block, samples.length)
+    let sum = 0
+    for (let index = start; index < end; index += 1) sum += samples[index] * samples[index]
+    loudest = Math.max(loudest, Math.sqrt(sum / (end - start)))
+    if (end === samples.length) break
+  }
+  return loudest
+}
+
 function defaultLevelMeter(stream: MediaStream) {
   if (typeof AudioContext === 'undefined') return null
   const context = new AudioContext()
+  // 클릭 없이 만든 AudioContext는 멈춘 채 시작할 수 있다(새로고침 직후, iOS). 멈춘 채면 소리가 0으로 읽힌다.
+  void context.resume().catch(() => undefined)
   const analyser = context.createAnalyser()
-  analyser.fftSize = 1024
+  // 지난 약 0.68초(48kHz)를 담아 두고, 잴 때마다 지난번 이후의 소리를 빠짐없이 본다.
+  // 예전처럼 0.1초마다 최근 21ms만 보면 시간의 80%를 듣지 못해 짧은 말("콜")을 무발언으로 잡을 수 있었다.
+  analyser.fftSize = 32768
   context.createMediaStreamSource(stream).connect(analyser)
   const samples = new Float32Array(analyser.fftSize)
   let peak = 0
+  let measured = false
+  let lastTime: number | null = null
   const timer = window.setInterval(() => {
+    if (context.state !== 'running') return
     analyser.getFloatTimeDomainData(samples)
-    let sum = 0
-    for (const sample of samples) sum += sample * sample
-    peak = Math.max(peak, Math.sqrt(sum / samples.length))
+    // 오디오 시계로 지난번 이후 들어온 샘플 수를 센다. 타이머가 밀려도 버퍼 안이면 놓치지 않는다.
+    const now = context.currentTime
+    const recent = lastTime === null ? samples.length : Math.ceil((now - lastTime) * context.sampleRate) + LEVEL_BLOCK
+    lastTime = now
+    measured = true
+    peak = Math.max(peak, loudestBlockRms(samples, recent))
   }, 100)
   return {
-    peak: () => peak,
+    // 한 번도 재지 못했으면 모른다(undefined). 말했는데 무발언으로 잡혀 복기에서 빠지는 것을 막는다.
+    peak: () => (measured ? peak : undefined),
     close: () => {
       window.clearInterval(timer)
       void context.close()
@@ -98,8 +135,8 @@ class UploadQueue {
         attempt = 0
         if (this.retrying) this.retrying = false
         this.onChange()
-      } catch {
-        if (attempt >= RETRY_DELAYS.length) {
+      } catch (error) {
+        if (isPermanentError(error) || attempt >= RETRY_DELAYS.length) {
           // 계속 실패하면 이 조각은 포기한다. 서버는 빠진 조각을 누락으로 기록한다.
           this.tasks.shift()
           attempt = 0
@@ -136,6 +173,8 @@ export class TurnRecorder {
     resumedAt: number | null
     failed: boolean
     stopping: boolean
+    /** 음성 기록을 꺼서 버린 차례 */
+    discarded: boolean
   } | null = null
 
   constructor(deps: RecorderDeps) {
@@ -184,6 +223,7 @@ export class TurnRecorder {
       resumedAt: null as number | null,
       failed: false,
       stopping: false,
+      discarded: false,
     }
     this.current = current
     this.setStatus('starting')
@@ -200,7 +240,7 @@ export class TurnRecorder {
       const recorder = this.deps.createRecorder(stream)
       current.recorder = recorder
       recorder.ondataavailable = (event) => {
-        if (!event.data || event.data.size === 0) return
+        if (!event.data || event.data.size === 0 || current.discarded) return
         const index = current.chunks
         current.chunks += 1
         const chunk = event.data
@@ -239,6 +279,22 @@ export class TurnRecorder {
     current.recorder.resume()
     current.resumedAt = this.deps.sessionNow()
     this.setStatus('recording')
+  }
+
+  /**
+   * 차례 도중에 음성 기록을 껐을 때 부른다. 마이크를 바로 끄고 남은 조각과 결과는 보내지 않는다.
+   * 서버는 이 차례를 `음성 없이`로 바꾸므로 이미 올린 조각도 복기에서 재생하지 않는다.
+   */
+  discard() {
+    const current = this.current
+    if (!current) return
+    current.discarded = true
+    current.stopping = true
+    this.current = null
+    if (current.recorder && current.recorder.state !== 'inactive') current.recorder.stop()
+    for (const track of current.stream?.getTracks() ?? []) track.stop()
+    current.meter?.close()
+    this.setStatus('idle')
   }
 
   /** 차례가 끝나면 부른다. 마지막 조각을 올리고 결과를 알린 뒤 마이크를 끈다. */

@@ -40,6 +40,8 @@ export type ClientMessage =
   /** 방장이 다른 참가자를 내보낸다. */
   | { type: 'player.kick'; playerId: string }
   | { type: 'room.leave' }
+  /** 게임 중에 내 차례 음성 기록을 끄거나 켠다. 다른 참가자에게는 알리지 않는다(D2). */
+  | { type: 'voice.set'; voiceless: boolean }
   /** 같은 방 전원에게 채팅을 보낸다. 게임 중에만, 앞뒤 공백을 뺀 1~200자 */
   | { type: 'chat.send'; text: string }
   | { type: 'ping' }
@@ -263,6 +265,9 @@ export function parseClientMessage(value: unknown): Parsed {
     case 'player.kick':
       if (!isString(value.playerId) || value.playerId.length === 0) return bad('내보낼 참가자가 필요합니다.')
       return { ok: true, message: { type: 'player.kick', playerId: value.playerId } }
+    case 'voice.set':
+      if (typeof value.voiceless !== 'boolean') return bad('음성 기록을 켤지 끌지 알려 주세요.')
+      return { ok: true, message: { type: 'voice.set', voiceless: value.voiceless } }
     case 'chat.send': {
       const text = typeof value.text === 'string' ? value.text.trim() : ''
       if (text.length === 0 || text.length > CHAT_MAX_LENGTH) return bad(`메시지는 1~${CHAT_MAX_LENGTH}자로 보내세요.`)

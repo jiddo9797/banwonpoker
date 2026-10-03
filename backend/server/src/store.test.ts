@@ -132,11 +132,36 @@ describe('turnStatus', () => {
     ['보고 없음·조각 있음', turn({ receivedChunks: 1, report: null }), 'voice'],
     ['음성 없이 참여', turn({ voiceless: true }), 'voiceless'],
   ])('%s', (_, value, expected) => {
-    expect(turnStatus(value, undefined).status).toBe(expected)
+    expect(turnStatus(value).status).toBe(expected)
   })
 
   it('차례 기록이 없으면 누락이다', () => {
-    expect(turnStatus(undefined, undefined).status).toBe('missing')
+    expect(turnStatus(undefined).status).toBe('missing')
+  })
+})
+
+describe('게임 중 음성 기록 끄기·켜기', () => {
+  it('내 차례 도중에 끄면 그 차례부터 음성 없이로 기록하고, 다시 켜면 다음 차례부터 녹음한다', () => {
+    const store = new SessionStore()
+    const { room, host, minsu } = playedRoom(store)
+    // 플랍은 민수부터
+    expect(room.stateFor(host).game!.turn!.playerId).toBe(minsu)
+
+    room.handle(minsu, { type: 'voice.set', voiceless: true })
+    expect(room.stateFor(minsu).you.voiceless).toBe(true)
+    const flopTurn = store.turns('S1').at(-1)!
+    expect(flopTurn).toMatchObject({ playerId: minsu, voiceless: true })
+    store.saveChunk('S1', flopTurn.turnSeq, 0, bytes(1))
+    expect(turnStatus(store.turn('S1', flopTurn.turnSeq))).toMatchObject({ status: 'voiceless' })
+
+    // 남의 차례에 다시 켜도 그 사람의 차례는 그대로다.
+    room.handle(minsu, { type: 'action', clientActionId: 'm1', action: { type: 'check' } })
+    room.handle(minsu, { type: 'voice.set', voiceless: false })
+    expect(store.turns('S1').at(-1)).toMatchObject({ playerId: host, voiceless: false })
+
+    // 턴에서 민수의 다음 차례는 녹음한다.
+    room.handle(host, { type: 'action', clientActionId: 'h1', action: { type: 'check' } })
+    expect(store.turns('S1').at(-1)).toMatchObject({ playerId: minsu, voiceless: false })
   })
 })
 

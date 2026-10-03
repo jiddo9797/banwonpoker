@@ -94,8 +94,9 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await expect(dock(host).getByRole('button', { name: /^콜/ })).toHaveAttribute('aria-disabled', 'false')
   await expect(dock(guest).getByRole('button', { name: /^콜/ })).toHaveAttribute('aria-disabled', 'true')
   await expect(guest.getByText('하늘 차례를 기다리는 중')).toBeVisible()
-  // 가짜 마이크 소리가 조금 녹음되도록 잠깐 기다렸다가 행동한다.
-  await host.waitForTimeout(1_500)
+  // 가짜 마이크는 0.5초마다 짧게 삑 소리를 낸다. 마이크가 열리는 시간(부하가 크면 1초 넘게)까지 감안해
+  // 삑 소리가 여러 번 녹음되도록 넉넉히 기다렸다가 행동한다.
+  await host.waitForTimeout(2_500)
   await dock(host).getByRole('button', { name: /^콜/ }).click()
 
   // 빅 블라인드(민수) 체크 → 플랍
@@ -149,7 +150,7 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await expect(host.locator('.replay-seat').filter({ hasText: /콜|체크|베팅|레이즈|폴드|대기/ })).toHaveCount(0)
   const timeline = host.getByRole('group', { name: '액션 타임라인' })
   await expect(timeline.getByRole('button', { name: /^3번째 액션, 나 콜 100, 음성 \d+초/ })).toBeVisible()
-  // 가짜 마이크는 1초마다 삑 소리만 내서 짧은 차례는 무발언으로 잡힐 수 있다. 둘 다 기록된 것이다.
+  // 민수 차례는 1.5초만 기다려서 마이크가 늦게 열리면 무발언일 수 있다. 둘 다 기록된 것이다.
   await expect(timeline.getByRole('button', { name: /^4번째 액션, 민수 체크, (음성 \d+초|무발언)/ })).toBeVisible()
   // 곧바로 행동한 차례도 누락이 아니다.
   await expect(timeline.getByRole('button', { name: /누락|기록 실패/ })).toHaveCount(0)
@@ -256,9 +257,18 @@ test('방장이 참가자를 내보내고, 베팅 금액을 직접 입력한다'
   await amount.fill('350')
   await amount.press('Enter')
   await expect(amount).toHaveValue('350')
-  await dock(host).getByRole('button', { name: /^레이즈 350/ }).click()
+  // 정한 금액에서 Enter를 한 번 더 누르면 레이즈한다.
+  await amount.press('Enter')
   await guest.getByRole('tab', { name: '로그' }).click()
   await expect(guest.locator('.game-log')).toContainText('하늘이 350으로 레이즈')
+
+  // 게임 중에 내 음성 기록을 끄고 다시 켠다. 단축키 F로 폴드한다.
+  await guest.getByRole('button', { name: '음성 끄기' }).click()
+  await expect(guest.getByText('음성 없이 참여 중입니다. 내 차례에도 음성이 기록되지 않습니다.')).toBeVisible()
+  await guest.getByRole('button', { name: '음성 켜기' }).click()
+  await expect(guest.getByRole('button', { name: '음성 끄기' })).toBeVisible()
+  await guest.locator('body').press('f')
+  await expect(guest.locator('.game-log')).toContainText('나 폴드')
 
   // 게임 중: 참가자 탭에서 민수를 내보내면 한 명만 남아 세션이 끝난다.
   await host.getByRole('tab', { name: '참가자' }).click()
