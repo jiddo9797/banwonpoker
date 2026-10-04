@@ -9,6 +9,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json frontend/
 COPY backend/engine/package.json backend/engine/
+COPY backend/gto/package.json backend/gto/
 COPY backend/server/package.json backend/server/
 RUN pnpm install --frozen-lockfile
 

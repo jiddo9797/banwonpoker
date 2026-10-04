@@ -1,0 +1,26 @@
+{
+  "name": "@banwonpoker/gto",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "banwonpoker 프리플랍 GTO. 핸드 169종, 승률표, 프리플랍 트리와 CFR 솔버, 화면이 읽는 차트 형식.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "oxlint --deny-warnings src scripts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "equity": "tsx scripts/equity.ts",
+    "charts": "tsx scripts/charts.ts"
+  },
+  "devDependencies": {
+    "@banwonpoker/engine": "workspace:*",
+    "@types/node": "^24.0.0",
+    "oxlint": "^1.85.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.2"
+  }
+}
