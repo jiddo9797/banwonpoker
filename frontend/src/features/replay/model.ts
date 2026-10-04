@@ -33,6 +33,9 @@ export interface HandAction {
   pot: number
   /** 이 액션으로 낸 칩 */
   added: number
+  /** 실제 게임: 이 액션 뒤 이번 스트리트에 낸 총액과 올인 여부(GTO 분석에 쓴다) */
+  to?: number
+  allIn?: boolean
   thinkSeconds?: number
   audio: { status: AudioStatus; seconds?: number }
   /** 실제 게임: 이 차례의 음성을 받을 번호 */
