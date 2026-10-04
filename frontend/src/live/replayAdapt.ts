@@ -89,6 +89,8 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
           label,
           pot: action.pot,
           added: action.amount,
+          to: action.to,
+          allIn: action.allIn,
           thinkSeconds: action.thinkMs === null ? undefined : Math.max(1, Math.round(action.thinkMs / 1_000)),
           audio: {
             status: action.audio.status,

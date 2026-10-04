@@ -1088,3 +1088,10 @@
   font-size: 12px;
   font-weight: 500;
 }
+
+.action-detail-gto {
+  height: 34px;
+  margin-top: 12px;
+  padding: 0 14px;
+  font-size: 13px;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReplayData } from '@banwonpoker/server/protocol'
+import type { ChartFocus } from '../features/gto/SpotDialog'
 import { ReplayScreen } from '../features/replay/ReplayScreen'
 import { createApi } from './api'
 import type { Api } from './api'
@@ -13,10 +14,11 @@ interface LiveReplayProps {
   onBack: () => void
   backLabel: string
   api?: Api
+  onOpenChart?: (focus: ChartFocus) => void
 }
 
 /** 끝난 세션의 복기. 전체 패와 차례별 음성은 서버가 세션 참가자에게만 준다. */
-export function LiveReplay({ session, onBack, backLabel, api }: LiveReplayProps) {
+export function LiveReplay({ session, onBack, backLabel, api, onOpenChart }: LiveReplayProps) {
   const http = useMemo(() => api ?? createApi(), [api])
   const [replay, setReplay] = useState<ReplayData>()
   const [error, setError] = useState<string>()
@@ -72,6 +74,7 @@ export function LiveReplay({ session, onBack, backLabel, api }: LiveReplayProps)
       hands={hands}
       initialHandNumber={lastPlayed?.number}
       onBack={onBack}
+      onOpenChart={onOpenChart}
       sessionInfo={{ handCount: hands.length, durationMinutes }}
     />
   )

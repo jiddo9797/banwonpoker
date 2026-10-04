@@ -170,6 +170,20 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await expect(timeline.getByRole('button', { name: /^5번째 액션/ })).toHaveAttribute('aria-current', 'step', { timeout: 15_000 })
   await host.getByRole('button', { name: '일시정지' }).click()
 
+  // GTO 분석: 내 프리플랍 결정(헤즈업 BTN 림프)을 차트와 비교하고, 전체 차트로 갔다가 같은 칸으로 돌아온다.
+  await timeline.getByRole('button', { name: /^3번째 액션/ }).click()
+  await host.getByRole('button', { name: '이 지점 GTO 분석' }).click()
+  const spot = host.getByRole('dialog', { name: 'GTO 분석 · 핸드 #1' })
+  await expect(spot.getByText('2인 · 100BB 차트')).toBeVisible()
+  await expect(spot.getByRole('rowheader', { name: /림프.*실제/ })).toBeVisible()
+  await expect(spot.getByText('EV 손실')).toBeVisible()
+  await expectAccessible(host)
+  await spot.getByRole('button', { name: '전체 차트에서 보기' }).click()
+  await expect(host.getByRole('heading', { level: 1, name: '프리플랍 GTO 차트' })).toBeVisible()
+  await expect(host.getByRole('heading', { name: 'BTN · 오픈 (RFI)' })).toBeVisible()
+  await host.getByRole('button', { name: '복기로' }).click()
+  await expect(timeline.getByRole('button', { name: /^3번째 액션/ })).toHaveAttribute('aria-current', 'step')
+
   // 내보내기: 음성(WAV)과 기록(텍스트)
   await host.getByRole('button', { name: '영상 내보내기' }).click()
   await expect(host.getByRole('dialog', { name: '음성과 기록 내보내기' })).toBeVisible()

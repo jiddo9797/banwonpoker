@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ClientState } from '@banwonpoker/server/protocol'
 import { GtoScreen } from '../features/gto/GtoScreen'
+import type { ChartFocus } from '../features/gto/SpotDialog'
 import { CanvasStage } from '../shared/CanvasStage'
 import type { LiveClient } from './client'
 import { readHistory, rememberSession } from './history'
@@ -48,6 +49,8 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
   const [replaying, setReplaying] = useState<PastSession | null>(null)
   const [history, setHistory] = useState(readHistory)
   const [studying, setStudying] = useState(false)
+  // 복기에서 연 차트. 복기 화면은 그대로 두고(보던 핸드·칸 유지) 그 위에 차트를 띄운다.
+  const [chartFocus, setChartFocus] = useState<ChartFocus | null>(null)
   const liveScreen = screenOf(snapshot.state, snapshot.resuming, snapshot.replaced, snapshot.kicked)
   // GTO 차트는 처음 화면에서만 연다. 방에 들어가면(초대 링크로 다시 연결 등) 게임 화면이 우선이다.
   const screen: LiveScreen = replaying ? 'replay' : studying && liveScreen === 'home' ? 'gto' : liveScreen
@@ -127,12 +130,18 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
         <LiveSummary onExit={leave} onReplay={currentPast ? () => setReplaying(currentPast) : undefined} state={snapshot.state} />
       ) : null}
       {screen === 'replay' && replaying ? (
-        <LiveReplay
-          backLabel={snapshot.state ? '세션 요약' : '처음 화면'}
-          key={replaying.sessionId}
-          onBack={() => setReplaying(null)}
-          session={replaying}
-        />
+        <div className="live-layer" hidden={chartFocus !== null}>
+          <LiveReplay
+            backLabel={snapshot.state ? '세션 요약' : '처음 화면'}
+            key={replaying.sessionId}
+            onBack={() => setReplaying(null)}
+            onOpenChart={setChartFocus}
+            session={replaying}
+          />
+        </div>
+      ) : null}
+      {screen === 'replay' && chartFocus ? (
+        <GtoScreen backLabel="복기로" initial={chartFocus} key={JSON.stringify(chartFocus)} onBack={() => setChartFocus(null)} />
       ) : null}
     </CanvasStage>
   )

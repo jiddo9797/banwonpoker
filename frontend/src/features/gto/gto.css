@@ -1,9 +1,13 @@
 /* 행동 색: 폴드는 "아무것도 안 함"이라 중립 회색, 나머지 셋은 색각 이상 검사를 통과한 조합 */
-.gto-screen {
+.gto-screen,
+.gto-spot-dialog {
   --gto-fold: #343b47;
   --gto-passive: #199e70;
   --gto-raise: #d95926;
   --gto-allin: #9085e9;
+}
+
+.gto-screen {
   position: absolute;
   inset: 0;
 }
@@ -405,4 +409,112 @@
 .gto-main.is-loading .gto-matrix {
   opacity: 0.5;
   transition: opacity 150ms ease 100ms;
+}
+
+/* ── 복기의 GTO 분석 창 ──────────────────────────── */
+.dialog.gto-spot-dialog {
+  width: 560px;
+}
+
+.gto-spot-dialog p.gto-spot-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.gto-spot-who strong {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.gto-spot-hand {
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
+  background: var(--control);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-weight: 600;
+}
+
+.gto-spot-dialog p.gto-spot-situation {
+  margin: 16px 0 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gto-spot-situation span {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.gto-hand-table tr.is-actual th,
+.gto-hand-table tr.is-actual td {
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+}
+
+.gto-actual-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--accent-text);
+  background: var(--accent-subtle);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gto-spot-verdict {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.gto-spot-verdict div {
+  padding: 10px 12px;
+  border: 1px solid var(--stroke-panel);
+  border-radius: 6px;
+  background: var(--card);
+}
+
+.gto-spot-verdict dt {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gto-spot-verdict dd {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.gto-spot-verdict dd.is-loss {
+  color: var(--critical-text);
+}
+
+.gto-spot-dialog p.gto-spot-reason {
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: var(--card);
+}
+
+.gto-spot-notes {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.gto-spot-dialog p.gto-note {
+  margin-top: 8px;
+  font-size: 11px;
 }
