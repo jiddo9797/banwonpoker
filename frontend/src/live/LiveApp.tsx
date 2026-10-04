@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ClientState } from '@banwonpoker/server/protocol'
+import { GtoScreen } from '../features/gto/GtoScreen'
 import { CanvasStage } from '../shared/CanvasStage'
 import type { LiveClient } from './client'
 import { readHistory, rememberSession } from './history'
@@ -11,7 +12,7 @@ import { LiveReplay } from './LiveReplay'
 import { LiveSummary } from './LiveSummary'
 import { LiveTable } from './LiveTable'
 
-type LiveScreen = 'home' | 'reconnecting' | 'replaced' | 'kicked' | 'prep' | 'table' | 'summary' | 'replay'
+type LiveScreen = 'home' | 'reconnecting' | 'replaced' | 'kicked' | 'prep' | 'table' | 'summary' | 'replay' | 'gto'
 
 const titles: Record<LiveScreen, string> = {
   home: '시작',
@@ -22,6 +23,7 @@ const titles: Record<LiveScreen, string> = {
   table: '테이블',
   summary: '세션 요약',
   replay: '복기',
+  gto: '프리플랍 GTO',
 }
 
 function screenOf(state: ClientState | null, resuming: boolean, replaced: boolean, kicked: boolean): LiveScreen {
@@ -45,7 +47,10 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
   const invitedRoom = useRef(roomFromUrl())
   const [replaying, setReplaying] = useState<PastSession | null>(null)
   const [history, setHistory] = useState(readHistory)
-  const screen: LiveScreen = replaying ? 'replay' : screenOf(snapshot.state, snapshot.resuming, snapshot.replaced, snapshot.kicked)
+  const [studying, setStudying] = useState(false)
+  const liveScreen = screenOf(snapshot.state, snapshot.resuming, snapshot.replaced, snapshot.kicked)
+  // GTO 차트는 처음 화면에서만 연다. 방에 들어가면(초대 링크로 다시 연결 등) 게임 화면이 우선이다.
+  const screen: LiveScreen = replaying ? 'replay' : studying && liveScreen === 'home' ? 'gto' : liveScreen
 
   // 세션이 끝나면 이 브라우저에 남겨 두어 나중에도 복기할 수 있게 한다.
   const summary = snapshot.state?.room.summary
@@ -104,11 +109,13 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
         <LiveHome
           client={client}
           initialRoomCode={invitedRoom.current}
+          onOpenGto={() => setStudying(true)}
           onOpenReplay={setReplaying}
           pastSessions={history}
           snapshot={snapshot}
         />
       ) : null}
+      {screen === 'gto' ? <GtoScreen onBack={() => setStudying(false)} /> : null}
       {screen === 'reconnecting' ? <Reconnecting /> : null}
       {screen === 'kicked' ? <Kicked onHome={leave} /> : null}
       {screen === 'replaced' ? <Replaced onLeave={leave} onResume={() => client.resumeSaved()} /> : null}
