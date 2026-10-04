@@ -149,7 +149,7 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   // 좌석에는 액션 글자·금액을 쓰지 않는다(음성을 듣기 전에 무엇을 했는지 보이지 않게).
   await expect(host.locator('.replay-seat').filter({ hasText: /콜|체크|베팅|레이즈|폴드|대기/ })).toHaveCount(0)
   const timeline = host.getByRole('group', { name: '액션 타임라인' })
-  await expect(timeline.getByRole('button', { name: /^3번째 액션, 나 콜 100, 음성 \d+초/ })).toBeVisible()
+  await expect(timeline.getByRole('button', { name: /^3번째 액션, 나 콜 100 \(1BB\), 음성 \d+초/ })).toBeVisible()
   // 민수 차례는 1.5초만 기다려서 마이크가 늦게 열리면 무발언일 수 있다. 둘 다 기록된 것이다.
   await expect(timeline.getByRole('button', { name: /^4번째 액션, 민수 체크, (음성 \d+초|무발언)/ })).toBeVisible()
   // 곧바로 행동한 차례도 누락이 아니다.

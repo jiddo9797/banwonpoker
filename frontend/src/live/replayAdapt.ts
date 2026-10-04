@@ -1,7 +1,8 @@
 import type { ReplayData, ReplayHandData } from '@banwonpoker/server/protocol'
 import type { HandAction, ReplayHand, ReplayPlayer } from '../features/replay/model'
 import type { SeatPosition } from '../features/table/model'
-import { formatChips } from '../shared/format'
+import { positionsFromButton } from '@banwonpoker/gto'
+import { formatBb, formatChips } from '../shared/format'
 import { toCard } from './adapt'
 
 const layouts: Record<number, SeatPosition[]> = {
@@ -12,8 +13,8 @@ const layouts: Record<number, SeatPosition[]> = {
   6: ['bottom-left', 'top-left', 'top-center', 'top-right', 'bottom-right'],
 }
 
-function actionLabel(action: ReplayHandData['actions'][number], blindIndex: number) {
-  const amount = formatChips(action.to)
+function actionLabel(action: ReplayHandData['actions'][number], blindIndex: number, bigBlind: number) {
+  const amount = `${formatChips(action.to)} (${formatBb(action.to, bigBlind)})`
   const allIn = action.allIn ? ' 올인' : ''
   switch (action.kind) {
     case 'blind':
@@ -58,23 +59,27 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
       const mySeat = hand.players.find((player) => player.playerId === viewerId)?.seat
       const occupied = new Set(hand.players.map((player) => player.seat))
       const anchor = mySeat ?? Array.from({ length: maxSeats }, (_, seat) => seat).find((seat) => !occupied.has(seat)) ?? 0
-      const blinds = hand.actions.filter((action) => action.kind === 'blind').map((action) => action.playerId)
+      // 딜러부터 좌석 번호 순으로 돌며 포지션 이름을 붙인다(헤즈업은 딜러가 BTN이자 스몰 블라인드).
+      const fromButton = [...hand.players].sort(
+        (a, b) => ((a.seat - hand.dealerSeat + maxSeats) % maxSeats) - ((b.seat - hand.dealerSeat + maxSeats) % maxSeats),
+      )
+      const names = hand.players.length >= 2 && hand.players.length <= 6 ? positionsFromButton(hand.players.length) : []
+      const positionOf = new Map(fromButton.map((player, index) => [player.playerId, names[index]]))
 
       const players: ReplayPlayer[] = hand.players.map((player) => {
         const offset = (player.seat - anchor + maxSeats) % maxSeats
-        const badge = player.seat === hand.dealerSeat ? 'D' : blinds[0] === player.playerId ? 'SB' : blinds[1] === player.playerId ? 'BB' : undefined
         return {
           id: player.playerId,
           name: nameOf(player.playerId),
           position: player.playerId === viewerId ? 'hero' : (layout[offset - 1] ?? 'top-center'),
           cards: [toCard(player.cards[0]), toCard(player.cards[1])],
-          badge,
+          badge: positionOf.get(player.playerId),
         }
       })
 
       let blindIndex = 0
       const actions: HandAction[] = hand.actions.map((action) => {
-        const label = actionLabel(action, blindIndex)
+        const label = actionLabel(action, blindIndex, hand.blinds.bigBlind)
         if (action.kind === 'blind') blindIndex += 1
         return {
           id: `h${hand.number}-${action.seq}`,
@@ -106,7 +111,7 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
 
       const startStacks: Record<string, number> = {}
       for (const player of hand.players) {
-        if (player.startStack !== null) startStacks[player.playerId] = player.startStack
+        startStacks[player.playerId] = player.startStack
       }
       // 무효 핸드는 낸 칩을 그대로 돌려받는다.
       const payouts: Record<string, number> = {}
@@ -126,6 +131,7 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
         result,
         startStacks,
         payouts,
+        bigBlind: hand.blinds.bigBlind,
       }
     })
 }

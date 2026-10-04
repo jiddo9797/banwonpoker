@@ -192,6 +192,63 @@ describe('buildReplay', () => {
   })
 })
 
+describe('buildReplay 시작 칩 되짚기', () => {
+  const card = (rank: number) => ({ rank: rank as never, suit: 'spade' as const })
+  const blinds = { smallBlind: 50, bigBlind: 100 }
+  const session = {
+    id: 'S1',
+    roomCode: 'ABC234',
+    name: '예전 세션',
+    settings: fixedSettings,
+    startedAt: 0,
+    endedAt: 1,
+    summary: null,
+  }
+  const participants = ['a', 'b', 'c'].map((playerId, seat) => ({ playerId, nickname: playerId, seat, voiceless: false }))
+  // 시작 칩을 저장하기 전의 기록처럼 startStack이 없다.
+  const hand = (handNumber: number, ids: string[]) => ({
+    handNumber,
+    dealerSeat: 0,
+    blinds,
+    holeCards: ids.map((playerId) => ({ playerId, seat: participants.find((p) => p.playerId === playerId)!.seat, cards: [card(2), card(3)] as never })),
+    board: [],
+  })
+
+  it('예전 핸드는 블라인드·액션·팟 분배·무효 환불로 시작 칩을 계산한다', () => {
+    let seq = 0
+    const e = (body: object) => ({ ...body, seq: ++seq, sessionTimeMs: seq }) as never
+    const events = [
+      e({ type: 'hand-started', handNumber: 1, dealerSeat: 0, smallBlindSeat: 1, bigBlindSeat: 2, blinds, playerIds: ['a', 'b'] }),
+      e({ type: 'blind-posted', playerId: 'a', blind: 'small', amount: 50, allIn: false }),
+      e({ type: 'blind-posted', playerId: 'b', blind: 'big', amount: 100, allIn: false }),
+      e({ type: 'action', playerId: 'a', street: 'preflop', action: 'raise', amount: 250, to: 300, allIn: false, timedOut: false }),
+      e({ type: 'action', playerId: 'b', street: 'preflop', action: 'fold', amount: 0, to: 100, allIn: false, timedOut: false }),
+      e({ type: 'pot-awarded', award: { potIndex: 0, amount: 400, winners: [{ playerId: 'a', amount: 400 }] } }),
+      e({ type: 'hand-ended', handNumber: 1 }),
+      // 2번 핸드는 무효: 낸 칩을 돌려받는다. c는 여기서 처음 들어온다.
+      e({ type: 'hand-started', handNumber: 2, dealerSeat: 1, smallBlindSeat: 2, bigBlindSeat: 0, blinds, playerIds: ['a', 'b', 'c'] }),
+      e({ type: 'blind-posted', playerId: 'c', blind: 'small', amount: 50, allIn: false }),
+      e({ type: 'blind-posted', playerId: 'a', blind: 'big', amount: 100, allIn: false }),
+      e({ type: 'hand-cancelled', handNumber: 2 }),
+      e({ type: 'hand-started', handNumber: 3, dealerSeat: 2, smallBlindSeat: 0, bigBlindSeat: 1, blinds, playerIds: ['a', 'b', 'c'] }),
+      e({ type: 'blind-posted', playerId: 'a', blind: 'small', amount: 50, allIn: false }),
+    ]
+    const replay = buildReplay(session, participants, [hand(1, ['a', 'b']), hand(2, ['a', 'b', 'c']), hand(3, ['a', 'b', 'c'])], events, [])
+    const starts = replay.hands.map((item) => item.players.map((player) => player.startStack))
+    expect(starts).toEqual([
+      [10_000, 10_000],
+      [10_100, 9_900, 10_000],
+      [10_100, 9_900, 10_000],
+    ])
+  })
+
+  it('저장된 시작 칩이 있으면 그 값을 쓴다', () => {
+    const stored = { ...hand(1, ['a', 'b']), holeCards: hand(1, ['a', 'b']).holeCards.map((item, index) => ({ ...item, startStack: 5_000 + index })) }
+    const events = [{ type: 'hand-started', handNumber: 1, dealerSeat: 0, smallBlindSeat: 0, bigBlindSeat: 1, blinds, playerIds: ['a', 'b'], seq: 1, sessionTimeMs: 0 } as never]
+    expect(buildReplay(session, participants, [stored], events, []).hands[0].players.map((player) => player.startStack)).toEqual([5_000, 5_001])
+  })
+})
+
 describe('HTTP API', () => {
   let server: GameServer | undefined
   let store: SessionStore

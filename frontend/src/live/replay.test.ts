@@ -30,7 +30,7 @@ const replay: ReplayData = {
         { playerId: 'me', nickname: '하늘', seat: 0, cards: [card(14, 'heart'), card(13, 'heart')], startStack: 10_000 },
         { playerId: 'b', nickname: '민수', seat: 1, cards: [card(7, 'club'), card(7, 'diamond')], startStack: 9_500 },
         // 예전 기록: 시작 칩이 없다
-        { playerId: 'c', nickname: '유진', seat: 2, cards: [card(10, 'spade'), card(2, 'club')], startStack: null },
+        { playerId: 'c', nickname: '유진', seat: 2, cards: [card(10, 'spade'), card(2, 'club')], startStack: 9_900 },
       ],
       board: [card(13, 'spade'), card(9, 'heart'), card(4, 'heart')],
       streets: [{ street: 'flop', seq: 10 }],
@@ -51,7 +51,7 @@ describe('toReplayHands', () => {
 
   it('내 좌석을 아래(hero)에 두고 나를 `나`로 부르며 딜러·블라인드를 표시한다', () => {
     expect(hand.players.map((player) => [player.name, player.position, player.badge])).toEqual([
-      ['나', 'hero', 'D'],
+      ['나', 'hero', 'BTN'],
       ['민수', 'top-left', 'SB'],
       ['유진', 'top-right', 'BB'],
     ])
@@ -61,13 +61,23 @@ describe('toReplayHands', () => {
     ])
   })
 
+  it('딜러부터 좌석 번호 순으로 포지션 이름을 붙인다', () => {
+    const moved = toReplayHands({ ...replay, hands: [{ ...replay.hands[0], dealerSeat: 1 }] }, 'me')[0]
+    expect(moved.players.map((player) => [player.id, player.badge])).toEqual([
+      ['me', 'BB'],
+      ['b', 'BTN'],
+      ['c', 'SB'],
+    ])
+    expect(moved.bigBlind).toBe(100)
+  })
+
   it('액션을 칸으로 바꾸고 마지막에 결과 칸을 붙인다', () => {
     expect(hand.actions.map((action) => [action.label, action.audio.status, action.audio.seconds, action.thinkSeconds, action.turnSeq])).toEqual([
       ['SB 50', 'none', undefined, undefined, undefined],
       ['BB 100', 'none', undefined, undefined, undefined],
-      ['레이즈 300', 'voice', 3, 4, 6],
+      ['레이즈 300 (3BB)', 'voice', 3, 4, 6],
       ['폴드(시간 초과)', 'missing', undefined, 60, 8],
-      ['콜 300', 'voiceless', undefined, 2, 10],
+      ['콜 300 (3BB)', 'voiceless', undefined, 2, 10],
       ['나 승리', 'none', undefined, undefined, undefined],
     ])
     expect(hand.actions.at(-1)).toMatchObject({ kind: 'result', street: 'showdown', pot: 650 })
@@ -76,7 +86,7 @@ describe('toReplayHands', () => {
   })
 
   it('시작 칩, 받은 칩, 액션마다 낸 칩을 채운다', () => {
-    expect(hand.startStacks).toEqual({ me: 10_000, b: 9_500 })
+    expect(hand.startStacks).toEqual({ me: 10_000, b: 9_500, c: 9_900 })
     expect(hand.payouts).toEqual({ me: 650 })
     expect(hand.actions.map((action) => action.added)).toEqual([50, 100, 300, 0, 200, 0])
   })
@@ -117,8 +127,8 @@ describe('handLog', () => {
     expect(log).toContain('# 금요일 홀덤')
     expect(log).toContain('## 핸드 #1 · 나 승리 · 킹 원 페어 +650')
     expect(log).toContain('나(A♥ K♥)')
-    expect(log).toContain('- [preflop] 나 레이즈 300 · 팟 450 · 생각 4초 · 음성 3초')
-    expect(log).toContain('유진 콜 300 · 팟 650 · 생각 2초 · 음성 없이 참여')
+    expect(log).toContain('- [preflop] 나 레이즈 300 (3BB) · 팟 450 · 생각 4초 · 음성 3초')
+    expect(log).toContain('유진 콜 300 (3BB) · 팟 650 · 생각 2초 · 음성 없이 참여')
     expect(log).not.toContain('나 승리 · 팟')
   })
 })
