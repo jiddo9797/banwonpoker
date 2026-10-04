@@ -1,4 +1,4 @@
-import { Add20Regular, DoorArrowRight20Regular, History20Regular } from '@fluentui/react-icons'
+import { Add20Regular, DoorArrowRight20Regular, Grid20Regular, History20Regular } from '@fluentui/react-icons'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { CreateRoomScreen } from '../features/lobby/CreateRoomScreen'
@@ -29,11 +29,13 @@ interface LiveHomeProps {
   /** 이 브라우저에서 참여했던 끝난 세션 */
   pastSessions?: PastSession[]
   onOpenReplay?: (session: PastSession) => void
+  /** 프리플랍 GTO 차트 화면을 연다. */
+  onOpenGto?: () => void
 }
 
 const dateFormat = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 
-export function LiveHome({ client, snapshot, initialRoomCode, pastSessions = [], onOpenReplay }: LiveHomeProps) {
+export function LiveHome({ client, snapshot, initialRoomCode, pastSessions = [], onOpenReplay, onOpenGto }: LiveHomeProps) {
   const [mode, setMode] = useState<'home' | 'create'>('home')
   const [waitingFor, setWaitingFor] = useState<'room.create' | 'room.join' | null>(null)
   const [code, setCode] = useState(initialRoomCode ?? '')
@@ -156,6 +158,19 @@ export function LiveHome({ client, snapshot, initialRoomCode, pastSessions = [],
             </button>
           </form>
         </div>
+
+        {onOpenGto ? (
+          <section aria-labelledby="gto-entry-title" className="gto-entry">
+            <div>
+              <h2 id="gto-entry-title">프리플랍 GTO 차트</h2>
+              <p>2~6인, 10~300BB에서 포지션·상황별로 어떤 핸드를 폴드·콜·레이즈할지 13×13 표로 봅니다.</p>
+            </div>
+            <button className="btn btn--secondary" onClick={onOpenGto} type="button">
+              <Grid20Regular aria-hidden="true" />
+              GTO 차트 보기
+            </button>
+          </section>
+        ) : null}
 
         {pastSessions.length > 0 && onOpenReplay ? (
           <section aria-labelledby="past-title" className="past-sessions">

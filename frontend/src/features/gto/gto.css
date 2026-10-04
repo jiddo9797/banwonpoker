@@ -1,0 +1,408 @@
+/* 행동 색: 폴드는 "아무것도 안 함"이라 중립 회색, 나머지 셋은 색각 이상 검사를 통과한 조합 */
+.gto-screen {
+  --gto-fold: #343b47;
+  --gto-passive: #199e70;
+  --gto-raise: #d95926;
+  --gto-allin: #9085e9;
+  position: absolute;
+  inset: 0;
+}
+
+.gto-header {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 48px;
+}
+
+.gto-heading h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.gto-heading p {
+  margin: 2px 0 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.gto-card {
+  border: 1px solid var(--stroke-panel);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.28);
+}
+
+/* ── 왼쪽: 상황 고르기 ───────────────────────────── */
+.gto-controls {
+  position: absolute;
+  top: 88px;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 320px;
+  padding: 20px;
+}
+
+.gto-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gto-field legend,
+.gto-field > h2 {
+  margin: 0 0 8px;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gto-field .segmented {
+  justify-self: start;
+}
+
+.gto-stacks {
+  flex-wrap: wrap;
+}
+
+.gto-stacks button {
+  min-width: 40px;
+  padding: 0 8px;
+}
+
+.gto-levels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.gto-levels span {
+  width: 100%;
+}
+
+.gto-levels button {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 11px;
+}
+
+.gto-levels button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-subtle);
+}
+
+.gto-situations {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+  margin-right: -12px;
+  padding-right: 12px;
+}
+
+.gto-situation-group h3 {
+  margin: 4px 0 6px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gto-situation-group ul {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.gto-situation-group button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-primary);
+  background: var(--control);
+  cursor: pointer;
+  text-align: left;
+}
+
+.gto-situation-group button:hover {
+  border-color: var(--stroke-control);
+}
+
+.gto-situation-group button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.gto-situation-group strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gto-situation-group span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.gto-empty {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+/* ── 가운데: 13×13 표 ────────────────────────────── */
+.gto-main {
+  position: absolute;
+  top: 88px;
+  left: 368px;
+  width: 726px;
+  height: 726px;
+}
+
+.gto-loading {
+  margin: 0;
+  padding-top: 320px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.gto-matrix {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  grid-template-rows: repeat(13, 1fr);
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.gto-cell {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--card);
+  cursor: pointer;
+}
+
+.gto-cell.is-out {
+  background: var(--panel);
+}
+
+.gto-cell[aria-pressed="true"] {
+  outline: 2px solid var(--text-primary);
+  outline-offset: -2px;
+}
+
+.gto-cell-bars {
+  display: flex;
+  width: 100%;
+}
+
+.gto-bar {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.gto-tone-fold {
+  background: var(--gto-fold);
+}
+
+.gto-tone-passive {
+  background: var(--gto-passive);
+}
+
+.gto-tone-raise {
+  background: var(--gto-raise);
+}
+
+.gto-tone-allin {
+  background: var(--gto-allin);
+}
+
+.gto-cell-label {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  color: var(--text-primary);
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.gto-cell.is-out .gto-cell-label {
+  color: var(--text-disabled);
+  text-shadow: none;
+}
+
+/* ── 오른쪽: 요약과 선택한 핸드 ──────────────────── */
+.gto-detail {
+  position: absolute;
+  top: 88px;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 298px;
+}
+
+.gto-panel {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.gto-panel h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.gto-sub {
+  margin: -4px 0 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.gto-note {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.gto-legend {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.gto-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gto-legend-label {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.gto-swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: baseline;
+}
+
+.gto-legend .gto-swatch {
+  margin-right: 0;
+}
+
+.gto-hand {
+  font-family: "Inter Variable", "Inter", sans-serif;
+  font-size: 22px;
+}
+
+.gto-reach {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gto-hand-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.gto-hand-table th,
+.gto-hand-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--stroke-panel);
+  text-align: right;
+}
+
+.gto-hand-table thead th {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gto-hand-table th:first-child {
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: left;
+}
+
+.gto-hand-table thead th:first-child {
+  color: var(--text-tertiary);
+}
+
+.gto-hand-table tr.is-best th,
+.gto-hand-table tr.is-best td {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.gto-method {
+  margin-top: auto;
+  padding: 0 4px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.gto-method h2 {
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gto-method p {
+  margin: 0 0 4px;
+}
+
+.gto-main.is-loading .gto-matrix {
+  opacity: 0.5;
+  transition: opacity 150ms ease 100ms;
+}
