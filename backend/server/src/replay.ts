@@ -38,7 +38,16 @@ export function buildReplay(
 
   let current: ReplayHandData | null = null
   let pot = 0
+  // 시작 칩을 저장하기 전의 기록도 복기에서 칩을 보여줄 수 있도록 이벤트로 칩을 따라간다.
+  // 처음 보는 참가자는 시작 칩으로 시작한다(게임 중에 들어와도 시작 칩을 받는다).
+  const stacks = new Map<string, number>()
+  let handStart = new Map<string, number>()
   const openTurn = new Map<string, { seq: number; time: number }>()
+
+  const spend = (playerId: string, amount: number) => {
+    const stack = stacks.get(playerId)
+    if (stack !== undefined) stacks.set(playerId, stack - amount)
+  }
 
   for (const event of events) {
     if (event.type === 'hand-started') {
@@ -48,19 +57,24 @@ export function buildReplay(
         dealerSeat: event.dealerSeat,
         blinds: event.blinds,
         cancelled: false,
-        players: (stored?.holeCards ?? []).map((item) => ({
-          playerId: item.playerId,
-          nickname: byPlayer.get(item.playerId)?.nickname ?? '알 수 없음',
-          seat: item.seat,
-          cards: item.cards,
-          startStack: item.startStack ?? null,
-        })),
+        players: (stored?.holeCards ?? []).map((item) => {
+          const startStack = item.startStack ?? stacks.get(item.playerId) ?? session.settings.startingStack
+          stacks.set(item.playerId, startStack)
+          return {
+            playerId: item.playerId,
+            nickname: byPlayer.get(item.playerId)?.nickname ?? '알 수 없음',
+            seat: item.seat,
+            cards: item.cards,
+            startStack,
+          }
+        }),
         board: stored?.board ?? [],
         actions: [],
         streets: [],
         awards: [],
       }
       result.push(current)
+      handStart = new Map(current.players.map((player) => [player.playerId, player.startStack as number]))
       pot = 0
       openTurn.clear()
       continue
@@ -70,6 +84,7 @@ export function buildReplay(
     switch (event.type) {
       case 'blind-posted':
         pot += event.amount
+        spend(event.playerId, event.amount)
         current.actions.push({
           seq: event.seq,
           street: 'preflop',
@@ -91,6 +106,7 @@ export function buildReplay(
         break
       case 'action': {
         pot += event.amount
+        spend(event.playerId, event.amount)
         const turn = openTurn.get(event.playerId)
         openTurn.delete(event.playerId)
         const audio = turn ? turnStatus(byTurn.get(turn.seq)) : { status: 'none' as const, durationMs: null }
@@ -115,6 +131,7 @@ export function buildReplay(
         current.streets.push({ street: event.street, seq: event.seq })
         break
       case 'pot-awarded':
+        for (const winner of event.award.winners) spend(winner.playerId, -winner.amount)
         current.awards.push({
           amount: event.award.amount,
           winners: event.award.winners,
@@ -123,6 +140,8 @@ export function buildReplay(
         break
       case 'hand-cancelled':
         current.cancelled = true
+        // 무효 핸드는 낸 칩을 모두 돌려준다.
+        for (const [playerId, start] of handStart) stacks.set(playerId, start)
         break
       default:
         break

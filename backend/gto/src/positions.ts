@@ -26,3 +26,10 @@ export function postflopOrder(players: number, index: number): number {
   if (index === players - 1) return 1
   return index + 2
 }
+
+/** 딜러부터 시계 방향(좌석 번호가 커지는 쪽)으로 앉은 순서대로의 포지션 이름 */
+export function positionsFromButton(players: number): readonly string[] {
+  const names = positionsOf(players)
+  if (players === 2) return names
+  return [names[players - 3], names[players - 2], names[players - 1], ...names.slice(0, players - 3)]
+}
