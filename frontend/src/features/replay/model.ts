@@ -18,7 +18,8 @@ export interface ReplayPlayer {
   name: string
   position: SeatPosition
   cards: [Card, Card]
-  badge?: 'D' | 'SB' | 'BB'
+  /** 목업은 D·SB·BB, 실제 게임은 UTG·HJ·CO·BTN·SB·BB 같은 포지션 이름 */
+  badge?: string
 }
 
 export interface HandAction {
@@ -49,6 +50,8 @@ export interface ReplayHand {
   startStacks: Record<string, number>
   /** 결과 칸에서 참가자별로 받은 칩(나눠 가진 경우 포함) */
   payouts: Record<string, number>
+  /** 이 핸드의 빅 블라인드. 있으면 칩을 BB 수로도 보여준다. */
+  bigBlind?: number
 }
 
 export interface SessionResult {

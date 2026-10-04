@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import equityFile from '../tables/equity.json'
 import { isChartNode, solveChart } from './build'
 import { HAND_COUNT, TOTAL_COMBOS, comboCount, compatibilityMatrix, handIndex, handLabel, handPrior } from './cards'
-import { postflopOrder } from './positions'
+import { positionsFromButton, postflopOrder } from './positions'
 import { PreflopSolver } from './solver'
 import { decodeEquity } from './tables'
 import type { EquityFile } from './tables'
@@ -44,6 +44,14 @@ describe('핸드 169종', () => {
     }
     // AA를 들면 상대 AA는 한 가지 조합뿐이다.
     expect(compat[handIndex('AA') * HAND_COUNT + handIndex('AA')]).toBeCloseTo(1 / 1225, 10)
+  })
+})
+
+describe('포지션', () => {
+  it('딜러부터 시계 방향 순서로 이름을 준다', () => {
+    expect(positionsFromButton(2)).toEqual(['BTN', 'BB'])
+    expect(positionsFromButton(3)).toEqual(['BTN', 'SB', 'BB'])
+    expect(positionsFromButton(6)).toEqual(['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'])
   })
 })
 

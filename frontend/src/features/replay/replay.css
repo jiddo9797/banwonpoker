@@ -1081,3 +1081,10 @@
   color: var(--text-secondary);
   font-size: 13px;
 }
+
+.replay-seat-bb {
+  margin-left: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
