@@ -1,5 +1,5 @@
 import { Speaker220Regular } from '@fluentui/react-icons'
-import { formatChips } from '../../../shared/format'
+import { formatBb, formatChips } from '../../../shared/format'
 import { EmptyCardSlot, PlayingCard } from '../../table/components/PlayingCard'
 import { streetLabels, visibleBoardCount } from '../fixtures'
 import type { ReplayHand, ReplayPlayer } from '../model'
@@ -89,8 +89,12 @@ export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
                 {player.badge ? <span className="replay-badge">{player.badge}</span> : null}
               </div>
               {stack !== undefined ? (
-                <span aria-label={`${player.name} 남은 칩 ${formatChips(stack)}`} className="replay-seat-stack">
+                <span
+                  aria-label={`${player.name} 남은 칩 ${formatChips(stack)}${hand.bigBlind ? ` (${formatBb(stack, hand.bigBlind)})` : ''}`}
+                  className="replay-seat-stack"
+                >
                   {formatChips(stack)}
+                  {hand.bigBlind ? <span className="replay-seat-bb">{formatBb(stack, hand.bigBlind)}</span> : null}
                 </span>
               ) : null}
             </div>

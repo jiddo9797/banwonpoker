@@ -320,8 +320,8 @@ export interface ReplayHandData {
   blinds: BlindLevel
   /** 세션을 도중에 끝내 무효가 된 핸드 */
   cancelled: boolean
-  /** startStack: 핸드를 시작할 때의 칩. 예전 기록이면 null */
-  players: Array<{ playerId: string; nickname: string; seat: number; cards: [Card, Card]; startStack: number | null }>
+  /** startStack: 핸드를 시작할 때의 칩. 시작 칩을 저장하기 전의 핸드는 이벤트를 되짚어 계산한 값이다. */
+  players: Array<{ playerId: string; nickname: string; seat: number; cards: [Card, Card]; startStack: number }>
   /** 실제로 펼쳐진 보드 카드 */
   board: Card[]
   actions: ReplayActionData[]
