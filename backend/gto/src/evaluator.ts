@@ -3,6 +3,7 @@
  *
  * 엔진의 `evaluateBest`는 21가지 다섯 장 조합을 모두 비교해 결과가 읽기 쉽지만,
  * 승률표에는 수억 번을 돌려야 하므로 무늬별 비트마스크로 한 번에 계산한다.
+ * 복기의 멀티웨이 참고 분석도 화면에서 같은 계산을 쓴다.
  * 결과는 큰 쪽이 이기는 정수다: `족보 << 20 | 비교 숫자 다섯 개(4비트씩)`.
  */
 
@@ -64,6 +65,23 @@ export function evaluate7(c0: number, c1: number, c2: number, c3: number, c4: nu
   suitMasks[c4 & 3] |= 1 << (c4 >> 2)
   suitMasks[c5 & 3] |= 1 << (c5 >> 2)
   suitMasks[c6 & 3] |= 1 << (c6 >> 2)
+  return scoreFilled()
+}
+
+/** 다섯~일곱 장의 족보 점수. evaluate7과 같은 눈금이라 장 수가 같은 손끼리 비교할 수 있다. */
+export function evaluateCards(cards: ArrayLike<number>): number {
+  counts.fill(0)
+  suitMasks.fill(0)
+  for (let i = 0; i < cards.length; i += 1) {
+    const card = cards[i]
+    counts[card >> 2] += 1
+    suitMasks[card & 3] |= 1 << (card >> 2)
+  }
+  return scoreFilled()
+}
+
+/** counts·suitMasks에 채운 카드의 족보 점수 */
+function scoreFilled(): number {
   const s0 = suitMasks[0]
   const s1 = suitMasks[1]
   const s2 = suitMasks[2]

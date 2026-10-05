@@ -212,6 +212,68 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await expect(host.getByRole('heading', { level: 1, name: '복기 · 핸드 #1' })).toBeVisible()
 })
 
+test('세 명이 플랍을 본 핸드는 복기에서 승률·팟 오즈 참고 분석을 보여준다', async ({ browser }) => {
+  test.setTimeout(120_000)
+  const host = await newPlayer(browser)
+  const guests = [await newPlayer(browser), await newPlayer(browser)]
+  const pages = [host, ...guests]
+
+  await host.goto('/')
+  await host.getByRole('button', { name: '방 만들기' }).click()
+  await host.getByLabel('내 닉네임 (방장)').fill('하늘')
+  await host.getByLabel('방 이름').fill('멀티웨이 홀덤')
+  await host.getByRole('button', { name: '방 만들기' }).click()
+  await expect(host).toHaveURL(/\?room=[A-Z0-9]{6}$/)
+  const roomCode = new URL(host.url()).searchParams.get('room')!
+  await prepare(host, 1)
+  for (const [index, page] of guests.entries()) {
+    await page.goto(`/?room=${roomCode}`)
+    await page.getByLabel('닉네임').fill(index === 0 ? '민수' : '유진')
+    await page.getByRole('button', { name: '입장하기' }).click()
+    await prepare(page, index + 2)
+  }
+  await host.getByRole('button', { name: '게임 시작 · 3명' }).click()
+  await expect(host.getByRole('heading', { level: 1, name: /핸드 #1 포커 테이블/ })).toBeAttached()
+
+  // 아무도 레이즈하지 않고 리버까지 콜·체크만 한다. 차례인 사람을 찾아 행동한다.
+  const passive = async () => {
+    for (const page of pages) {
+      for (const name of [/^체크/, /^콜/]) {
+        const button = dock(page).getByRole('button', { name })
+        if ((await button.count()) > 0 && (await button.getAttribute('aria-disabled')) === 'false') {
+          await button.click()
+          return true
+        }
+      }
+    }
+    return false
+  }
+  // 쇼다운으로 끝나고 다음 핸드가 시작되면 멈춘다.
+  await expect(async () => {
+    await passive()
+    await expect(host.getByRole('heading', { level: 1, name: /핸드 #2 포커 테이블/ })).toBeAttached({ timeout: 500 })
+  }).toPass({ timeout: 60_000 })
+  await host.getByRole('button', { name: '메뉴' }).click()
+  await host.getByRole('button', { name: /세션 종료/ }).click()
+  await host.getByRole('dialog').getByRole('button', { name: '세션 종료' }).click()
+  await host.getByRole('button', { name: '복기 보기' }).click()
+  await expect(host.getByRole('heading', { level: 1, name: '복기 · 핸드 #1' })).toBeVisible()
+
+  // 블라인드 둘, 프리플랍 셋(BTN 콜, SB 콜, BB 체크) 다음 6번째가 플랍 첫 결정이다.
+  const timeline = host.getByRole('group', { name: '액션 타임라인' })
+  await timeline.getByRole('button', { name: /^6번째 액션/ }).click()
+  await host.getByRole('button', { name: '이 지점 GTO 분석' }).click()
+  const dialog = host.getByRole('dialog', { name: '참고 분석 · 핸드 #1' })
+  await expect(dialog.getByText('GTO 아님 · 3인 팟')).toBeVisible()
+  await expect(dialog.getByText(/^플랍 · 팟 3BB · 내 차례: 체크 또는 베팅$/)).toBeVisible()
+  // 승률은 브라우저의 승률 워커가 센다. 1~2초 안에 끝나야 한다.
+  await expect(dialog.getByText('내 승률')).toBeVisible({ timeout: 5_000 })
+  await expect(dialog.getByText(/^\S+ 대비 \d+(\.\d)?% · \S+ 대비 \d+(\.\d)?%$/)).toBeVisible()
+  await expect(dialog.getByText('이 분석은 GTO가 아닙니다.')).toBeVisible()
+  await expectAccessible(host)
+  await dialog.getByRole('button', { name: '닫기' }).click()
+})
+
 test('연결이 끊겨도 새로고침하면 같은 자리로 돌아온다', async ({ browser }) => {
   const host = await newPlayer(browser)
   await host.goto('/')
