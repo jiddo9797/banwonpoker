@@ -31,7 +31,7 @@ export type WorkerRequest =
   | { type: 'cancel'; id: number }
 
 export type WorkerResponse =
-  | { type: 'progress'; id: number; iterations: number; exploitability: number; elapsedMs: number; budgetMs: number }
+  | { type: 'progress'; id: number; iterations: number; exploitability: number; elapsedMs: number; budgetMs: number; threads: number; fallback?: string }
   | { type: 'solved'; id: number; iterations: number; exploitability: number }
   | { type: 'cancelled'; id: number }
   | { type: 'report'; id: number; report: PostflopReport }
@@ -43,6 +43,10 @@ export interface SolveProgress {
   exploitability: number
   elapsedMs: number
   budgetMs: number
+  /** 솔버가 쓰는 스레드 수 */
+  threads: number
+  /** 멀티스레드를 못 쓴 이유 */
+  fallback?: string
 }
 
 export interface SolveResult {
@@ -82,6 +86,8 @@ function getWorker(): Worker {
         exploitability: message.exploitability,
         elapsedMs: message.elapsedMs,
         budgetMs: message.budgetMs,
+        threads: message.threads,
+        fallback: message.fallback,
       })
       return
     }

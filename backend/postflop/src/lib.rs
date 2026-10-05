@@ -11,6 +11,10 @@ use postflop_solver::{
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
+/// 멀티스레드 빌드에서 Web Worker 스레드 풀을 만든다. JS에서 `initThreadPool(n)`으로 부른다.
+#[cfg(feature = "threads")]
+pub use wasm_bindgen_rayon::init_thread_pool;
+
 /// 풀 상황. 금액은 모두 게임 칩 단위다.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]

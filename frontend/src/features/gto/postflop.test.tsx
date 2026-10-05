@@ -132,7 +132,7 @@ describe('PostflopAnalysis', () => {
     let finish = () => {}
     const solver: PostflopSolver = {
       solve: vi.fn((_key, _config, onProgress) => {
-        onProgress({ iterations: 50, exploitability: 0.05, elapsedMs: 12_000, budgetMs: 120_000 })
+        onProgress({ iterations: 50, exploitability: 0.05, elapsedMs: 12_000, budgetMs: 120_000, threads: 8 })
         return new Promise<SolveResult>((resolve) => {
           finish = () => resolve({ iterations: 80, exploitability: 0.008 })
         })

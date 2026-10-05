@@ -3,7 +3,7 @@
  * 포스트플랍 솔버(WASM)를 돌리는 워커. 한 번에 한 핸드만 들고 있고,
  * 같은 핸드의 다른 결정은 다시 풀지 않고 바로 답한다.
  */
-import init, { WasmSpot } from './postflop-wasm/postflop.js'
+import type { WasmSpot } from './postflop-wasm/postflop.js'
 import type { WorkerRequest, WorkerResponse } from './postflopClient'
 
 declare const self: DedicatedWorkerGlobalScope
@@ -13,7 +13,36 @@ const BATCH_MS = 1000
 /** 균형 오차 계산은 반복 한두 번만큼 비싸므로 이 간격으로만 한다. */
 const CHECK_MS = 8000
 
-let ready: Promise<unknown> | null = null
+type Solver = { WasmSpot: typeof WasmSpot; threads: number; fallback?: string }
+
+/**
+ * 교차 출처 격리(COOP/COEP)가 되어 SharedArrayBuffer를 쓸 수 있으면 멀티스레드 빌드를,
+ * 아니면 스레드 하나짜리 빌드를 불러온다.
+ */
+async function loadSolver(): Promise<Solver> {
+  let fallback = '교차 출처 격리가 안 되어 있습니다.'
+  if (self.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined') {
+    try {
+      const threaded = await import('./postflop-wasm-mt/postflop.js')
+      await threaded.default()
+      const threads = Math.max(1, Math.min(16, navigator.hardwareConcurrency || 4))
+      // 워커 안에서 워커를 못 띄우는 브라우저(일부 내장 브라우저 등)에서는 스레드 풀이 뜨지 않는다. 기다리지 않고 스레드 하나로 넘어간다.
+      await Promise.race([
+        threaded.initThreadPool(threads),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('스레드 풀이 시간 안에 뜨지 않았습니다.')), 8_000)),
+      ])
+      return { WasmSpot: threaded.WasmSpot, threads }
+    } catch (error) {
+      fallback = error instanceof Error ? error.message : String(error)
+      console.warn('멀티스레드 솔버를 열지 못해 스레드 하나로 풉니다.', error)
+    }
+  }
+  const single = await import('./postflop-wasm/postflop.js')
+  await single.default()
+  return { WasmSpot: single.WasmSpot, threads: 1, fallback }
+}
+
+let ready: Promise<Solver> | null = null
 let current: { key: string; spot: WasmSpot; done: boolean; exploitability: number } | null = null
 // 새 풀이나 취소가 오면 숫자가 바뀌고, 돌던 반복은 그걸 보고 멈춘다.
 let generation = 0
@@ -28,13 +57,13 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     return
   }
   try {
-    ready ??= init()
-    await ready
+    ready ??= loadSolver()
+    const solver = await ready
     if (message.type === 'solve') {
       const mine = ++generation
       if (current?.key !== message.key) {
         current?.spot.free()
-        current = { key: message.key, spot: new WasmSpot(JSON.stringify(message.config)), done: false, exploitability: Number.POSITIVE_INFINITY }
+        current = { key: message.key, spot: new solver.WasmSpot(JSON.stringify(message.config)), done: false, exploitability: Number.POSITIVE_INFINITY }
       }
       const spot = current
       if (!spot.done) {
@@ -62,6 +91,8 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
             exploitability: spot.exploitability,
             elapsedMs: elapsed,
             budgetMs: message.budgetMs,
+            threads: solver.threads,
+            fallback: solver.fallback,
           })
           if (spot.exploitability <= message.targetFraction || lastRound) break
           // 취소 메시지를 받을 틈을 준다.
