@@ -4,6 +4,7 @@ import type { FormEvent } from 'react'
 import { CreateRoomScreen } from '../features/lobby/CreateRoomScreen'
 import { defaultRoomSettings } from '../features/room/settings'
 import type { LiveClient, LiveSnapshot } from './client'
+import { LICENSE_NAME, SOURCE_URL } from '../shared/source'
 import type { PastSession } from './history'
 import './live.css'
 
@@ -191,6 +192,12 @@ export function LiveHome({ client, snapshot, initialRoomCode, pastSessions = [],
           </section>
         ) : null}
       </main>
+      <footer className="live-home-footer">
+        <a href={SOURCE_URL} rel="noreferrer" target="_blank">
+          소스 코드
+        </a>
+        <span>{LICENSE_NAME} 오픈소스</span>
+      </footer>
     </div>
   )
 }

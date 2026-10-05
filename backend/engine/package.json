@@ -2,6 +2,7 @@
   "name": "@banwonpoker/engine",
   "private": true,
   "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "description": "banwonpoker 노리밋 텍사스 홀덤 규칙 엔진. 네트워크·DB·시간에 의존하지 않는 순수 TypeScript.",
   "exports": {
