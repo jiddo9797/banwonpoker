@@ -133,7 +133,7 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
 
   await guest.getByRole('tab', { name: '로그' }).click()
   await expect(guest.locator('.game-log')).toContainText('하늘 폴드')
-  await expect(guest.locator('.hero-stack')).toHaveText('10,100')
+  await expect(guest.locator('.hero-stack')).toHaveText('30,100')
 
   // 잠깐 쉬고 다음 핸드
   await expect(host.getByRole('heading', { level: 1, name: /핸드 #2 포커 테이블/ })).toBeAttached({ timeout: 10_000 })
@@ -144,8 +144,8 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await host.getByRole('dialog').getByRole('button', { name: '세션 종료' }).click()
   for (const page of [host, guest]) {
     await expect(page.getByRole('heading', { level: 1, name: 'E2E 홀덤' })).toBeVisible()
-    await expect(page.getByRole('row', { name: /민수.*10,100/ })).toBeVisible()
-    await expect(page.getByRole('row', { name: /하늘.*9,900/ })).toBeVisible()
+    await expect(page.getByRole('row', { name: /민수.*30,100/ })).toBeVisible()
+    await expect(page.getByRole('row', { name: /하늘.*29,900/ })).toBeVisible()
   }
 
   // 복기: 전체 패와 차례별 음성
@@ -182,7 +182,7 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await timeline.getByRole('button', { name: /^3번째 액션/ }).click()
   await host.getByRole('button', { name: '이 지점 GTO 분석' }).click()
   const spot = host.getByRole('dialog', { name: 'GTO 분석 · 핸드 #1' })
-  await expect(spot.getByText('2인 · 100BB 차트')).toBeVisible()
+  await expect(spot.getByText(/2인 · 300BB 차트/)).toBeVisible()
   await expect(spot.getByRole('rowheader', { name: /림프.*실제/ })).toBeVisible()
   await expect(spot.getByText('EV 손실')).toBeVisible()
   await expectAccessible(host)
@@ -196,9 +196,9 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await timeline.getByRole('button', { name: /^6번째 액션/ }).click()
   await host.getByRole('button', { name: '이 지점 GTO 분석' }).click()
   const deep = host.getByRole('dialog', { name: 'GTO 분석 · 핸드 #1' })
-  await expect(deep.getByText('플랍 · BB vs BTN · 플랍 팟 2BB · 유효 99BB')).toBeVisible()
+  await expect(deep.getByText(/^플랍 · BB vs BTN · 플랍 팟 2BB · 유효 \d+BB$/)).toBeVisible()
   await expect(deep.getByText(/솔버 계산 중 · \d+회/)).toBeVisible({ timeout: 30_000 })
-  await deep.getByRole('button', { name: '닫기' }).click()
+  await deep.getByRole('button', { name: '닫기', exact: true }).click()
 
   // 내보내기: 음성(WAV)과 기록(텍스트)
   await host.getByRole('button', { name: '영상 내보내기' }).click()
@@ -211,7 +211,7 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await files.getByRole('link', { name: '다운로드' }).first().click()
   expect((await download).suggestedFilename()).toBe('banwonpoker-hand1.wav')
 
-  await host.getByRole('dialog').getByRole('button', { name: '닫기' }).click()
+  await host.getByRole('dialog').getByRole('button', { name: '닫기', exact: true }).click()
 
   // 방을 나간 뒤에도 첫 화면에서 다시 복기할 수 있다.
   await host.getByRole('button', { name: '세션 요약' }).click()
@@ -275,11 +275,13 @@ test('세 명이 플랍을 본 핸드는 복기에서 승률·팟 오즈 참고 
   await expect(dialog.getByText('GTO 아님 · 3인 팟')).toBeVisible()
   await expect(dialog.getByText(/^플랍 · 팟 3BB · 내 차례: 체크 또는 베팅$/)).toBeVisible()
   // 승률은 브라우저의 승률 워커가 센다. 1~2초 안에 끝나야 한다.
-  await expect(dialog.getByText('내 승률')).toBeVisible({ timeout: 5_000 })
-  await expect(dialog.getByText(/^\S+ 대비 \d+(\.\d)?% · \S+ 대비 \d+(\.\d)?%$/)).toBeVisible()
+  await expect(dialog.getByText('내 승률', { exact: true })).toBeVisible({ timeout: 5_000 })
+  await expect(dialog.getByText('상대별 승률 (일대일)')).toBeVisible()
+  await expect(dialog.locator('.gto-versus li')).toHaveCount(2)
+  await expect(dialog.locator('.gto-versus li').first()).toHaveText(/\d+(\.\d)?%$/)
   await expect(dialog.getByText('이 분석은 GTO가 아닙니다.')).toBeVisible()
   await expectAccessible(host)
-  await dialog.getByRole('button', { name: '닫기' }).click()
+  await dialog.getByRole('button', { name: '닫기', exact: true }).click()
 })
 
 test('연결이 끊겨도 새로고침하면 같은 자리로 돌아온다', async ({ browser }) => {

@@ -1,3 +1,4 @@
+import { Dismiss20Regular } from '@fluentui/react-icons'
 import { useEffect, useId, useRef } from 'react'
 import type { KeyboardEvent, ReactNode, RefObject } from 'react'
 
@@ -25,6 +26,10 @@ interface DialogProps {
   /** Escape 키나 닫기 동작. 생략하면 Escape로 닫을 수 없다. */
   onClose?: () => void
   className?: string
+  /** 제목 옆에 붙는 알약 등. 있거나 closeButton이면 머리 줄과 본문을 나눠 그린다. */
+  headerExtra?: ReactNode
+  /** 머리 줄 오른쪽에 닫기 아이콘 버튼을 둔다(onClose 필요). */
+  closeButton?: boolean
   children?: ReactNode
 }
 
@@ -32,7 +37,17 @@ interface DialogProps {
  * 모달 다이얼로그. 열려 있는 동안 Tab 포커스를 안에 가두고,
  * 닫히면 열기 직전에 포커스가 있던 요소로 포커스를 되돌린다.
  */
-export function Dialog({ open, title, description, initialFocusRef, onClose, className = '', children }: DialogProps) {
+export function Dialog({
+  open,
+  title,
+  description,
+  initialFocusRef,
+  onClose,
+  className = '',
+  headerExtra,
+  closeButton = false,
+  children,
+}: DialogProps) {
   const containerRef = useRef<HTMLElement>(null)
   const onCloseRef = useRef(onClose)
   const titleId = useId()
@@ -95,13 +110,37 @@ export function Dialog({ open, title, description, initialFocusRef, onClose, cla
         role="dialog"
         tabIndex={-1}
       >
-        <h2 id={titleId}>{title}</h2>
-        {description ? (
-          <div className="dialog-description" id={descriptionId}>
-            {description}
-          </div>
-        ) : null}
-        {children}
+        {headerExtra || closeButton ? (
+          <>
+            <div className="dialog-header">
+              <h2 id={titleId}>{title}</h2>
+              {headerExtra}
+              {closeButton && onClose ? (
+                <button aria-label="창 닫기" className="dialog-close" onClick={onClose} type="button">
+                  <Dismiss20Regular aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+            <div className="dialog-body">
+              {description ? (
+                <div className="dialog-description" id={descriptionId}>
+                  {description}
+                </div>
+              ) : null}
+              {children}
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 id={titleId}>{title}</h2>
+            {description ? (
+              <div className="dialog-description" id={descriptionId}>
+                {description}
+              </div>
+            ) : null}
+            {children}
+          </>
+        )}
       </section>
     </div>
   )

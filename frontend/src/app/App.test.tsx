@@ -47,7 +47,7 @@ describe('App 클릭 프로토타입', { timeout: 15_000 }, () => {
     await user.clear(name)
     await user.type(name, '토요일 홀덤')
     await user.click(screen.getByRole('radio', { name: '시간마다 인상' }))
-    await user.click(screen.getByRole('button', { name: '100/200' }))
+    await user.click(screen.getByRole('button', { name: '100 / 200' }))
     await user.selectOptions(screen.getByRole('combobox', { name: '인상 간격' }), '20')
     await user.click(screen.getByRole('button', { name: '방 만들기' }))
 

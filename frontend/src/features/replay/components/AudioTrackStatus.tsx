@@ -44,3 +44,31 @@ export function AudioTrackStatus({ status, seconds, className = '' }: AudioTrack
     </span>
   )
 }
+
+/** 타임라인 칸의 음성 상태 막대 색 묶음 */
+export function audioTone(status: AudioStatus): 'voice' | 'quiet' | 'problem' | 'none' {
+  if (status === 'voice') return 'voice'
+  if (status === 'failed' || status === 'missing') return 'problem'
+  if (status === 'none') return 'none'
+  return 'quiet'
+}
+
+/** 재생 줄 오른쪽의 음성 상태 범례. 타임라인 칸 아래 막대 색과 같다. */
+export function AudioLegend() {
+  return (
+    <ul aria-label="음성 상태 범례" className="audio-legend">
+      <li className="is-voice">
+        <span aria-hidden="true" />
+        음성
+      </li>
+      <li className="is-quiet">
+        <span aria-hidden="true" />
+        무발언
+      </li>
+      <li className="is-problem">
+        <span aria-hidden="true" />
+        기록 실패 · 누락
+      </li>
+    </ul>
+  )
+}

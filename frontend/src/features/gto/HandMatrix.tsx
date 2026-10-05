@@ -22,6 +22,7 @@ export function HandMatrix({ node, line, selected, onSelect }: HandMatrixProps) 
     .map((action, index) => ({ action, index }))
     .sort((a, b) => toneOrder[actionTone(a.action.kind)] - toneOrder[actionTone(b.action.kind)])
   const labels = node.actions.map((action) => actionLabel(action, line))
+  const foldIndex = node.actions.findIndex((action) => action.kind === 'fold')
 
   // 방향키로 칸을 옮긴다(탭 순서에는 선택된 칸 하나만 둔다).
   const move = (event: KeyboardEvent<HTMLButtonElement>, hand: number) => {
@@ -50,6 +51,8 @@ export function HandMatrix({ node, line, selected, onSelect }: HandMatrixProps) 
       {Array.from({ length: 169 }, (_, hand) => {
         const cell = handCell(node, hand)
         const inRange = cell.reach > 0.0005
+        // 색이 반 넘게 채워진 칸은 이름을 흰색으로(대비)
+        const filled = inRange && cell.reach * (1 - (foldIndex >= 0 ? cell.frequencies[foldIndex] : 0)) > 0.5
         const summary = inRange
           ? labels
               .map((label, index) => ({ label, frequency: cell.frequencies[index] }))
@@ -61,7 +64,7 @@ export function HandMatrix({ node, line, selected, onSelect }: HandMatrixProps) 
           <button
             aria-label={`${handLabel(hand)}: ${summary}`}
             aria-pressed={selected === hand}
-            className={`gto-cell${inRange ? '' : ' is-out'}`}
+            className={`gto-cell${inRange ? '' : ' is-out'}${filled ? ' is-filled' : ''}`}
             data-hand={hand}
             key={hand}
             onClick={() => onSelect(hand)}

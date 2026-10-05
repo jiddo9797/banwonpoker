@@ -1,4 +1,6 @@
 import { Speaker220Regular, SpeakerMute20Regular } from '@fluentui/react-icons'
+import type { CSSProperties } from 'react'
+import { Avatar } from '../../../shared/Avatar'
 import type { AudioStatus, MixerChannel, ReplayHand } from '../model'
 import { audioStatusOrder, audioStatusLabel } from './AudioTrackStatus'
 
@@ -28,13 +30,14 @@ export function ParticipantMixer({ hand, mixer, onVolumeChange, onToggleMute }: 
         <span className="prep-caption">이 핸드 기준</span>
       </div>
       <ul className="mixer-list">
-        {hand.players.map((player) => {
+        {hand.players.map((player, index) => {
           const channel = mixer[player.id]
           const summary = trackSummary(hand, player.id)
           const voiceless = summary.length > 0 && summary.every((item) => item.status === 'voiceless')
 
           return (
-            <li className={channel.muted ? 'is-muted' : ''} key={player.id}>
+            <li className={[channel.muted ? 'is-muted' : '', voiceless ? 'is-voiceless' : ''].join(' ')} key={player.id}>
+              <Avatar index={index} me={player.position === 'hero'} name={player.name} size={26} />
               <div className="mixer-name">
                 <strong>{player.name}</strong>
                 <span>
@@ -44,7 +47,15 @@ export function ParticipantMixer({ hand, mixer, onVolumeChange, onToggleMute }: 
                 </span>
               </div>
               {voiceless ? (
-                <span className="mixer-note">음성 트랙 없음</span>
+                <>
+                  <span className="mixer-note">
+                    <span aria-hidden="true" className="mixer-track-empty" />
+                    <span className="visually-hidden">음성 트랙 없음</span>
+                  </span>
+                  <span aria-hidden="true" className="mixer-value">
+                    —
+                  </span>
+                </>
               ) : (
                 <>
                   <button
@@ -63,6 +74,7 @@ export function ParticipantMixer({ hand, mixer, onVolumeChange, onToggleMute }: 
                     min={0}
                     onChange={(event) => onVolumeChange(player.id, Number(event.target.value))}
                     step={5}
+                    style={{ '--fill': `${channel.muted ? 0 : channel.volume}%` } as CSSProperties}
                     type="range"
                     value={channel.volume}
                   />
