@@ -577,3 +577,76 @@
   color: var(--text-secondary);
   font-size: 12px;
 }
+
+/* ── 멀티웨이 참고 분석(GTO 아님) ─────────────────── */
+.gto-not-gto {
+  padding: 1px 8px;
+  border: 1px solid var(--stroke-panel);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gto-multiway-facts {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.gto-multiway-facts div {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 2px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--stroke-panel);
+  border-radius: 6px;
+  background: var(--card);
+}
+
+.gto-multiway-facts dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gto-multiway-facts dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.gto-multiway-facts dd.is-loss {
+  color: var(--critical-text);
+}
+
+.gto-multiway-facts dd.gto-multiway-detail {
+  grid-column: 2;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.gto-multiway-limits {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--stroke-panel);
+  border-radius: 4px;
+  background: var(--card);
+}
+
+.gto-spot-dialog .gto-multiway-limits p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gto-multiway-limits ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
