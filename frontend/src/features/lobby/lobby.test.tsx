@@ -257,15 +257,16 @@ describe('CreateRoomScreen', () => {
     render(<CreateRoomScreen initialSettings={defaultRoomSettings} onBack={vi.fn()} onCreate={onCreate} />)
 
     await user.type(screen.getByLabelText('내 닉네임 (방장)'), '하늘')
-    await user.click(screen.getByRole('button', { name: '25/50' }))
-    expect(screen.getByLabelText('시작 칩')).toHaveValue(5000)
+    // 블라인드를 바꿔도 BB 깊이(기본 300BB)는 그대로다.
+    await user.click(screen.getByRole('button', { name: '25 / 50' }))
+    expect(screen.getByLabelText('시작 칩')).toHaveValue(15000)
     await user.click(screen.getByRole('button', { name: '200BB' }))
     await user.click(screen.getByRole('button', { name: '4명' }))
     await user.click(screen.getByRole('button', { name: '방 만들기' }))
 
     expect(onCreate).toHaveBeenCalledWith(
       '하늘',
-      expect.objectContaining({ blindMode: 'fixed', maxPlayers: 4, startingStack: 30_000 }),
+      expect.objectContaining({ blindMode: 'fixed', maxPlayers: 4, startingStack: 10_000 }),
     )
     expect(onCreate.mock.calls[0][1].levels[0]).toEqual({ smallBlind: 25, bigBlind: 50 })
   })

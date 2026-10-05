@@ -1,8 +1,11 @@
 import { handLabel } from '@banwonpoker/gto'
 import type { ChartFile } from '@banwonpoker/gto'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Dialog } from '../../shared/Dialog'
 import type { ReplayHand } from '../replay/model'
+import { PlayingCard } from '../table/components/PlayingCard'
+import type { Card } from '../table/model'
 import { browserEquity } from './equityClient'
 import type { EquityCalculator } from './equityClient'
 import { actionTone, loadChart, percent, signedBb } from './model'
@@ -23,6 +26,27 @@ export interface ChartFocus {
   position: string
   situationKey: string
   hand: number
+}
+
+/** 분석 창 위쪽: 작은 카드 두 장 + `나 · BTN · AKs` + 상황 설명 */
+function SpotWho({ cards, name, position, hand, children }: { cards?: Card[]; name: string; position: string; hand: string; children: ReactNode }) {
+  return (
+    <div className="gto-spot-who">
+      {cards ? (
+        <span aria-hidden="true" className="gto-mini-cards">
+          {cards.map((card) => (
+            <PlayingCard card={card} className="gto-mini-card" key={`${card.rank}${card.suit}`} size="small" />
+          ))}
+        </span>
+      ) : null}
+      <span className="gto-spot-who-text">
+        <strong>
+          {name} · {position} · <span className="gto-spot-hand">{hand}</span>
+        </strong>
+        <span className="gto-spot-who-detail">{children}</span>
+      </span>
+    </div>
+  )
 }
 
 interface SpotDialogProps {
@@ -73,40 +97,29 @@ export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, sol
   const current = loaded && loaded.spot === spot ? loaded : undefined
   const result = spot && current?.chart ? analyzeSpot(current.chart, spot) : undefined
   const analysis = result?.ok ? result.analysis : undefined
+  const actorId = target?.hand.actions[target.index]?.playerId
+  const heroCards = target?.hand.players.find((player) => player.id === actorId)?.cards
   const reason = !lookup ? undefined : !lookup.ok ? lookup.reason : current?.error ?? (result && !result.ok ? result.reason : undefined)
 
   return (
     <Dialog
       className="gto-spot-dialog"
+      closeButton
+      headerExtra={wide ? <span className="gto-not-gto">GTO 아님 · {wide.opponents.length + 1}인 팟</span> : undefined}
       initialFocusRef={closeRef}
       onClose={onClose}
       open={target !== null}
       title={target ? `${multiway ? '참고 분석' : 'GTO 분석'} · 핸드 #${target.hand.number}` : 'GTO 분석'}
     >
       {deep ? (
-        <p className="gto-spot-who">
-          <strong>
-            {deep.playerName} · {deep.position}
-          </strong>
-          <span className="numeric">{deep.cardsText}</span>
-          <span className="gto-spot-hand">{handLabel(deep.hand)}</span>
-          <span>
-            {deep.players}인 · 레인지는 {deep.stack}BB 차트
-          </span>
-        </p>
+        <SpotWho cards={heroCards} hand={handLabel(deep.hand)} name={deep.playerName} position={deep.position}>
+          <span className="numeric">{deep.cardsText}</span> · {deep.players}인 · 레인지는 {deep.stack}BB 차트
+        </SpotWho>
       ) : null}
       {wide ? (
-        <p className="gto-spot-who">
-          <strong>
-            {wide.playerName} · {wide.position}
-          </strong>
-          <span className="numeric">{wide.cardsText}</span>
-          <span className="gto-spot-hand">{handLabel(wide.hand)}</span>
-          <span className="gto-not-gto">GTO 아님 · {wide.opponents.length + 1}인 팟</span>
-          <span>
-            {wide.players}인 · 레인지는 {wide.stack}BB 차트
-          </span>
-        </p>
+        <SpotWho cards={heroCards} hand={handLabel(wide.hand)} name={wide.playerName} position={wide.position}>
+          <span className="numeric">{wide.cardsText}</span> · {wide.players}인 · 레인지는 {wide.stack}BB 차트
+        </SpotWho>
       ) : null}
       {postflopReason ? (
         <p className="gto-spot-reason" role="status">
@@ -116,16 +129,9 @@ export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, sol
       {wide ? <MultiwayAnalysis calculator={equity} key={wide.key} load={load} spot={wide} /> : null}
       {deep ? <PostflopAnalysis key={`${deep.key}:${target?.index}`} load={load} solver={solver} spot={deep} /> : null}
       {spot ? (
-        <p className="gto-spot-who">
-          <strong>
-            {spot.playerName} · {spot.position}
-          </strong>
-          <span className="numeric">{spot.cardsText}</span>
-          <span className="gto-spot-hand">{handLabel(spot.hand)}</span>
-          <span>
-            {spot.players}인 · {spot.stack}BB 차트
-          </span>
-        </p>
+        <SpotWho cards={heroCards} hand={handLabel(spot.hand)} name={spot.playerName} position={spot.position}>
+          <span className="numeric">{spot.cardsText}</span> · {spot.players}인 · {spot.stack}BB 차트
+        </SpotWho>
       ) : null}
 
       {reason ? (
@@ -205,7 +211,7 @@ export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, sol
       <div className="dialog-actions">
         {spot && analysis && onOpenChart ? (
           <button
-            className="btn btn--secondary"
+            className="btn btn--outline btn--md"
             onClick={() =>
               onOpenChart({ players: spot.players, stack: spot.stack, position: spot.position, situationKey: analysis.situation.key, hand: spot.hand })
             }
@@ -214,7 +220,7 @@ export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, sol
             전체 차트에서 보기
           </button>
         ) : null}
-        <button className="btn btn--primary" onClick={onClose} ref={closeRef} type="button">
+        <button className="btn btn--primary btn--md" onClick={onClose} ref={closeRef} type="button">
           닫기
         </button>
       </div>

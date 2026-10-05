@@ -158,8 +158,8 @@ describe('TablePrototype', () => {
 
     await user.click(menuButton)
     expect(menuButton).toHaveAttribute('aria-expanded', 'true')
-    const endItem = screen.getByRole('button', { name: /세션 종료/ })
-    expect(endItem).toHaveFocus()
+    // 메뉴를 열면 첫 항목(자리 비움)으로 포커스가 간다.
+    expect(screen.getByRole('button', { name: /자리 비움/ })).toHaveFocus()
 
     await user.keyboard('{Escape}')
     expect(menuButton).toHaveFocus()

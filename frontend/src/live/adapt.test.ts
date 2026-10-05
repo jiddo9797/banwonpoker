@@ -116,6 +116,18 @@ describe('toTableSnapshot', () => {
     expect(snapshot.seats.every((seat) => seat.showdownCards === undefined)).toBe(true)
   })
 
+  it('쇼다운에 공개된 상대 족보도 내 족보처럼 영어로 쓴다', () => {
+    const { state, events } = build(['me', 'you'], 'me', { maxPlayers: 2 })
+    const c = (rank: number, suit: 'spade' | 'heart' | 'diamond' | 'club') => ({ rank: rank as never, suit })
+    const view = {
+      ...state.game!.view,
+      board: [c(13, 'spade'), c(9, 'heart'), c(4, 'heart'), c(2, 'club'), c(11, 'heart')],
+      showdown: [{ playerId: 'you', cards: [c(13, 'diamond'), c(9, 'diamond')] as [never, never], handName: '투 페어' }],
+    }
+    const snapshot = toTableSnapshot({ ...state, game: { ...state.game!, view } }, events, { now: NOW, status: 'open' })
+    expect(snapshot.seats.find((seat) => seat.id === 'you')?.handRank).toBe('TWO PAIR(9,K)')
+  })
+
   it('헤즈업은 상대를 위쪽 가운데에 둔다', () => {
     const { state, events } = build(['me', 'you'], 'me', { maxPlayers: 2 })
     expect(toTableSnapshot(state, events, { now: NOW, status: 'open' }).seats[0].position).toBe('top-center')

@@ -1,15 +1,16 @@
 .room-form {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .room-form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
 }
 
 .room-form .field {
+  align-content: start;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -18,16 +19,33 @@
 
 .room-form .field > legend,
 .room-form .field-label,
-.blind-fieldset > legend,
-.blind-fixed > label {
+.room-form .field > label {
   margin-bottom: 8px;
   padding: 0;
+  color: var(--text-strong-secondary);
   font-size: 13px;
   font-weight: 600;
 }
 
-.room-form .field input:not([type="radio"]) {
+.room-form .field > input,
+.input-with-chips input {
   width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: var(--well);
+  font-size: 15px;
+}
+
+.input-with-chips input {
+  font-weight: 600;
+}
+
+.room-form .field > input[aria-invalid="true"],
+.input-with-chips input[aria-invalid="true"] {
+  border: 2px solid var(--critical);
 }
 
 .input-with-chips {
@@ -43,100 +61,200 @@
 
 .chip-options {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .chip-options button {
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--stroke-control);
-  border-radius: 999px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 8px;
   color: var(--text-secondary);
-  background: var(--control);
+  background: var(--card);
   cursor: pointer;
-  font-variant-numeric: tabular-nums;
   font-size: 12px;
-  font-weight: 600;
+  transition: background-color 150ms ease;
+}
+
+.chip-options button:hover {
+  background: var(--control-selected);
 }
 
 .chip-options button[aria-pressed="true"] {
-  border-color: var(--accent);
   color: var(--accent-text);
   background: var(--accent-subtle);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  font-weight: 650;
 }
 
-.segmented button[aria-disabled="true"] {
+/* 최대 인원: 칸을 꽉 채운 분할 버튼 */
+.room-form .segmented {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+  height: 42px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--well);
+}
+
+.room-form .segmented button {
+  min-width: 0;
+  height: auto;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.room-form .segmented button:hover {
+  background: var(--card);
+}
+
+.room-form .segmented button[aria-pressed="true"] {
+  color: var(--text-primary);
+  background: var(--control-selected);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  font-weight: 700;
+}
+
+.segmented button[aria-disabled="true"],
+.room-form .segmented button[aria-disabled="true"] {
   color: var(--text-disabled);
+  background: transparent;
   cursor: not-allowed;
 }
 
 .fixed-rules {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--stroke-panel);
-  border-radius: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
   color: var(--text-secondary);
-  background: var(--neutral-bg);
-  font-size: 12px;
+  background: var(--well);
+  font-size: 13px;
   list-style: none;
 }
 
+.fixed-rules li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fixed-rules svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
+}
+
+/* 블라인드 */
 .blind-fieldset {
   display: grid;
   gap: 12px;
+  min-width: 0;
   margin: 0;
-  padding: 16px;
+  padding: 20px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.blind-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.blind-header .field-label {
+  margin: 0 auto 0 0;
+}
+
+.radio-segmented {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--stroke-control);
   border-radius: 8px;
+  background: var(--well);
 }
 
-.blind-fieldset > legend {
-  margin: 0;
-  padding: 0 6px;
-}
-
-.blind-mode-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.blind-mode-row .chip-options {
-  margin-left: auto;
-}
-
-.radio-inline {
-  display: flex;
-  gap: 4px;
-  padding: 2px;
-  border: 1px solid var(--stroke-control);
-  border-radius: 6px;
-  background: var(--panel);
-}
-
-.radio-inline label {
+.radio-segmented label {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 4px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  transition: background-color 150ms ease;
 }
 
-.radio-inline label:has(input:checked) {
+/* 라디오는 보이지 않게 칸 전체를 덮어 눌리게 한다. */
+.radio-segmented input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.radio-segmented label:hover {
+  background: var(--card);
+}
+
+.radio-segmented label:has(input:checked) {
   color: var(--text-primary);
+  background: var(--control-selected);
+  font-weight: 650;
+}
+
+.radio-segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+
+.blind-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.blind-presets button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 56px;
+  border-radius: 10px;
+  color: var(--text-primary);
+  background: var(--card);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.blind-presets button:hover {
   background: var(--control-selected);
 }
 
-.radio-inline input {
-  margin: 0;
-  accent-color: var(--accent);
+.blind-presets b {
+  font-size: 15px;
+}
+
+.blind-presets span {
+  font-size: 11px;
+}
+
+.blind-presets button[aria-pressed="true"] {
+  color: var(--accent-text);
+  background: rgba(53, 163, 212, 0.14);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
 }
 
 .inline-select {
@@ -148,52 +266,55 @@
 }
 
 .inline-select select {
-  height: 32px;
+  height: 36px;
   padding: 0 8px;
   border: 1px solid var(--stroke-control);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--text-primary);
-  background: var(--control);
+  background: var(--well);
   font-size: 13px;
 }
 
 .blind-fixed {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 .blind-fixed > label {
   margin: 0;
+  font-weight: 500;
 }
 
 .blind-fixed input,
-.level-inputs input,
-.input-with-chips input {
-  height: 36px;
+.level-inputs input {
+  height: 32px;
   padding: 0 10px;
   border: 1px solid var(--stroke-control);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--text-primary);
-  background: var(--control);
-  font-variant-numeric: tabular-nums;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
+  background: var(--well);
+  font-size: 13px;
 }
 
 .blind-fixed input {
-  width: 120px;
+  width: 96px;
 }
 
 .blind-fixed input[aria-invalid="true"],
-.level-inputs input[aria-invalid="true"],
-.input-with-chips input[aria-invalid="true"] {
+.level-inputs input[aria-invalid="true"] {
   border: 2px solid var(--critical);
 }
 
 .blind-bb {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.blind-bb strong {
   color: var(--text-secondary);
-  font-size: 13px;
 }
 
 .level-grid {
@@ -206,11 +327,14 @@
 }
 
 .level-grid li {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .level-grid label {
+  flex: none;
+  width: 38px;
   color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 600;
@@ -225,7 +349,7 @@
 }
 
 .level-inputs input {
-  width: 84px;
+  width: 72px;
   height: 32px;
   font-size: 13px;
 }
@@ -236,8 +360,15 @@
   gap: 8px;
 }
 
-.level-actions .field-hint {
+.level-summary {
+  display: grid;
+  gap: 2px;
   margin-left: auto;
+  text-align: right;
+}
+
+.level-summary .field-hint {
+  font-size: 11px;
 }
 
 .btn.btn--sm {
@@ -280,10 +411,14 @@
 }
 
 .level-list span {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .level-list strong {
   font-size: 12px;
+}
+
+.blind-header .chip-options button {
+  height: 36px;
 }

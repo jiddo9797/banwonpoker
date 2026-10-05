@@ -52,13 +52,13 @@ export function HandPicker({ hands, currentNumber, onSelect, marked = new Set() 
       <button
         aria-controls={open ? listId : undefined}
         aria-expanded={open}
-        aria-label={`#${currentNumber} · 핸드 목록 열기`}
+        aria-label={`핸드 #${currentNumber} · 핸드 목록 열기`}
         className="hand-picker-toggle numeric"
         onClick={() => setOpen((value) => !value)}
         ref={toggleRef}
         type="button"
       >
-        #{currentNumber}
+        핸드 #{currentNumber}
         {marked.has(currentNumber) ? <Star16Filled aria-hidden="true" className="hand-picker-star" /> : null}
         <ChevronDown20Regular aria-hidden="true" />
       </button>

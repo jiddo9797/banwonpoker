@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import { streetLabels } from '../fixtures'
 import type { HandAction, ReplayHand, Street } from '../model'
-import { AudioTrackStatus, audioStatusLabel } from './AudioTrackStatus'
+import { audioStatusLabel, audioTone } from './AudioTrackStatus'
 
 interface ReplayTimelineProps {
   hand: ReplayHand
@@ -50,7 +50,7 @@ export function ReplayTimeline({ hand, index, onSelect }: ReplayTimelineProps) {
     <div aria-label="액션 타임라인" className="replay-timeline" onKeyDown={onKeyDown} role="group">
       {groupByStreet(hand.actions).map((group) => (
         <div className="timeline-street" key={group.street}>
-          <h3 className="timeline-street-label">{streetLabels[group.street]}</h3>
+          <h3 className="visually-hidden">{streetLabels[group.street]}</h3>
           <ol className="timeline-cells">
             {group.items.map(({ action, index: cellIndex }) => {
               const name = playerName(action.playerId)
@@ -68,11 +68,20 @@ export function ReplayTimeline({ hand, index, onSelect }: ReplayTimelineProps) {
                     tabIndex={current ? 0 : -1}
                     type="button"
                   >
-                    <span className="timeline-cell-actor">{name}</span>
-                    <strong className="timeline-cell-label">{action.label}</strong>
-                    <AudioTrackStatus seconds={action.audio.seconds} status={action.audio.status} />
-                    <span className="timeline-cell-think">
-                      {action.thinkSeconds ? `생각 ${action.thinkSeconds}초` : '자동'}
+                    <span aria-hidden="true" className="timeline-cell-head">
+                      <span>{streetLabels[action.street]}</span>
+                      <span className="timeline-cell-actor">{action.playerId ? name : ''}</span>
+                    </span>
+                    <strong aria-hidden="true" className="timeline-cell-label">
+                      {action.label}
+                    </strong>
+                    <span aria-hidden="true" className={`timeline-cell-bar is-${audioTone(action.audio.status)}`} />
+                    <span aria-hidden="true" className={`timeline-cell-note is-${audioTone(action.audio.status)}`}>
+                      {action.audio.status === 'none'
+                        ? action.thinkSeconds
+                          ? `생각 ${action.thinkSeconds}초`
+                          : '자동'
+                        : audioStatusLabel(action.audio.status, action.audio.seconds)}
                     </span>
                   </button>
                 </li>

@@ -9,8 +9,8 @@ import type { PrepContext } from '../features/lobby/PrepLayout'
 import { SeatScreen } from '../features/lobby/SeatScreen'
 import { hasErrors, validateRoomSettings } from '../features/room/settings'
 import type { RoomSettings } from '../features/room/settings'
-import { toLobbyParticipants } from './adapt'
-import type { LiveClient, LiveError } from './client'
+import { connectionOf, toLobbyParticipants } from './adapt'
+import type { ConnectionStatus, LiveClient, LiveError } from './client'
 import { KickDialog } from './KickDialog'
 import type { KickTarget } from './KickDialog'
 import { checkMicrophone } from './microphone'
@@ -25,10 +25,11 @@ interface LivePrepProps {
   client: LiveClient
   state: ClientState
   lastError: LiveError | null
+  status: ConnectionStatus
 }
 
 /** 방에 들어온 뒤 좌석 → 동의 → 마이크 점검 → 대기실. 준비를 마치면 대기실을 보여준다. */
-export function LivePrep({ client, state, lastError }: LivePrepProps) {
+export function LivePrep({ client, state, lastError, status }: LivePrepProps) {
   const { you, room } = state
   const [step, setStep] = useState<'seat' | 'consent' | 'mic'>(you.seat === null ? 'seat' : 'consent')
   const [consent, setConsent] = useState<ConsentState>({ recording: false, reveal: false })
@@ -87,6 +88,7 @@ export function LivePrep({ client, state, lastError }: LivePrepProps) {
     hostName: host?.nickname ?? '',
     participants: others,
     roomCode: room.code,
+    connection: connectionOf(status),
     onKick: you.isHost ? (participant) => setKickTarget({ id: participant.id, name: participant.name }) : undefined,
   }
   const kickDialog = (

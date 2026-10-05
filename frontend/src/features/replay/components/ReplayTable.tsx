@@ -1,4 +1,5 @@
 import { Speaker220Regular } from '@fluentui/react-icons'
+import type { ReactNode } from 'react'
 import { formatBb, formatChips } from '../../../shared/format'
 import { EmptyCardSlot, PlayingCard } from '../../table/components/PlayingCard'
 import { streetLabels, visibleBoardCount } from '../fixtures'
@@ -35,16 +36,21 @@ interface ReplayTableProps {
   hand: ReplayHand
   index: number
   playing: boolean
+  /** 왼쪽 위 핸드 이동 */
+  nav?: ReactNode
 }
 
-export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
+export function ReplayTable({ hand, index, playing, nav }: ReplayTableProps) {
   const current = hand.actions[index]
   const shownCards = Math.min(visibleBoardCount[current.street], hand.board.length)
   const boardSlots = Array.from({ length: 5 }, (_, slot) => (slot < shownCards ? hand.board[slot] : null))
 
   return (
     <section aria-label={`핸드 ${hand.number} 복기 테이블`} className="replay-stage">
-      <div aria-hidden="true" className="replay-felt" />
+      {nav}
+      <div aria-hidden="true" className="replay-felt">
+        <span className="replay-felt-inner" />
+      </div>
 
       <div className="replay-pot">
         <span>팟</span>
@@ -62,7 +68,9 @@ export function ReplayTable({ hand, index, playing }: ReplayTableProps) {
       </div>
 
       <div className="replay-street">
-        <span className="street-label">{streetLabels[current.street]}</span>
+        <span className="street-label">
+          {streetLabels[current.street]} · {index + 1}번째 액션
+        </span>
         {current.kind === 'result' ? <span className="table-message">{hand.result}</span> : null}
       </div>
 

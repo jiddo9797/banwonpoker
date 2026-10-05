@@ -1,4 +1,11 @@
-import { Add20Regular, ArrowClockwise20Regular, Subtract20Regular } from '@fluentui/react-icons'
+import {
+  Add20Regular,
+  ArrowClockwise20Regular,
+  Clock20Regular,
+  Info20Regular,
+  Record20Regular,
+  Subtract20Regular,
+} from '@fluentui/react-icons'
 import { useId } from 'react'
 import { formatChips } from '../../shared/format'
 import {
@@ -74,6 +81,23 @@ export function RoomSettingsForm({ settings, errors, showErrors, headcount = 0, 
     const next = generateLevels(firstSmallBlind, settings.levels.length + 1).at(-1)?.smallBlind ?? last.smallBlind * 2
     update({ levels: [...settings.levels, level(Math.max(next, last.smallBlind + firstSmallBlind))] })
   }
+
+  const increasing = settings.blindMode === 'increasing'
+  const presets = (
+    <div aria-label="첫 블라인드 빠른 선택" className={increasing ? 'chip-options' : 'blind-presets'} role="group">
+      {SMALL_BLIND_PRESETS.map((smallBlind) => {
+        const selected = firstSmallBlind === smallBlind
+        return (
+          <button aria-pressed={selected} key={smallBlind} onClick={() => applyPreset(smallBlind)} type="button">
+            <b className="numeric">
+              {smallBlind} / {smallBlind * 2}
+            </b>
+            {selected && !increasing ? <span aria-hidden="true">선택됨</span> : null}
+          </button>
+        )
+      })}
+    </div>
+  )
 
   return (
     <div className="room-form">
@@ -168,18 +192,63 @@ export function RoomSettingsForm({ settings, errors, showErrors, headcount = 0, 
         <div className="field">
           <span className="field-label">고정 규칙</span>
           <ul className="fixed-rules">
-            <li>차례 제한 시간 {TURN_SECONDS}초</li>
-            <li>내 차례 음성 기록 · 세션 후 전체 패 공개</li>
-            <li>게임 중 입장한 참가자는 다음 핸드부터</li>
+            <li>
+              <Clock20Regular aria-hidden="true" />
+              차례 제한 시간 {TURN_SECONDS}초
+            </li>
+            <li>
+              <Record20Regular aria-hidden="true" />내 차례 음성 기록 · 세션 후 전체 패 공개
+            </li>
+            <li>
+              <Info20Regular aria-hidden="true" />
+              게임 중 입장한 참가자는 다음 핸드부터
+            </li>
           </ul>
         </div>
       </div>
 
       <fieldset className="blind-fieldset">
-        <legend>블라인드</legend>
+        <legend className="visually-hidden">블라인드</legend>
 
-        <div className="blind-mode-row">
-          <div className="radio-inline" role="radiogroup" aria-label="블라인드 방식">
+        <div className="blind-header">
+          <span aria-hidden="true" className="field-label">
+            블라인드
+          </span>
+          {settings.blindMode === 'fixed' ? (
+            <div className="blind-fixed">
+              <label htmlFor={`${id}-sb`}>스몰 블라인드 직접 입력</label>
+              <input
+                aria-describedby={levelsError ? `${id}-levels-error` : undefined}
+                aria-invalid={levelsError ? true : undefined}
+                id={`${id}-sb`}
+                inputMode="numeric"
+                min={1}
+                onChange={(event) => setFirstSmallBlind(Number(event.target.value))}
+                type="number"
+                value={Number.isFinite(firstSmallBlind) ? firstSmallBlind : ''}
+              />
+              <span className="blind-bb">
+                빅 블라인드 <strong className="numeric">{formatChips(firstSmallBlind * 2)}</strong>
+              </span>
+            </div>
+          ) : null}
+          {settings.blindMode === 'increasing' ? (
+            <label className="inline-select">
+              <span>인상 간격</span>
+              <select
+                onChange={(event) => update({ levelMinutes: Number(event.target.value) })}
+                value={settings.levelMinutes}
+              >
+                {LEVEL_MINUTE_OPTIONS.map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    {minutes}분
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {increasing ? presets : null}
+          <div className="radio-segmented" role="radiogroup" aria-label="블라인드 방식">
             <label>
               <input
                 checked={settings.blindMode === 'fixed'}
@@ -199,55 +268,10 @@ export function RoomSettingsForm({ settings, errors, showErrors, headcount = 0, 
               시간마다 인상
             </label>
           </div>
-
-          {settings.blindMode === 'increasing' ? (
-            <label className="inline-select">
-              <span>인상 간격</span>
-              <select
-                onChange={(event) => update({ levelMinutes: Number(event.target.value) })}
-                value={settings.levelMinutes}
-              >
-                {LEVEL_MINUTE_OPTIONS.map((minutes) => (
-                  <option key={minutes} value={minutes}>
-                    {minutes}분
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          <div aria-label="첫 블라인드 빠른 선택" className="chip-options" role="group">
-            {SMALL_BLIND_PRESETS.map((smallBlind) => (
-              <button
-                aria-pressed={firstSmallBlind === smallBlind}
-                key={smallBlind}
-                onClick={() => applyPreset(smallBlind)}
-                type="button"
-              >
-                {smallBlind}/{smallBlind * 2}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {settings.blindMode === 'fixed' ? (
-          <div className="blind-fixed">
-            <label htmlFor={`${id}-sb`}>스몰 블라인드</label>
-            <input
-              aria-describedby={levelsError ? `${id}-levels-error` : undefined}
-              aria-invalid={levelsError ? true : undefined}
-              id={`${id}-sb`}
-              inputMode="numeric"
-              min={1}
-              onChange={(event) => setFirstSmallBlind(Number(event.target.value))}
-              type="number"
-              value={Number.isFinite(firstSmallBlind) ? firstSmallBlind : ''}
-            />
-            <span className="blind-bb">
-              빅 블라인드 <strong className="numeric">{formatChips(firstSmallBlind * 2)}</strong>
-            </span>
-          </div>
-        ) : (
+        {increasing ? null : presets}
+        {settings.blindMode === 'increasing' ? (
           <>
             <ol aria-label="블라인드 레벨" className="level-grid">
               {settings.levels.map((item, index) => (
@@ -302,18 +326,19 @@ export function RoomSettingsForm({ settings, errors, showErrors, headcount = 0, 
                 <ArrowClockwise20Regular aria-hidden="true" />
                 1.5배씩 다시 채우기
               </button>
-              <span className="field-hint">마지막 레벨에 닿으면 그 블라인드를 유지합니다.</span>
+              <span className="level-summary">
+                {levelsError ? null : <span className="blind-summary">{blindSummary(settings)}</span>}
+                <span className="field-hint">마지막 레벨에 닿으면 그 블라인드를 유지합니다.</span>
+              </span>
             </div>
           </>
-        )}
+        ) : null}
 
         {levelsError ? (
           <p className="field-error" id={`${id}-levels-error`}>
             {levelsError}
           </p>
-        ) : (
-          <p className="blind-summary">{blindSummary(settings)}</p>
-        )}
+        ) : null}
       </fieldset>
     </div>
   )
