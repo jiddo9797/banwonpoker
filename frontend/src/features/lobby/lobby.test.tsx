@@ -265,7 +265,7 @@ describe('CreateRoomScreen', () => {
 
     expect(onCreate).toHaveBeenCalledWith(
       '하늘',
-      expect.objectContaining({ blindMode: 'fixed', maxPlayers: 4, startingStack: 10_000 }),
+      expect.objectContaining({ blindMode: 'fixed', maxPlayers: 4, startingStack: 30_000 }),
     )
     expect(onCreate.mock.calls[0][1].levels[0]).toEqual({ smallBlind: 25, bigBlind: 50 })
   })

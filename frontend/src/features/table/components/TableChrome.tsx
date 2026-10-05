@@ -1,5 +1,4 @@
 import {
-  DoorArrowLeft20Regular,
   Navigation20Regular,
   Person20Regular,
   Power20Regular,
@@ -10,6 +9,7 @@ import {
 } from '@fluentui/react-icons'
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
+import { ConnectionStatus, TopBar } from '../../../shared/TopBar'
 import type { TableSnapshot } from '../model'
 import { isTypingTarget } from './ActionDock'
 
@@ -17,6 +17,8 @@ interface TableChromeProps {
   snapshot: TableSnapshot
   isHost: boolean
   hostName: string
+  /** 상단 바에 쓰는 방 이름 */
+  roomName?: string
   /** 블라인드가 오르는 방이면 다음 레벨 안내 */
   blindNote?: string
   menuOpen: boolean
@@ -26,21 +28,17 @@ interface TableChromeProps {
   onInvite: () => void
   onLeave: () => void
   onOpenSettings: () => void
-  /** 실제 게임: 지금 핸드를 복기하려고 표시했는지. onToggleMark가 있으면 표시 버튼(단축키 B)을 보여준다. */
+  /** 지금 핸드를 복기하려고 표시했는지. onToggleMark가 있으면 표시 버튼(단축키 B)을 보여준다. */
   marked?: boolean
   onToggleMark?: () => void
 }
 
-function connectionLabel(connection: TableSnapshot['connection']) {
-  if (connection === 'reconnecting') return '재연결 중'
-  if (connection === 'disconnected') return '연결 끊김'
-  return '연결됨'
-}
-
+/** 테이블 상단 바: 방 이름·게임 정보 알약, 연결 상태, 핸드 표시·초대·설정·메뉴·나가기 */
 export function TableChrome({
   snapshot,
   isHost,
   hostName,
+  roomName,
   blindNote,
   menuOpen,
   onToggleMenu,
@@ -54,6 +52,21 @@ export function TableChrome({
 }: TableChromeProps) {
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const firstMenuItemRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (menuOpen) firstMenuItemRef.current?.focus()
+  }, [menuOpen])
+
+  // 메뉴 바깥을 누르면 닫는다.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) onCloseMenu()
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [menuOpen, onCloseMenu])
 
   // 단축키 B: 지금 핸드 표시. 액션 단축키와 같은 조건(입력 중·확인창·메뉴가 열려 있으면 쓰지 않음)이다.
   const toggleRef = useRef(onToggleMark)
@@ -71,10 +84,6 @@ export function TableChrome({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [hasMark])
 
-  useEffect(() => {
-    if (menuOpen) firstMenuItemRef.current?.focus()
-  }, [menuOpen])
-
   const closeMenuOnEscape = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key !== 'Escape' || !menuOpen) return
     event.stopPropagation()
@@ -83,100 +92,95 @@ export function TableChrome({
   }
 
   return (
-    <>
-      <nav aria-label="테이블 메뉴" className="side-menu" onKeyDown={closeMenuOnEscape}>
-        <button
-          aria-controls="table-menu-popover"
-          aria-expanded={menuOpen}
-          onClick={onToggleMenu}
-          ref={menuButtonRef}
-          type="button"
-        >
-          <Navigation20Regular aria-hidden="true" />
-          <span>메뉴</span>
-        </button>
-        <button type="button">
-          <Person20Regular aria-hidden="true" />
-          <span>자리 비움</span>
-        </button>
-        <button onClick={onLeave} type="button">
-          <DoorArrowLeft20Regular aria-hidden="true" />
-          <span>나가기</span>
-        </button>
-
-        {menuOpen ? (
-          <div className="menu-popover" id="table-menu-popover">
-            <p className="menu-popover-caption">{isHost ? '방장 메뉴' : '메뉴'}</p>
+    <TopBar
+      end={
+        <>
+          <ConnectionStatus detail={isHost ? '방장' : '참가자'} state={snapshot.connection} />
+          {onToggleMark ? (
             <button
-              aria-disabled={!isHost}
-              className="menu-popover-item is-danger"
-              onClick={() => {
-                if (!isHost) return
-                // 메뉴 항목은 곧 사라지므로 다이얼로그가 닫힌 뒤 돌아올 곳을 메뉴 버튼으로 둔다.
-                menuButtonRef.current?.focus()
-                onEndSession()
-              }}
-              ref={firstMenuItemRef}
+              aria-label={`핸드 #${snapshot.handNumber} 복기 표시`}
+              aria-pressed={marked}
+              className={marked ? 'top-bar-button mark-toggle is-marked' : 'top-bar-button mark-toggle'}
+              onClick={onToggleMark}
+              title="나중에 복기할 핸드로 표시합니다. 나에게만 보입니다. (단축키 B)"
               type="button"
             >
-              <Power20Regular aria-hidden="true" />
-              <span>
-                세션 종료
-                <small>
-                  {isHost ? '전원이 세션 요약과 복기로 이동합니다' : `방장(${hostName})만 세션을 종료할 수 있습니다`}
-                </small>
-              </span>
+              {marked ? <Star20Filled aria-hidden="true" /> : <Star20Regular aria-hidden="true" />}
+              {marked ? '표시함' : '핸드 표시'}
+              <kbd aria-hidden="true">B</kbd>
             </button>
-          </div>
-        ) : null}
-      </nav>
-
-      <header className="chrome-header">
-        <div className="wordmark">banwonpoker</div>
-        <div className="table-header">
-          <div className="session-meta">
-            <span className={`connection-state connection-state--${snapshot.connection}`}>
-              <span aria-hidden="true" className="connection-dot" />
-              {connectionLabel(snapshot.connection)}
-            </span>
-            <span aria-hidden="true" className="meta-divider" />
-            <span>{isHost ? '방장' : '참가자'}</span>
-            <span aria-hidden="true" className="meta-divider" />
-            <span>핸드 #{snapshot.handNumber}</span>
-          </div>
-          <div className="game-meta">
-            <span>{snapshot.gameType}</span>
-            <strong>
-              {snapshot.smallBlind} / {snapshot.bigBlind}
-            </strong>
-          </div>
-          {blindNote ? <div className="blind-note">{blindNote}</div> : null}
-          <div className="header-actions">
-            {onToggleMark ? (
-              <button
-                aria-label={`핸드 #${snapshot.handNumber} 복기 표시`}
-                aria-pressed={marked}
-                className={marked ? 'mark-toggle is-marked' : 'mark-toggle'}
-                onClick={onToggleMark}
-                title="나중에 복기할 핸드로 표시합니다. 나에게만 보입니다. (단축키 B)"
-                type="button"
-              >
-                {marked ? <Star20Filled aria-hidden="true" /> : <Star20Regular aria-hidden="true" />}
-                {marked ? '표시함' : '핸드 표시'}
-                <kbd aria-hidden="true">B</kbd>
-              </button>
+          ) : null}
+          <button className="top-bar-button" onClick={onInvite} type="button">
+            <Share20Regular aria-hidden="true" />
+            초대
+          </button>
+          <button className="top-bar-button" onClick={onOpenSettings} type="button">
+            <Settings20Regular aria-hidden="true" />
+            설정
+          </button>
+          <div className="table-menu" onKeyDown={closeMenuOnEscape} ref={menuRef}>
+            <button
+              aria-controls="table-menu-popover"
+              aria-expanded={menuOpen}
+              className="top-bar-button"
+              onClick={onToggleMenu}
+              ref={menuButtonRef}
+              type="button"
+            >
+              <Navigation20Regular aria-hidden="true" />
+              메뉴
+            </button>
+            {menuOpen ? (
+              <div className="menu-popover" id="table-menu-popover">
+                <p className="menu-popover-caption">{isHost ? '방장 메뉴' : '메뉴'}</p>
+                <button className="menu-popover-item" ref={firstMenuItemRef} type="button">
+                  <Person20Regular aria-hidden="true" />
+                  <span>
+                    자리 비움
+                    <small>다음 핸드부터 자리를 비웁니다</small>
+                  </span>
+                </button>
+                <button
+                  aria-disabled={!isHost}
+                  className="menu-popover-item is-danger"
+                  onClick={() => {
+                    if (!isHost) return
+                    // 메뉴 항목은 곧 사라지므로 다이얼로그가 닫힌 뒤 돌아올 곳을 메뉴 버튼으로 둔다.
+                    menuButtonRef.current?.focus()
+                    onEndSession()
+                  }}
+                  type="button"
+                >
+                  <Power20Regular aria-hidden="true" />
+                  <span>
+                    세션 종료
+                    <small>
+                      {isHost ? '전원이 세션 요약과 복기로 이동합니다' : `방장(${hostName})만 세션을 종료할 수 있습니다`}
+                    </small>
+                  </span>
+                </button>
+              </div>
             ) : null}
-            <button onClick={onInvite} type="button">
-              <Share20Regular aria-hidden="true" />
-              초대
-            </button>
-            <button onClick={onOpenSettings} type="button">
-              <Settings20Regular aria-hidden="true" />
-              설정
-            </button>
           </div>
-        </div>
-      </header>
-    </>
+          <button className="top-bar-button is-danger" onClick={onLeave} type="button">
+            나가기
+          </button>
+        </>
+      }
+      pills={
+        <>
+          <span className="top-bar-pill">{snapshot.gameType}</span>
+          <span className="top-bar-pill">
+            블라인드{' '}
+            <b>
+              {snapshot.smallBlind} / {snapshot.bigBlind}
+            </b>
+          </span>
+          {blindNote ? <span className="top-bar-pill blind-note">{blindNote}</span> : null}
+          <span className="top-bar-pill">핸드 #{snapshot.handNumber}</span>
+        </>
+      }
+      title={roomName}
+    />
   )
 }

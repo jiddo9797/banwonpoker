@@ -1,4 +1,3 @@
-import '@fontsource-variable/inter/wght.css'
 // 한글 글리프를 유니코드 범위별 작은 woff2로 나눈 가변 폰트. 화면에 쓰인 글자 범위만 내려받는다.
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css'
 import { StrictMode } from 'react'

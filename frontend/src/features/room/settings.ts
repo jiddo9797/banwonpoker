@@ -30,7 +30,7 @@ export const MIN_STARTING_BB = 20
 export const MAX_STARTING_STACK = 1_000_000
 export const LEVEL_MINUTE_OPTIONS = [5, 10, 15, 20, 30] as const
 export const SMALL_BLIND_PRESETS = [25, 50, 100, 200] as const
-export const STARTING_BB_PRESETS = [50, 100, 200] as const
+export const STARTING_BB_PRESETS = [100, 200, 300] as const
 
 export function level(smallBlind: number): BlindLevel {
   return { smallBlind, bigBlind: smallBlind * 2 }
@@ -50,7 +50,7 @@ export function generateLevels(firstSmallBlind: number, count = 8): BlindLevel[]
 export const defaultRoomSettings: RoomSettings = {
   name: '금요일 밤 홀덤',
   maxPlayers: 6,
-  startingStack: 10_000,
+  startingStack: 30_000,
   blindMode: 'fixed',
   levels: generateLevels(50),
   levelMinutes: 15,
