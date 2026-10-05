@@ -149,3 +149,19 @@
 .live-layer[hidden] {
   display: none;
 }
+
+.live-home-footer {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.live-home-footer a {
+  color: var(--text-secondary);
+  text-underline-offset: 3px;
+}
