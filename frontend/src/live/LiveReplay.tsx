@@ -62,7 +62,8 @@ export function LiveReplay({ session, onBack, backLabel, api, onOpenChart }: Liv
     )
   }
 
-  // 도중에 끝내 무효가 된 핸드보다, 마지막으로 끝까지 진행된 핸드부터 연다.
+  // 게임 중에 표시한 핸드가 있으면 그 첫 핸드부터, 없으면 도중에 끝내 무효가 된 핸드보다 마지막으로 끝까지 진행된 핸드부터 연다.
+  const firstMarked = hands.find((hand) => hand.marked)
   const lastPlayed = [...replay.hands].reverse().find((hand) => !hand.cancelled && hands.some((item) => item.number === hand.number))
   const durationMinutes = replay.session.endedAt ? Math.max(1, Math.round((replay.session.endedAt - replay.session.startedAt) / 60_000)) : 0
 
@@ -72,9 +73,10 @@ export function LiveReplay({ session, onBack, backLabel, api, onOpenChart }: Liv
       backLabel={backLabel}
       exporter={media.exporter}
       hands={hands}
-      initialHandNumber={lastPlayed?.number}
+      initialHandNumber={firstMarked?.number ?? lastPlayed?.number}
       onBack={onBack}
       onOpenChart={onOpenChart}
+      onToggleMark={(handNumber, marked) => http.setMark(session.sessionId, handNumber, marked, session.token).then(() => undefined)}
       sessionInfo={{ handCount: hands.length, durationMinutes }}
     />
   )

@@ -1095,3 +1095,48 @@
   padding: 0 14px;
   font-size: 13px;
 }
+
+/* 내가 표시한 핸드 */
+.hand-picker-star,
+.hand-picker-mark svg,
+.hand-picker-filter svg {
+  color: var(--accent-text);
+}
+
+.hand-picker-toggle svg.hand-picker-star {
+  color: var(--accent-text);
+}
+
+.hand-picker-panel li button {
+  grid-template-columns: 44px 1fr auto;
+}
+
+.hand-picker-mark {
+  display: inline-flex;
+}
+
+.hand-picker-panel button.hand-picker-filter {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  border-color: var(--stroke-control);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.hand-picker-panel button.hand-picker-filter[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+}
+
+.hand-nav .mark-button.is-marked {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-subtle);
+}
+
+.mark-error {
+  color: var(--critical-text);
+  font-size: 12px;
+}

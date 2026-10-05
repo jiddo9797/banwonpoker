@@ -340,6 +340,7 @@ pnpm --filter @banwonpoker/postflop build:wasm
 - 게임 중에는 누구도 음성을 들을 수 없습니다. 서버는 세션이 끝난 뒤, 그 세션 참가자에게만 전체 패와 음성을 줍니다.
 - 차례별 음성 상태: `음성`, `무발언`(말이 없었거나 곧바로 행동함), `기록 실패`(마이크 권한 없음 등), `누락`(올린 조각이 빠짐), `음성 없이 참여`
 - 업로드가 실패하면 다시 시도하며 `음성 기록 실패 · 재시도 중`을 보여줍니다. 게임은 멈추지 않습니다.
+- **복기할 핸드 표시:** 게임 중 테이블 오른쪽 위 `핸드 표시` 버튼(단축키 `B`)으로 지금 핸드나 막 끝난 핸드를 표시해 둘 수 있습니다. 표시는 나에게만 보이고 다른 참가자에게는 알리지 않습니다. 서버에 저장되어 새로고침해도 남고, 복기를 열면 첫 표시 핸드부터 열립니다. 핸드 목록에 별이 붙고 `표시한 핸드만 보기`로 걸러 볼 수 있으며, 복기 화면의 별 버튼으로 표시를 넣고 뺄 수 있습니다.
 - 세션이 끝나면 요약의 `복기 보기`로 전체 패, 액션 단위 타임라인, 차례별 음성을 재생하고, 참가자별 음량·음소거를 조절할 수 있습니다. 이 브라우저의 첫 화면에서도 지난 세션을 다시 열 수 있습니다.
 - `영상 내보내기`는 차례별 음성을 이어 붙인 오디오(WAV)와 액션 기록(텍스트)을 만듭니다. MP4 영상은 아직 없습니다.
 - 브라우저는 HTTPS나 localhost에서만 마이크를 허용합니다. 같은 와이파이(`http://내IP:5173`)로 접속한 친구는 녹음할 수 없고, 배포한 주소(HTTPS)에서는 모두 녹음할 수 있습니다.
@@ -411,7 +412,7 @@ pnpm dev:server
 
 - 주소: WebSocket `ws://호스트:포트/ws`, 헬스 체크 `http://호스트:포트/health`
 - 메시지는 JSON 한 줄이고, 타입은 `backend/server/src/protocol.ts`에 있습니다.
-  - 보내는 것: `room.create`·`room.join`·`room.resume`(토큰 재접속)·`seat.take`·`ready.set`·`settings.update`·`game.start`·`action`·`session.end`·`room.leave`·`ping`
+  - 보내는 것: `room.create`·`room.join`·`room.resume`(토큰 재접속)·`seat.take`·`ready.set`·`settings.update`·`game.start`·`action`·`session.end`·`room.leave`·`voice.set`·`chat.send`·`hand.mark`(복기할 핸드 표시)·`ping`
   - 받는 것: `joined`(참가자 id와 재접속 토큰)·`state`(나에게 보이는 전체 상태)·`events`(엔진 이벤트 + `sessionTimeMs`)·`action.result`·`error`·`pong`
 - 서버가 모든 판정을 합니다. `state`에는 내 홀카드와 쇼다운에서 공개된 카드만 들어 있습니다.
 - 계정은 없습니다. 입장하면 받은 토큰을 브라우저에 저장해 두었다가 연결이 끊기면 `room.resume`으로 같은 자리에 돌아옵니다.

@@ -1,4 +1,12 @@
-import { ArrowDownload20Regular, ArrowLeft20Regular, ChevronLeft20Regular, ChevronRight20Regular, Grid20Regular } from '@fluentui/react-icons'
+import {
+  ArrowDownload20Regular,
+  ArrowLeft20Regular,
+  ChevronLeft20Regular,
+  ChevronRight20Regular,
+  Grid20Regular,
+  Star20Filled,
+  Star20Regular,
+} from '@fluentui/react-icons'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import type { ExportOutcome } from '../../app/flow'
 import { formatChips } from '../../shared/format'
@@ -76,6 +84,8 @@ interface ReplayScreenProps {
   backLabel?: string
   /** GTO 분석 창에서 `전체 차트에서 보기`를 눌렀을 때 */
   onOpenChart?: (focus: ChartFocus) => void
+  /** 실제 게임: 복기하면서 핸드 표시를 넣거나 뺀다. 있으면 표시 버튼을 보여준다. */
+  onToggleMark?: (handNumber: number, marked: boolean) => Promise<void>
 }
 
 export function ReplayScreen({
@@ -90,6 +100,7 @@ export function ReplayScreen({
   sessionInfo = { handCount: sessionSummary.handCount, durationMinutes: sessionSummary.durationMinutes },
   backLabel = '세션 요약',
   onOpenChart,
+  onToggleMark,
 }: ReplayScreenProps) {
   const [state, dispatch] = useReducer(
     replayReducer,
@@ -108,6 +119,29 @@ export function ReplayScreen({
   const handPosition = state.hands.findIndex((item) => item.number === hand.number)
   const previousHand = state.hands[handPosition - 1]
   const nextHand = state.hands[handPosition + 1]
+
+  // 내가 표시한 핸드. 누르면 바로 바꾸고, 저장에 실패하면 되돌린다.
+  const [marked, setMarked] = useState<ReadonlySet<number>>(() => new Set(hands.filter((item) => item.marked).map((item) => item.number)))
+  const [markError, setMarkError] = useState<string>()
+  const isMarked = marked.has(hand.number)
+  const toggleMark = () => {
+    if (!onToggleMark) return
+    const number = hand.number
+    const next = !isMarked
+    const apply = (on: boolean) =>
+      setMarked((previous) => {
+        const copy = new Set(previous)
+        if (on) copy.add(number)
+        else copy.delete(number)
+        return copy
+      })
+    apply(next)
+    setMarkError(undefined)
+    onToggleMark(number, next).catch((error: unknown) => {
+      apply(!next)
+      setMarkError(error instanceof Error ? error.message : '표시를 저장하지 못했습니다.')
+    })
+  }
 
   // 음성 위치: 칸이 바뀌면 처음으로. 멈췄다 다시 틀면 멈춘 곳부터, 막대를 옮기면 그곳부터 튼다.
   const hasVoice = audio !== undefined && current.audio.status === 'voice' && current.turnSeq !== undefined
@@ -228,6 +262,7 @@ export function ReplayScreen({
           <HandPicker
             currentNumber={hand.number}
             hands={state.hands}
+            marked={marked}
             onSelect={(handNumber) => dispatch({ type: 'hand.changed', handNumber })}
           />
           <button
@@ -241,6 +276,23 @@ export function ReplayScreen({
             <ChevronRight20Regular aria-hidden="true" />
             <span className="visually-hidden">다음 핸드</span>
           </button>
+          {onToggleMark ? (
+            <button
+              aria-pressed={isMarked}
+              className={isMarked ? 'icon-button mark-button is-marked' : 'icon-button mark-button'}
+              onClick={toggleMark}
+              title="나중에 다시 볼 핸드로 표시합니다. 나에게만 보입니다."
+              type="button"
+            >
+              {isMarked ? <Star20Filled aria-hidden="true" /> : <Star20Regular aria-hidden="true" />}
+              <span className="visually-hidden">핸드 #{hand.number} 표시</span>
+            </button>
+          ) : null}
+          {markError ? (
+            <span className="mark-error" role="alert">
+              {markError}
+            </span>
+          ) : null}
         </nav>
         <button className="btn btn--primary" onClick={() => dispatch({ type: 'export.opened' })} type="button">
           <ArrowDownload20Regular aria-hidden="true" />

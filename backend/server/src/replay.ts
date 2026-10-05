@@ -30,6 +30,8 @@ export function buildReplay(
   hands: StoredHand[],
   events: TimedEvent[],
   turns: StoredTurn[],
+  /** 복기를 요청한 참가자가 표시한 핸드 */
+  marked: number[] = [],
 ): ReplayData {
   const byPlayer = new Map(participants.map((participant) => [participant.playerId, participant]))
   const byTurn = new Map(turns.map((turn) => [turn.turnSeq, turn]))
@@ -163,5 +165,6 @@ export function buildReplay(
       voiceless: participant.voiceless,
     })),
     hands: result,
+    marked,
   }
 }

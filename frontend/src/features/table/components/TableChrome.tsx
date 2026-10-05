@@ -5,10 +5,13 @@ import {
   Power20Regular,
   Settings20Regular,
   Share20Regular,
+  Star20Filled,
+  Star20Regular,
 } from '@fluentui/react-icons'
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { TableSnapshot } from '../model'
+import { isTypingTarget } from './ActionDock'
 
 interface TableChromeProps {
   snapshot: TableSnapshot
@@ -23,6 +26,9 @@ interface TableChromeProps {
   onInvite: () => void
   onLeave: () => void
   onOpenSettings: () => void
+  /** 실제 게임: 지금 핸드를 복기하려고 표시했는지. onToggleMark가 있으면 표시 버튼(단축키 B)을 보여준다. */
+  marked?: boolean
+  onToggleMark?: () => void
 }
 
 function connectionLabel(connection: TableSnapshot['connection']) {
@@ -43,9 +49,27 @@ export function TableChrome({
   onInvite,
   onLeave,
   onOpenSettings,
+  marked = false,
+  onToggleMark,
 }: TableChromeProps) {
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const firstMenuItemRef = useRef<HTMLButtonElement>(null)
+
+  // 단축키 B: 지금 핸드 표시. 액션 단축키와 같은 조건(입력 중·확인창·메뉴가 열려 있으면 쓰지 않음)이다.
+  const toggleRef = useRef(onToggleMark)
+  toggleRef.current = onToggleMark
+  const hasMark = onToggleMark !== undefined
+  useEffect(() => {
+    if (!hasMark) return
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.code !== 'KeyB' || event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      if (isTypingTarget(event.target) || document.querySelector('[role="dialog"], .menu-popover')) return
+      event.preventDefault()
+      toggleRef.current?.()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [hasMark])
 
   useEffect(() => {
     if (menuOpen) firstMenuItemRef.current?.focus()
@@ -128,6 +152,20 @@ export function TableChrome({
           </div>
           {blindNote ? <div className="blind-note">{blindNote}</div> : null}
           <div className="header-actions">
+            {onToggleMark ? (
+              <button
+                aria-label={`핸드 #${snapshot.handNumber} 복기 표시`}
+                aria-pressed={marked}
+                className={marked ? 'mark-toggle is-marked' : 'mark-toggle'}
+                onClick={onToggleMark}
+                title="나중에 복기할 핸드로 표시합니다. 나에게만 보입니다. (단축키 B)"
+                type="button"
+              >
+                {marked ? <Star20Filled aria-hidden="true" /> : <Star20Regular aria-hidden="true" />}
+                {marked ? '표시함' : '핸드 표시'}
+                <kbd aria-hidden="true">B</kbd>
+              </button>
+            ) : null}
             <button onClick={onInvite} type="button">
               <Share20Regular aria-hidden="true" />
               초대

@@ -44,6 +44,8 @@ export type ClientMessage =
   | { type: 'voice.set'; voiceless: boolean }
   /** 같은 방 전원에게 채팅을 보낸다. 게임 중에만, 앞뒤 공백을 뺀 1~200자 */
   | { type: 'chat.send'; text: string }
+  /** 나중에 복기하려고 핸드를 표시하거나 뺀다. 나에게만 보이고 다른 참가자에게는 알리지 않는다. */
+  | { type: 'hand.mark'; handNumber: number; marked: boolean }
   | { type: 'ping' }
 
 export type ClientMessageType = ClientMessage['type']
@@ -145,7 +147,15 @@ export interface ClientState {
   serverTime: number
   room: RoomSnapshot
   /** 나에게만 보이는 정보 */
-  you: { playerId: string; isHost: boolean; seat: number | null; ready: boolean; voiceless: boolean }
+  you: {
+    playerId: string
+    isHost: boolean
+    seat: number | null
+    ready: boolean
+    voiceless: boolean
+    /** 복기하려고 표시한 핸드 번호(오름차순) */
+    markedHands: number[]
+  }
   game: GameSnapshot | null
 }
 
@@ -273,6 +283,9 @@ export function parseClientMessage(value: unknown): Parsed {
       if (text.length === 0 || text.length > CHAT_MAX_LENGTH) return bad(`메시지는 1~${CHAT_MAX_LENGTH}자로 보내세요.`)
       return { ok: true, message: { type: 'chat.send', text } }
     }
+    case 'hand.mark':
+      if (!isInt(value.handNumber) || value.handNumber < 1 || typeof value.marked !== 'boolean') return bad('표시할 핸드 번호가 필요합니다.')
+      return { ok: true, message: { type: 'hand.mark', handNumber: value.handNumber, marked: value.marked } }
     case 'game.start':
     case 'session.end':
     case 'room.leave':
@@ -341,6 +354,8 @@ export interface ReplayData {
   }
   participants: Array<{ playerId: string; nickname: string; voiceless: boolean }>
   hands: ReplayHandData[]
+  /** 복기를 요청한 참가자가 표시한 핸드 번호(오름차순). 다른 사람의 표시는 넣지 않는다. */
+  marked: number[]
 }
 
 /** 녹음한 쪽이 차례가 끝난 뒤 알려 주는 결과 */

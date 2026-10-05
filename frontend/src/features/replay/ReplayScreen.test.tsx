@@ -228,4 +228,36 @@ describe('ReplayScreen', () => {
     render(<ReplayScreen exportOutcome="success" initialExportStatus="done" onBack={vi.fn()} />)
     expect(screen.getByRole('dialog', { name: '영상이 준비되었습니다' })).toBeInTheDocument()
   })
+
+  it('표시한 핸드를 목록에 별로 보여주고, 표시한 핸드만 골라 보며, 별 버튼으로 넣고 뺀다', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const onToggleMark = vi.fn(async () => undefined)
+    const hands = replayHands.map((hand) => ({ ...hand, marked: hand.number === 23 }))
+    render(<ReplayScreen exportOutcome="success" hands={hands} onBack={vi.fn()} onToggleMark={onToggleMark} />)
+
+    await user.click(screen.getByRole('button', { name: /핸드 목록 열기/ }))
+    const list = screen.getByRole('group', { name: '핸드 목록 · 2개' })
+    expect(within(list).getByRole('button', { name: /#23.*표시함/ })).toBeInTheDocument()
+    await user.click(within(list).getByRole('button', { name: '표시한 핸드만 보기 · 1개' }))
+    expect(screen.getByRole('group', { name: '핸드 목록 · 1개' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+
+    const star = screen.getByRole('button', { name: '핸드 #24 표시' })
+    expect(star).toHaveAttribute('aria-pressed', 'false')
+    await user.click(star)
+    expect(onToggleMark).toHaveBeenCalledWith(24, true)
+    expect(star).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('표시를 저장하지 못하면 되돌리고 이유를 알린다', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const onToggleMark = vi.fn(async () => {
+      throw new Error('세션을 찾을 수 없습니다.')
+    })
+    render(<ReplayScreen exportOutcome="success" onBack={vi.fn()} onToggleMark={onToggleMark} />)
+    const star = screen.getByRole('button', { name: '핸드 #24 표시' })
+    await user.click(star)
+    expect(await screen.findByRole('alert')).toHaveTextContent('세션을 찾을 수 없습니다.')
+    expect(star).toHaveAttribute('aria-pressed', 'false')
+  })
 })

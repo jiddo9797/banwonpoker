@@ -74,6 +74,13 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
     setNotice({ kind: 'success', message: '초대 링크를 복사했습니다' })
   }
 
+  const handNumber = game.view.handNumber ?? 0
+  const marked = state.you.markedHands.includes(handNumber)
+  const toggleMark = () => {
+    client.send({ type: 'hand.mark', handNumber, marked: !marked })
+    setNotice({ kind: 'success', message: marked ? `핸드 #${handNumber} 표시를 뺐습니다` : `핸드 #${handNumber}을(를) 복기할 핸드로 표시했습니다` })
+  }
+
   const host = state.room.participants.find((participant) => participant.isHost)
   const me = game.view.seats.find((seat) => seat.id === state.you.playerId)
 
@@ -83,6 +90,7 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
         blindNote={blindNoteOf(state, now)}
         hostName={host?.nickname ?? ''}
         isHost={state.you.isHost}
+        marked={marked}
         menuOpen={menuOpen}
         onCloseMenu={() => setMenuOpen(false)}
         onEndSession={() => {
@@ -95,6 +103,7 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
           setDialog('leave')
         }}
         onOpenSettings={() => setDialog('settings')}
+        onToggleMark={handNumber > 0 ? toggleMark : undefined}
         onToggleMenu={() => setMenuOpen((open) => !open)}
         snapshot={table}
       />
