@@ -74,6 +74,8 @@ const contentTypes: Record<string, string> = {
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',
   '.txt': 'text/plain; charset=utf-8',
+  // 포스트플랍 솔버. 이 형식이어야 브라우저가 내려받으면서 바로 컴파일한다.
+  '.wasm': 'application/wasm',
 }
 
 /** 빌드된 프론트엔드를 제공한다. 없는 경로는 index.html(한 페이지 앱)로 돌린다. */

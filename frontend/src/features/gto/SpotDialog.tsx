@@ -1,10 +1,15 @@
 import { handLabel } from '@banwonpoker/gto'
 import type { ChartFile } from '@banwonpoker/gto'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog } from '../../shared/Dialog'
+import type { ReplayHand } from '../replay/model'
 import { actionTone, loadChart, percent, signedBb } from './model'
-import { analyzeSpot } from './spot'
-import type { Spot, SpotLookup } from './spot'
+import { PostflopAnalysis } from './PostflopAnalysis'
+import { postflopSpotAt } from './postflop'
+import { browserSolver } from './postflopClient'
+import type { PostflopSolver } from './postflopClient'
+import { analyzeSpot, spotAt } from './spot'
+import type { Spot } from './spot'
 import './gto.css'
 
 /** 차트 화면을 이 상황으로 열 때 넘기는 값 */
@@ -17,16 +22,25 @@ export interface ChartFocus {
 }
 
 interface SpotDialogProps {
-  lookup: SpotLookup | null
+  /** 분석할 복기 칸. null이면 닫혀 있다. */
+  target: { hand: ReplayHand; index: number } | null
   onClose: () => void
   onOpenChart?: (focus: ChartFocus) => void
   load?: (players: number, stack: number) => Promise<ChartFile>
+  solver?: PostflopSolver
 }
 
-/** 복기의 프리플랍 결정 하나를 차트와 비교해 보여준다. */
-export function SpotDialog({ lookup, onClose, onOpenChart, load = loadChart }: SpotDialogProps) {
+/** 복기의 결정 하나를 GTO와 비교해 보여준다. 프리플랍은 차트로, 플랍 이후는 솔버로 본다. */
+export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, solver = browserSolver }: SpotDialogProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const postflop = useMemo(() => {
+    if (!target) return null
+    const action = target.hand.actions[target.index]
+    return action && action.street !== 'preflop' ? postflopSpotAt(target.hand, target.index) : null
+  }, [target])
+  const lookup = useMemo(() => (target && !postflop ? spotAt(target.hand, target.index) : null), [target, postflop])
   const spot = lookup?.ok ? lookup.spot : null
+  const deep = postflop?.ok ? postflop.spot : null
   const [loaded, setLoaded] = useState<{ spot: Spot; chart?: ChartFile; error?: string }>()
 
   useEffect(() => {
@@ -51,9 +65,27 @@ export function SpotDialog({ lookup, onClose, onOpenChart, load = loadChart }: S
       className="gto-spot-dialog"
       initialFocusRef={closeRef}
       onClose={onClose}
-      open={lookup !== null}
-      title={spot ? `GTO 분석 · 핸드 #${spot.handNumber}` : 'GTO 분석'}
+      open={target !== null}
+      title={target ? `GTO 분석 · 핸드 #${target.hand.number}` : 'GTO 분석'}
     >
+      {deep ? (
+        <p className="gto-spot-who">
+          <strong>
+            {deep.playerName} · {deep.position}
+          </strong>
+          <span className="numeric">{deep.cardsText}</span>
+          <span className="gto-spot-hand">{handLabel(deep.hand)}</span>
+          <span>
+            {deep.players}인 · 레인지는 {deep.stack}BB 차트
+          </span>
+        </p>
+      ) : null}
+      {postflop && !postflop.ok ? (
+        <p className="gto-spot-reason" role="status">
+          {postflop.reason}
+        </p>
+      ) : null}
+      {deep ? <PostflopAnalysis key={`${deep.key}:${target?.index}`} load={load} solver={solver} spot={deep} /> : null}
       {spot ? (
         <p className="gto-spot-who">
           <strong>

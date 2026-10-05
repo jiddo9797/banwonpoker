@@ -332,11 +332,13 @@ describe('HTTP API', () => {
       mkdirSync(join(dir, 'assets'))
       writeFileSync(join(dir, 'index.html'), '<!doctype html>앱')
       writeFileSync(join(dir, 'assets', 'app-123.js'), 'console.log(1)')
+      writeFileSync(join(dir, 'assets', 'postflop-123.wasm'), new Uint8Array([0, 97, 115, 109]))
       const { base } = await start({ staticDir: dir })
 
       const asset = await fetch(`${base}/assets/app-123.js`)
       expect(asset.headers.get('content-type')).toContain('text/javascript')
       expect(asset.headers.get('cache-control')).toContain('immutable')
+      expect((await fetch(`${base}/assets/postflop-123.wasm`)).headers.get('content-type')).toBe('application/wasm')
       expect(await (await fetch(`${base}/?room=ABC234`)).text()).toContain('앱')
       expect(await (await fetch(`${base}/some/page`)).text()).toContain('앱')
       expect(await (await fetch(`${base}/..%2F..%2Fpackage.json`)).text()).toContain('앱')
