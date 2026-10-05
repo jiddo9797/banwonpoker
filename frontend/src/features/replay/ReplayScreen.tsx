@@ -1,7 +1,11 @@
-import { ArrowDownload20Regular, ArrowLeft20Regular, ChevronLeft20Regular, ChevronRight20Regular } from '@fluentui/react-icons'
+import { ArrowDownload20Regular, ArrowLeft20Regular, ChevronLeft20Regular, ChevronRight20Regular, Grid20Regular } from '@fluentui/react-icons'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import type { ExportOutcome } from '../../app/flow'
 import { formatChips } from '../../shared/format'
+import { SpotDialog } from '../gto/SpotDialog'
+import type { ChartFocus } from '../gto/SpotDialog'
+import { isDecision, spotAt } from '../gto/spot'
+import type { SpotLookup } from '../gto/spot'
 import { AudioScrubber } from './components/AudioScrubber'
 import { AudioTrackStatus, audioStatusDescription, audioStatusOrder } from './components/AudioTrackStatus'
 import { ExportModal } from './components/ExportModal'
@@ -71,6 +75,8 @@ interface ReplayScreenProps {
   /** 내보내기 창의 `세션 전체` 설명 */
   sessionInfo?: { handCount: number; durationMinutes: number }
   backLabel?: string
+  /** GTO 분석 창에서 `전체 차트에서 보기`를 눌렀을 때 */
+  onOpenChart?: (focus: ChartFocus) => void
 }
 
 export function ReplayScreen({
@@ -84,6 +90,7 @@ export function ReplayScreen({
   exporter,
   sessionInfo = { handCount: sessionSummary.handCount, durationMinutes: sessionSummary.durationMinutes },
   backLabel = '세션 요약',
+  onOpenChart,
 }: ReplayScreenProps) {
   const [state, dispatch] = useReducer(
     replayReducer,
@@ -92,6 +99,7 @@ export function ReplayScreen({
   )
   const [exportFiles, setExportFiles] = useState<ExportFile[]>()
   const [exportError, setExportError] = useState<string>()
+  const [spotLookup, setSpotLookup] = useState<SpotLookup | null>(null)
   const hand = handOf(state.hands, state.handNumber)
   const current = hand.actions[state.index]
   const actor = hand.players.find((player) => player.id === current.playerId)
@@ -286,6 +294,19 @@ export function ReplayScreen({
               </div>
             </dl>
             <p className="action-detail-note">{audioStatusDescription(current.audio.status)}</p>
+            {hand.bigBlind && isDecision(current) ? (
+              <button
+                className="btn btn--secondary action-detail-gto"
+                onClick={() => {
+                  if (state.playing) dispatch({ type: 'playback.toggled' })
+                  setSpotLookup(spotAt(hand, state.index))
+                }}
+                type="button"
+              >
+                <Grid20Regular aria-hidden="true" />
+                이 지점 GTO 분석
+              </button>
+            ) : null}
           </section>
 
           <ParticipantMixer
@@ -323,6 +344,19 @@ export function ReplayScreen({
           </ul>
         </section>
       </main>
+
+      <SpotDialog
+        lookup={spotLookup}
+        onClose={() => setSpotLookup(null)}
+        onOpenChart={
+          onOpenChart
+            ? (focus) => {
+                setSpotLookup(null)
+                onOpenChart(focus)
+              }
+            : undefined
+        }
+      />
 
       <ExportModal
         errorMessage={exportError}
