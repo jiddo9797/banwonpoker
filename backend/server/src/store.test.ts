@@ -339,7 +339,10 @@ describe('HTTP API', () => {
       expect(asset.headers.get('content-type')).toContain('text/javascript')
       expect(asset.headers.get('cache-control')).toContain('immutable')
       expect((await fetch(`${base}/assets/postflop-123.wasm`)).headers.get('content-type')).toBe('application/wasm')
-      expect(await (await fetch(`${base}/?room=ABC234`)).text()).toContain('앱')
+      const page = await fetch(`${base}/?room=ABC234`)
+      expect(page.headers.get('cross-origin-opener-policy')).toBe('same-origin')
+      expect(page.headers.get('cross-origin-embedder-policy')).toBe('require-corp')
+      expect(await page.text()).toContain('앱')
       expect(await (await fetch(`${base}/some/page`)).text()).toContain('앱')
       expect(await (await fetch(`${base}/..%2F..%2Fpackage.json`)).text()).toContain('앱')
     } finally {

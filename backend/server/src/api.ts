@@ -93,6 +93,10 @@ function serveStatic(request: IncomingMessage, response: ServerResponse, staticD
     'content-type': contentTypes[extname(file)] ?? 'application/octet-stream',
     // 해시가 붙은 파일은 오래 캐시하고, index.html은 늘 새로 받게 한다.
     'cache-control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache',
+    // 교차 출처 격리: 포스트플랍 솔버가 SharedArrayBuffer로 여러 스레드를 쓴다(frontend/vite.config.ts와 같다).
+    'cross-origin-opener-policy': 'same-origin',
+    'cross-origin-embedder-policy': 'require-corp',
+    'cross-origin-resource-policy': 'same-origin',
   })
   response.end(readFileSync(file))
   return true

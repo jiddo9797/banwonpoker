@@ -131,7 +131,7 @@ export function PostflopAnalysis({ spot, load, solver }: PostflopAnalysisProps) 
             {state.phase === 'preparing'
               ? '레인지를 만드는 중…'
               : progress
-                ? `솔버 계산 중 · ${progress.iterations}회${error} · ${Math.round(progress.elapsedMs / 1000)}초`
+                ? `솔버 계산 중 · ${progress.iterations}회${error} · ${Math.round(progress.elapsedMs / 1000)}초 · 스레드 ${progress.threads}개`
                 : '솔버를 준비하는 중…'}
           </p>
           <div aria-hidden="true" className="gto-solving-bar">
