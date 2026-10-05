@@ -87,6 +87,8 @@ interface Participant {
   recentActions: Map<string, { ok: boolean; error?: ErrorBody }>
   /** 마지막으로 채팅을 보낸 시각(도배 방지) */
   lastChatAt: number | null
+  /** 복기하려고 표시한 핸드 번호 */
+  markedHands: Set<number>
 }
 
 type Result<T = void> = { ok: true; value: T } | { ok: false; error: ErrorBody }
@@ -166,6 +168,7 @@ export class Room {
       joinedAt: deps.clock.now(),
       recentActions: new Map(),
       lastChatAt: null,
+      markedHands: new Set(),
     }
   }
 
@@ -276,6 +279,8 @@ export class Room {
         return reply(this.chat(participant, message.text))
       case 'voice.set':
         return reply(this.setVoice(participant, message.voiceless))
+      case 'hand.mark':
+        return reply(this.markHand(participant, message.handNumber, message.marked))
       case 'ping':
         return this.sendTo(playerId, { type: 'pong', serverTime: this.deps.clock.now() })
       default:
@@ -292,6 +297,18 @@ export class Room {
       this.deps.store?.setTurnVoiceless(this.sessionId, this.openTurnSeq, voiceless)
     }
     this.broadcastState()
+    return { ok: true, value: undefined }
+  }
+
+  /** 복기하려고 핸드를 표시하거나 뺀다. 지금 핸드나 이미 지나간 핸드만 되고, 바뀐 상태는 그 사람에게만 보낸다. */
+  private markHand(participant: Participant, handNumber: number, marked: boolean): Result {
+    if (this.phase !== 'playing') return failure('WRONG_PHASE', '핸드 표시는 게임 중에만 할 수 있습니다.')
+    const current = this.table?.hand?.number ?? 0
+    if (handNumber > current) return failure('BAD_REQUEST', '아직 시작하지 않은 핸드입니다.')
+    if (marked) participant.markedHands.add(handNumber)
+    else participant.markedHands.delete(handNumber)
+    if (this.sessionId) this.deps.store?.setMark(this.sessionId, participant.id, handNumber, marked)
+    this.sendTo(participant.id, { type: 'state', state: this.stateFor(participant.id) })
     return { ok: true, value: undefined }
   }
 
@@ -787,6 +804,7 @@ export class Room {
         seat: participant.seat,
         ready: participant.ready,
         voiceless: participant.voiceless,
+        markedHands: [...participant.markedHands].sort((a, b) => a - b),
       },
       game: this.gameSnapshot(playerId),
     }

@@ -8,7 +8,7 @@ const hotkeys: Record<string, ActionOption['id']> = { KeyC: 'call', KeyK: 'check
 const hotkeyLabels: Record<ActionOption['id'], string> = { call: 'C', check: 'K', raise: 'R', fold: 'F' }
 
 /** 글자를 입력하는 칸이면 단축키를 쓰지 않는다(채팅·금액 입력). 슬라이더·버튼에 포커스가 있을 때는 쓴다. */
-function isTypingTarget(target: EventTarget | null) {
+export function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
   if (target.isContentEditable || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true
   return target instanceof HTMLInputElement && !['range', 'checkbox', 'radio', 'button', 'submit'].includes(target.type)

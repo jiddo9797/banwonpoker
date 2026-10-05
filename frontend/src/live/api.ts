@@ -66,6 +66,12 @@ export function createApi(options: ApiOptions = {}) {
         .then((response) => response.json() as Promise<{ replay: ReplayData }>)
         .then((body) => body.replay),
 
+    /** 끝난 세션에서 내 핸드 표시를 넣거나 뺀다. 표시한 핸드 번호 전체를 돌려준다. */
+    setMark: (sessionId: string, handNumber: number, marked: boolean, token: string) =>
+      request(`/api/sessions/${sessionId}/marks/${handNumber}`, token, { method: marked ? 'PUT' : 'DELETE' })
+        .then((response) => response.json() as Promise<{ marked: number[] }>)
+        .then((body) => body.marked),
+
     fetchTurnAudio: (sessionId: string, turnSeq: number, token: string) =>
       request(`/api/sessions/${sessionId}/turns/${turnSeq}/audio`, token).then((response) => response.blob()),
   }

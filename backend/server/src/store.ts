@@ -121,6 +121,12 @@ export class SessionStore {
         report TEXT,
         PRIMARY KEY (session_id, turn_seq)
       );
+      CREATE TABLE IF NOT EXISTS hand_marks (
+        session_id TEXT NOT NULL REFERENCES sessions(id),
+        player_id TEXT NOT NULL,
+        hand_number INTEGER NOT NULL,
+        PRIMARY KEY (session_id, player_id, hand_number)
+      );
       CREATE TABLE IF NOT EXISTS chunks (
         session_id TEXT NOT NULL,
         turn_seq INTEGER NOT NULL,
@@ -206,6 +212,15 @@ export class SessionStore {
     this.db.prepare('UPDATE turns SET report = ? WHERE session_id = ? AND turn_seq = ?').run(JSON.stringify(report), sessionId, turnSeq)
   }
 
+  /** 참가자가 복기하려고 표시한 핸드를 넣거나 뺀다. */
+  setMark(sessionId: string, playerId: string, handNumber: number, marked: boolean) {
+    if (marked) {
+      this.db.prepare('INSERT OR IGNORE INTO hand_marks (session_id, player_id, hand_number) VALUES (?, ?, ?)').run(sessionId, playerId, handNumber)
+    } else {
+      this.db.prepare('DELETE FROM hand_marks WHERE session_id = ? AND player_id = ? AND hand_number = ?').run(sessionId, playerId, handNumber)
+    }
+  }
+
   endSession(sessionId: string, summary: SessionSummary) {
     this.db.prepare('UPDATE sessions SET ended_at = ?, summary = ? WHERE id = ?').run(summary.endedAt, JSON.stringify(summary), sessionId)
   }
@@ -234,6 +249,14 @@ export class SessionStore {
       .prepare('SELECT player_id, nickname, seat, voiceless FROM participants WHERE session_id = ? AND token_hash = ?')
       .get(sessionId, hashToken(token)) as { player_id: string; nickname: string; seat: number | null; voiceless: number } | undefined
     return row ? { playerId: row.player_id, nickname: row.nickname, seat: row.seat, voiceless: row.voiceless === 1 } : undefined
+  }
+
+  /** 한 참가자가 표시한 핸드 번호(오름차순) */
+  marks(sessionId: string, playerId: string): number[] {
+    const rows = this.db
+      .prepare('SELECT hand_number FROM hand_marks WHERE session_id = ? AND player_id = ? ORDER BY hand_number')
+      .all(sessionId, playerId) as Array<{ hand_number: number }>
+    return rows.map((row) => row.hand_number)
   }
 
   participants(sessionId: string): StoredParticipant[] {

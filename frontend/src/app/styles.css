@@ -1903,3 +1903,28 @@ a:focus-visible {
   border: 1px solid var(--text-tertiary);
   background: transparent;
 }
+
+/* 복기할 핸드 표시(나에게만 보임) */
+.header-actions button.mark-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.header-actions button.mark-toggle kbd {
+  padding: 0 4px;
+  border: 1px solid var(--stroke-control);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.header-actions button.mark-toggle.is-marked {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+}
+
+.header-actions button.mark-toggle.is-marked svg {
+  color: var(--accent-text);
+}
