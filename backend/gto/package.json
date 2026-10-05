@@ -2,6 +2,7 @@
   "name": "@banwonpoker/gto",
   "private": true,
   "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "description": "banwonpoker 프리플랍 GTO. 핸드 169종, 승률표, 프리플랍 트리와 CFR 솔버, 화면이 읽는 차트 형식.",
   "exports": {
