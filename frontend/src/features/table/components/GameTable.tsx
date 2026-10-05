@@ -2,7 +2,8 @@ import { Clock20Regular, Mic20Regular, MicOff20Regular, Warning20Filled } from '
 import { streetBetTotal } from '../model'
 import type { RecordingState, TableSnapshot } from '../model'
 import { EmptyCardSlot, FlipInCard, PlayingCard } from './PlayingCard'
-import { PlayerSeat } from './PlayerSeat'
+import { BetPill, PlayerSeat } from './PlayerSeat'
+import { Avatar } from '../../../shared/Avatar'
 import { formatChips } from '../../../shared/format'
 
 /** 플랍 카드끼리 뒤집히기 시작하는 간격 */
@@ -51,14 +52,11 @@ function RecordingStatus({ state, voiceless }: { state: RecordingState; voiceles
 function HeroSeat({ snapshot, voiceless, heroLabel }: { snapshot: TableSnapshot; voiceless: boolean; heroLabel: string }) {
   const warning = (snapshot.heroRemainingSeconds ?? 60) <= 10
   const isTurn = snapshot.recordingState !== 'hidden' || snapshot.actions.some((action) => action.enabled)
+  const isWinner = snapshot.heroIsWinner ?? snapshot.tableMessage?.includes('승리')
 
   return (
-    <div className={`hero-seat ${isTurn ? 'is-turn' : ''} ${(snapshot.heroIsWinner ?? snapshot.tableMessage?.includes('승리')) ? 'is-winner' : ''}`}>
-      {snapshot.heroBet ? (
-        <div className="hero-bet-pill">{formatChips(snapshot.heroBet)}</div>
-      ) : snapshot.heroChecked ? (
-        <div className="hero-bet-pill">check</div>
-      ) : null}
+    <div className={`hero-seat ${isTurn ? 'is-turn' : ''} ${isWinner ? 'is-winner' : ''}`}>
+      <BetPill amount={snapshot.heroBet} checked={snapshot.heroChecked} className="hero-bet-pill" />
       {snapshot.heroHandName ? (
         <div className="hero-hand-name">
           <span className="visually-hidden">내 족보: </span>
@@ -74,20 +72,21 @@ function HeroSeat({ snapshot, voiceless, heroLabel }: { snapshot: TableSnapshot;
         ) : null}
       </div>
       <div className="hero-panel">
-        <div className="hero-name-row">
+        <Avatar me name={heroLabel === '나' ? '나' : heroLabel} size={42} />
+        <div className="hero-info">
           <span className="hero-name">{heroLabel}</span>
+          <span className="hero-stack">{formatChips(snapshot.heroStack)}</span>
+        </div>
+        <div className="hero-side">
+          {snapshot.heroBadge === 'none' ? null : (
+            <span className={`position-badge badge-${snapshot.heroBadge.toLowerCase()}`}>{snapshot.heroBadge}</span>
+          )}
           {isTurn && snapshot.heroRemainingSeconds !== undefined ? (
-            <span className={warning ? 'hero-time is-warning' : 'hero-time'}>
-              {snapshot.heroRemainingSeconds}초
-            </span>
+            <span className={warning ? 'hero-time is-warning' : 'hero-time'}>{snapshot.heroRemainingSeconds}초</span>
           ) : null}
         </div>
-        <div className="hero-stack">{formatChips(snapshot.heroStack)}</div>
-        {snapshot.heroBadge === 'none' ? null : (
-          <span className={`position-badge badge-${snapshot.heroBadge.toLowerCase()}`}>{snapshot.heroBadge}</span>
-        )}
         {isTurn ? (
-          <span aria-hidden="true" className="turn-progress">
+          <span aria-hidden="true" className={warning ? 'turn-progress is-warning' : 'turn-progress'}>
             <span
               className="turn-progress-value"
               style={{
@@ -99,6 +98,25 @@ function HeroSeat({ snapshot, voiceless, heroLabel }: { snapshot: TableSnapshot;
       </div>
       <RecordingStatus state={snapshot.recordingState} voiceless={voiceless} />
     </div>
+  )
+}
+
+/** 보드 아래 스트리트 라벨은 영어 대문자로 쓴다(보조기술용 이름은 한국어 그대로). */
+const STREET_LABELS: Record<string, string> = {
+  프리플랍: 'PREFLOP',
+  플랍: 'FLOP',
+  턴: 'TURN',
+  리버: 'RIVER',
+  쇼다운: 'SHOWDOWN',
+}
+
+/** 겹친 칩 두 개 */
+function ChipStack() {
+  return (
+    <span aria-hidden="true" className="chip-stack">
+      <span />
+      <span />
+    </span>
   )
 }
 
@@ -133,12 +151,15 @@ export function GameTable({ snapshot, voiceless = false, heroLabel = '나', show
         <div className="pot-row">
           {snapshot.pots.map((pot, index) => (
             <div aria-label={`${pot.label} ${formatChips(pot.amount)}`} className="pot-pill" key={pot.label} role="group">
-              {/* 팟이 하나면 글자 없이 금액만 쓴다. 사이드 팟이 있으면 어느 팟인지 보여야 하므로 남긴다. */}
-              {singlePot ? null : <span aria-hidden="true">{pot.label}</span>}
+              <ChipStack />
+              {/* 팟이 하나면 POT, 사이드 팟이 있으면 어느 팟인지 쓴다. */}
+              <span aria-hidden="true" className="pot-label">
+                {singlePot ? 'POT' : pot.label}
+              </span>
               <strong aria-hidden="true">{formatChips(pot.amount)}</strong>
               {streetBets > 0 && index === snapshot.pots.length - 1 ? (
                 <span className="pot-total">
-                  <span aria-hidden="true">total</span>
+                  <span aria-hidden="true">TOTAL</span>
                   <span className="visually-hidden">이번 스트리트 포함 합계</span>
                   <strong>{formatChips(potTotal)}</strong>
                 </span>
@@ -146,7 +167,6 @@ export function GameTable({ snapshot, voiceless = false, heroLabel = '나', show
             </div>
           ))}
         </div>
-        {snapshot.potNote ? <div className="pot-note">{snapshot.potNote}</div> : null}
       </div>
 
       <div aria-label={`${snapshot.street} 커뮤니티 카드`} className="community-board" role="group">
@@ -161,8 +181,9 @@ export function GameTable({ snapshot, voiceless = false, heroLabel = '나', show
           )}
         </div>
         <div className="street-row">
-          <span className="street-label">{snapshot.street}</span>
+          <span className="street-label">{STREET_LABELS[snapshot.street] ?? snapshot.street}</span>
           {snapshot.tableMessage ? <span className="table-message">{snapshot.tableMessage}</span> : null}
+          {snapshot.potNote ? <span className="pot-note">{snapshot.potNote}</span> : null}
         </div>
       </div>
 
