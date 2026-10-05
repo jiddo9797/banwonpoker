@@ -44,6 +44,7 @@ const replay: ReplayData = {
       awards: [{ amount: 650, winners: [{ playerId: 'me', amount: 650 }], handName: '킹 원 페어' }],
     },
   ],
+  marked: [1],
 }
 
 describe('toReplayHands', () => {
@@ -59,6 +60,12 @@ describe('toReplayHands', () => {
       { rank: 'A', suit: 'heart' },
       { rank: 'K', suit: 'heart' },
     ])
+  })
+
+  it('내가 표시한 핸드를 알려주고, 표시를 보내지 않는 예전 서버면 표시가 없다', () => {
+    expect(hand.marked).toBe(true)
+    const { marked: _ignored, ...old } = replay
+    expect(toReplayHands(old as ReplayData, 'me')[0].marked).toBe(false)
   })
 
   it('딜러부터 좌석 번호 순으로 포지션 이름을 붙인다', () => {

@@ -59,6 +59,7 @@ describe('GTO 차트 모델', () => {
 })
 
 describe('GtoScreen', () => {
+  // 차트 JSON 여러 개를 불러와 그리므로, 전체 테스트를 병렬로 돌리면 5초를 넘기기도 한다.
   it('인원·포지션·상황을 바꾸면 표와 요약이 따라 바뀐다', async () => {
     const user = userEvent.setup()
     const onBack = vi.fn()
@@ -86,7 +87,7 @@ describe('GtoScreen', () => {
 
     await user.click(screen.getByRole('button', { name: '처음 화면' }))
     expect(onBack).toHaveBeenCalled()
-  })
+  }, 15_000)
 
   it('방향키로 표의 칸을 옮긴다', async () => {
     const user = userEvent.setup()

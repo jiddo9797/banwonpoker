@@ -6,6 +6,7 @@ import { getTableSnapshot } from '../fixtures'
 import { ActionDock } from './ActionDock'
 import { GameTable } from './GameTable'
 import { SidePanel } from './SidePanel'
+import { TableChrome } from './TableChrome'
 
 const snapshot = getTableSnapshot('my')
 const clamp = (amount: number) => Math.min(snapshot.maxRaise, Math.max(snapshot.minRaise, amount))
@@ -238,5 +239,49 @@ describe('GameTable 음성 끄기·켜기', () => {
     rerender(<GameTable onToggleVoice={onToggleVoice} snapshot={snapshot} voiceless />)
     expect(screen.getByText('음성 없이 참여 중입니다. 내 차례에도 음성이 기록되지 않습니다.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '음성 켜기' })).toBeInTheDocument()
+  })
+})
+
+describe('TableChrome 핸드 표시', () => {
+  const chrome = (props: { marked?: boolean; onToggleMark?: () => void }) => (
+    <TableChrome
+      hostName="하늘"
+      isHost
+      menuOpen={false}
+      onCloseMenu={() => undefined}
+      onEndSession={() => undefined}
+      onInvite={() => undefined}
+      onLeave={() => undefined}
+      onOpenSettings={() => undefined}
+      onToggleMenu={() => undefined}
+      snapshot={snapshot}
+      {...props}
+    />
+  )
+
+  it('버튼이나 단축키 B로 지금 핸드를 표시하고, 입력 중에는 단축키를 쓰지 않는다', async () => {
+    const onToggleMark = vi.fn()
+    const { rerender } = render(chrome({ onToggleMark }))
+    const button = screen.getByRole('button', { name: `핸드 #${snapshot.handNumber} 복기 표시` })
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(button)
+    fireEvent.keyDown(window, { code: 'KeyB', key: 'b' })
+    expect(onToggleMark).toHaveBeenCalledTimes(2)
+
+    rerender(
+      <>
+        {chrome({ onToggleMark, marked: true })}
+        <input aria-label="채팅" />
+      </>,
+    )
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    expect(button).toHaveTextContent('표시함')
+    fireEvent.keyDown(screen.getByRole('textbox', { name: '채팅' }), { code: 'KeyB', key: 'b' })
+    expect(onToggleMark).toHaveBeenCalledTimes(2)
+  })
+
+  it('목업처럼 onToggleMark가 없으면 버튼이 없다', () => {
+    render(chrome({}))
+    expect(screen.queryByRole('button', { name: /복기 표시/ })).toBeNull()
   })
 })

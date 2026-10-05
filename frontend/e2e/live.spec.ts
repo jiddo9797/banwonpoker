@@ -90,6 +90,12 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await expectAccessible(host)
   await expectAccessible(guest)
 
+  // 나중에 복기하려고 이 핸드를 표시한다. 나에게만 보인다.
+  const mark = host.getByRole('button', { name: '핸드 #1 복기 표시' })
+  await mark.click()
+  await expect(mark).toHaveAttribute('aria-pressed', 'true')
+  await expect(guest.getByRole('button', { name: '핸드 #1 복기 표시' })).toHaveAttribute('aria-pressed', 'false')
+
   // 헤즈업: 딜러(하늘)가 스몰 블라인드로 먼저 행동한다.
   await expect(dock(host).getByRole('button', { name: /^콜/ })).toHaveAttribute('aria-disabled', 'false')
   await expect(dock(guest).getByRole('button', { name: /^콜/ })).toHaveAttribute('aria-disabled', 'true')
@@ -146,6 +152,8 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await host.getByRole('button', { name: '복기 보기' }).click()
   await expect(host.getByRole('heading', { level: 1, name: '복기 · 핸드 #1' })).toBeVisible()
   await expect(host.getByRole('group', { name: '민수의 홀카드' }).getByRole('img')).toHaveCount(2)
+  // 게임 중에 표시한 핸드는 복기에서도 표시되어 있다.
+  await expect(host.getByRole('button', { name: '핸드 #1 표시' })).toHaveAttribute('aria-pressed', 'true')
   // 좌석에는 액션 글자·금액을 쓰지 않는다(음성을 듣기 전에 무엇을 했는지 보이지 않게).
   await expect(host.locator('.replay-seat').filter({ hasText: /콜|체크|베팅|레이즈|폴드|대기/ })).toHaveCount(0)
   const timeline = host.getByRole('group', { name: '액션 타임라인' })

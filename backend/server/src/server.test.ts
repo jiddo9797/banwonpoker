@@ -175,6 +175,10 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage({ type: 'chat.send', text: '  안녕  ' })).toEqual({ ok: true, message: { type: 'chat.send', text: '안녕' } })
     expect(parseClientMessage({ type: 'chat.send', text: '가'.repeat(200) }).ok).toBe(true)
     expect(parseClientMessage({ type: 'voice.set', voiceless: true })).toEqual({ ok: true, message: { type: 'voice.set', voiceless: true } })
+    expect(parseClientMessage({ type: 'hand.mark', handNumber: 3, marked: true, extra: 1 })).toEqual({
+      ok: true,
+      message: { type: 'hand.mark', handNumber: 3, marked: true },
+    })
   })
 
   it.each([
@@ -195,6 +199,8 @@ describe('parseClientMessage', () => {
     { type: 'chat.send', text: '가'.repeat(201) },
     { type: 'chat.send', text: 1 },
     { type: 'voice.set', voiceless: 'yes' },
+    { type: 'hand.mark', handNumber: 0, marked: true },
+    { type: 'hand.mark', handNumber: 2, marked: 'yes' },
   ])('%j → 거부', (input) => {
     expect(parseClientMessage(input)).toMatchObject({ ok: false, error: { code: 'BAD_REQUEST' } })
   })
