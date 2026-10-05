@@ -174,6 +174,8 @@ export function TablePrototype({
     () => createInitialPrototypeState(scenarioKey, isCompactViewport()),
   )
   const [chatMessages, setChatMessages] = useState<ChatLine[]>(chatFixture)
+  // 목업: 핸드 표시는 서버 없이 이 화면에서만 켜고 끈다.
+  const [marked, setMarked] = useState(false)
 
   // 개발 도구나 URL로 시나리오가 바뀌면 목 상태를 새 시나리오로 맞춘다.
   if (state.scenarioKey !== scenarioKey) {
@@ -240,7 +242,10 @@ export function TablePrototype({
         onInvite={invite}
         onLeave={() => dispatch({ type: 'leave.opened' })}
         onOpenSettings={() => dispatch({ type: 'settings.opened' })}
+        marked={marked}
+        onToggleMark={() => setMarked((value) => !value)}
         onToggleMenu={() => dispatch({ type: 'menu.toggled' })}
+        roomName={room.name}
         snapshot={headerSnapshot}
       />
       <GameTable
