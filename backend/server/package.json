@@ -2,6 +2,7 @@
   "name": "@banwonpoker/server",
   "private": true,
   "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "description": "banwonpoker 게임 서버. 방·좌석·준비·차례 타이머를 관리하고 WebSocket으로 참가자별 화면을 보낸다.",
   "exports": {

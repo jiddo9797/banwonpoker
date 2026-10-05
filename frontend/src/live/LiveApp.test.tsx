@@ -22,6 +22,9 @@ describe('LiveApp', () => {
     const user = userEvent.setup()
     render(<LiveApp client={new LiveClient({ url: 'ws://test', storage: null, createSocket: idleSocket })} />)
 
+    // AGPL: 지금 돌아가는 버전의 소스를 받을 곳을 알려준다.
+    expect(screen.getByRole('link', { name: '소스 코드' })).toHaveAttribute('href', 'https://github.com/jiddo9797/banwonpoker')
+
     await user.click(screen.getByRole('button', { name: 'GTO 차트 보기' }))
     expect(screen.getByRole('heading', { level: 1, name: '프리플랍 GTO 차트' })).toBeInTheDocument()
     expect(await screen.findByRole('group', { name: '핸드 표' })).toBeInTheDocument()
