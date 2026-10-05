@@ -184,6 +184,14 @@ test('방장과 친구가 실제 서버에서 방을 만들고 한 판을 둔 �
   await host.getByRole('button', { name: '복기로' }).click()
   await expect(timeline.getByRole('button', { name: /^3번째 액션/ })).toHaveAttribute('aria-current', 'step')
 
+  // 플랍 결정(BB 베팅에 폴드)은 브라우저 안의 솔버(WASM 워커)로 푼다. 다 풀려면 시간이 걸리므로 시작만 확인한다.
+  await timeline.getByRole('button', { name: /^6번째 액션/ }).click()
+  await host.getByRole('button', { name: '이 지점 GTO 분석' }).click()
+  const deep = host.getByRole('dialog', { name: 'GTO 분석 · 핸드 #1' })
+  await expect(deep.getByText('플랍 · BB vs BTN · 플랍 팟 2BB · 유효 99BB')).toBeVisible()
+  await expect(deep.getByText(/솔버 계산 중 · \d+회/)).toBeVisible({ timeout: 30_000 })
+  await deep.getByRole('button', { name: '닫기' }).click()
+
   // 내보내기: 음성(WAV)과 기록(텍스트)
   await host.getByRole('button', { name: '영상 내보내기' }).click()
   await expect(host.getByRole('dialog', { name: '음성과 기록 내보내기' })).toBeVisible()
