@@ -139,3 +139,13 @@
   color: var(--text-secondary);
   font-size: 14px;
 }
+
+/* 복기 위에 차트를 띄울 때 복기 화면을 감싼다. 배치에는 관여하지 않는다. */
+.live-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.live-layer[hidden] {
+  display: none;
+}

@@ -20,6 +20,7 @@ import {
   situationsFor,
 } from './model'
 import type { Situation, SituationGroup } from './model'
+import type { ChartFocus } from './SpotDialog'
 import './gto.css'
 
 interface GtoScreenProps {
@@ -27,16 +28,18 @@ interface GtoScreenProps {
   backLabel?: string
   /** 테스트에서 차트를 바꿔 끼운다. */
   load?: (players: number, stack: number) => Promise<ChartFile>
+  /** 복기에서 열 때: 이 상황과 핸드를 고른 채로 연다. */
+  initial?: ChartFocus
 }
 
 const chips = new Intl.NumberFormat('ko-KR')
 
-export function GtoScreen({ onBack, backLabel = '처음 화면', load = loadChart }: GtoScreenProps) {
-  const [players, setPlayers] = useState(6)
-  const [stack, setStack] = useState(100)
-  const [positionName, setPositionName] = useState('BTN')
-  const [situationKey, setSituationKey] = useState<string>()
-  const [selectedHand, setSelectedHand] = useState(handIndex('AKs'))
+export function GtoScreen({ onBack, backLabel = '처음 화면', load = loadChart, initial }: GtoScreenProps) {
+  const [players, setPlayers] = useState(initial?.players ?? 6)
+  const [stack, setStack] = useState(initial?.stack ?? 100)
+  const [positionName, setPositionName] = useState(initial?.position ?? 'BTN')
+  const [situationKey, setSituationKey] = useState<string | undefined>(initial?.situationKey)
+  const [selectedHand, setSelectedHand] = useState(initial?.hand ?? handIndex('AKs'))
   // 새 차트를 불러오는 동안에는 직전 차트를 그대로 두어 화면이 비었다 채워지지 않게 한다.
   const [chart, setChart] = useState<ChartFile>()
   const [failure, setFailure] = useState<{ key: string; message: string }>()
