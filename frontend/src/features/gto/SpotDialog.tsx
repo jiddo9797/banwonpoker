@@ -3,7 +3,11 @@ import type { ChartFile } from '@banwonpoker/gto'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog } from '../../shared/Dialog'
 import type { ReplayHand } from '../replay/model'
+import { browserEquity } from './equityClient'
+import type { EquityCalculator } from './equityClient'
 import { actionTone, loadChart, percent, signedBb } from './model'
+import { MultiwayAnalysis } from './MultiwayAnalysis'
+import { multiwaySpotAt } from './multiway'
 import { PostflopAnalysis } from './PostflopAnalysis'
 import { postflopSpotAt } from './postflop'
 import { browserSolver } from './postflopClient'
@@ -28,19 +32,30 @@ interface SpotDialogProps {
   onOpenChart?: (focus: ChartFocus) => void
   load?: (players: number, stack: number) => Promise<ChartFile>
   solver?: PostflopSolver
+  equity?: EquityCalculator
 }
 
-/** 복기의 결정 하나를 GTO와 비교해 보여준다. 프리플랍은 차트로, 플랍 이후는 솔버로 본다. */
-export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, solver = browserSolver }: SpotDialogProps) {
+/**
+ * 복기의 결정 하나를 GTO와 비교해 보여준다. 프리플랍은 차트로, 플랍 이후는 솔버로 본다.
+ * 세 명 이상이 플랍을 본 팟은 GTO 대신 승률·팟 오즈 참고 분석을 보여준다.
+ */
+export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, solver = browserSolver, equity = browserEquity }: SpotDialogProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const postflop = useMemo(() => {
     if (!target) return null
     const action = target.hand.actions[target.index]
     return action && action.street !== 'preflop' ? postflopSpotAt(target.hand, target.index) : null
   }, [target])
+  const multiway = useMemo(
+    () => (target && postflop && !postflop.ok && postflop.multiway ? multiwaySpotAt(target.hand, target.index) : null),
+    [target, postflop],
+  )
   const lookup = useMemo(() => (target && !postflop ? spotAt(target.hand, target.index) : null), [target, postflop])
   const spot = lookup?.ok ? lookup.spot : null
   const deep = postflop?.ok ? postflop.spot : null
+  const wide = multiway?.ok ? multiway.spot : null
+  // 멀티웨이 참고 분석으로 넘긴 칸은 솔버의 거절 대신 참고 분석(또는 그 거절 이유)을 보여준다.
+  const postflopReason = multiway ? (multiway.ok ? undefined : multiway.reason) : postflop && !postflop.ok ? postflop.reason : undefined
   const [loaded, setLoaded] = useState<{ spot: Spot; chart?: ChartFile; error?: string }>()
 
   useEffect(() => {
@@ -66,7 +81,7 @@ export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, sol
       initialFocusRef={closeRef}
       onClose={onClose}
       open={target !== null}
-      title={target ? `GTO 분석 · 핸드 #${target.hand.number}` : 'GTO 분석'}
+      title={target ? `${multiway ? '참고 분석' : 'GTO 분석'} · 핸드 #${target.hand.number}` : 'GTO 분석'}
     >
       {deep ? (
         <p className="gto-spot-who">
@@ -80,11 +95,25 @@ export function SpotDialog({ target, onClose, onOpenChart, load = loadChart, sol
           </span>
         </p>
       ) : null}
-      {postflop && !postflop.ok ? (
-        <p className="gto-spot-reason" role="status">
-          {postflop.reason}
+      {wide ? (
+        <p className="gto-spot-who">
+          <strong>
+            {wide.playerName} · {wide.position}
+          </strong>
+          <span className="numeric">{wide.cardsText}</span>
+          <span className="gto-spot-hand">{handLabel(wide.hand)}</span>
+          <span className="gto-not-gto">GTO 아님 · {wide.opponents.length + 1}인 팟</span>
+          <span>
+            {wide.players}인 · 레인지는 {wide.stack}BB 차트
+          </span>
         </p>
       ) : null}
+      {postflopReason ? (
+        <p className="gto-spot-reason" role="status">
+          {postflopReason}
+        </p>
+      ) : null}
+      {wide ? <MultiwayAnalysis calculator={equity} key={wide.key} load={load} spot={wide} /> : null}
       {deep ? <PostflopAnalysis key={`${deep.key}:${target?.index}`} load={load} solver={solver} spot={deep} /> : null}
       {spot ? (
         <p className="gto-spot-who">
