@@ -6,6 +6,7 @@ import { defaultRoomSettings } from '../features/room/settings'
 import type { LiveClient, LiveSnapshot } from './client'
 import { LICENSE_NAME, SOURCE_URL } from '../shared/source'
 import type { PastSession } from './history'
+import { TopBar } from '../shared/TopBar'
 import './live.css'
 
 const NICKNAME_MIN = 2
@@ -103,9 +104,7 @@ export function LiveHome({ client, snapshot, initialRoomCode, pastSessions = [],
 
   return (
     <div className="live-home">
-      <header className="chrome-header">
-        <div className="wordmark">banwonpoker</div>
-      </header>
+      <TopBar />
       <main aria-labelledby="live-home-title" className="live-home-main">
         <h1 id="live-home-title">친구들과 포커 한 판</h1>
         <p className="live-home-lead">방을 만들어 초대 링크를 보내거나, 받은 방 코드로 들어오세요.</p>
@@ -205,9 +204,7 @@ export function LiveHome({ client, snapshot, initialRoomCode, pastSessions = [],
 export function Replaced({ onResume, onLeave }: { onResume: () => void; onLeave: () => void }) {
   return (
     <div className="live-home">
-      <header className="chrome-header">
-        <div className="wordmark">banwonpoker</div>
-      </header>
+      <TopBar />
       <main aria-labelledby="replaced-title" className="live-home-main">
         <h1 id="replaced-title">다른 탭에서 이 자리를 쓰고 있습니다</h1>
         <p className="live-home-lead">같은 브라우저나 다른 기기에서 같은 자리로 들어왔습니다. 한 자리는 한 화면에서만 쓸 수 있습니다.</p>
@@ -227,9 +224,7 @@ export function Replaced({ onResume, onLeave }: { onResume: () => void; onLeave:
 export function Kicked({ onHome }: { onHome: () => void }) {
   return (
     <div className="live-home">
-      <header className="chrome-header">
-        <div className="wordmark">banwonpoker</div>
-      </header>
+      <TopBar />
       <main aria-labelledby="kicked-title" className="live-home-main">
         <h1 id="kicked-title">방장이 방에서 내보냈습니다</h1>
         <p className="live-home-lead">이 자리로는 다시 들어갈 수 없습니다. 게임 중이었다면 그 핸드는 폴드 처리되었습니다.</p>
@@ -246,9 +241,7 @@ export function Kicked({ onHome }: { onHome: () => void }) {
 export function Reconnecting() {
   return (
     <div className="live-home">
-      <header className="chrome-header">
-        <div className="wordmark">banwonpoker</div>
-      </header>
+      <TopBar />
       <main aria-labelledby="reconnecting-title" className="live-home-main">
         <h1 id="reconnecting-title">방에 다시 들어가는 중…</h1>
         <p className="live-home-lead" role="status">

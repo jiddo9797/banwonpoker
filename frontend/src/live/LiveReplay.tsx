@@ -7,6 +7,7 @@ import type { Api } from './api'
 import type { PastSession } from './history'
 import { toReplayHands } from './replayAdapt'
 import { createAudioPlayer, createAudioSource, createExporter } from './replayMedia'
+import { TopBar } from '../shared/TopBar'
 import './live.css'
 
 interface LiveReplayProps {
@@ -44,9 +45,7 @@ export function LiveReplay({ session, onBack, backLabel, api, onOpenChart }: Liv
   if (!replay || hands.length === 0) {
     return (
       <div className="live-home">
-        <header className="chrome-header">
-          <div className="wordmark">banwonpoker</div>
-        </header>
+        <TopBar />
         <main aria-labelledby="replay-loading-title" className="live-home-main">
           <h1 id="replay-loading-title">{error ? '복기를 열 수 없습니다' : replay ? '복기할 핸드가 없습니다' : '복기를 불러오는 중…'}</h1>
           <p className="live-home-lead" role={error ? 'alert' : 'status'}>
@@ -76,6 +75,7 @@ export function LiveReplay({ session, onBack, backLabel, api, onOpenChart }: Liv
       initialHandNumber={firstMarked?.number ?? lastPlayed?.number}
       onBack={onBack}
       onOpenChart={onOpenChart}
+      roomName={session.name}
       onToggleMark={(handNumber, marked) => http.setMark(session.sessionId, handNumber, marked, session.token).then(() => undefined)}
       sessionInfo={{ handCount: hands.length, durationMinutes }}
     />

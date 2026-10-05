@@ -1,4 +1,6 @@
+import { CheckmarkCircle20Filled, Info20Regular, Warning20Filled } from '@fluentui/react-icons'
 import type { ChartFile } from '@banwonpoker/gto'
+import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
 import type { EquityResult } from './equity'
 import type { EquityCalculator } from './equityClient'
@@ -77,7 +79,8 @@ export function MultiwayAnalysis({ spot, load, calculator }: MultiwayAnalysisPro
   )
   const limits = (
     <div className="gto-multiway-limits">
-      <p>한계</p>
+      <Info20Regular aria-hidden="true" />
+      <p className="visually-hidden">한계</p>
       <ul>
         <li>이 분석은 GTO가 아닙니다.</li>
         <li>앞으로의 베팅(임플라이드 오즈), 포지션, 블러프는 반영하지 않습니다.</li>
@@ -120,6 +123,9 @@ export function MultiwayAnalysis({ spot, load, calculator }: MultiwayAnalysisPro
   if (isAllInCall(spot)) notes.push('콜하면 더 칠 칩이 없어(올인) 앞으로의 베팅이 없습니다. 이 판단은 거의 정확합니다.')
   notes.push(result.exact ? '리버라 남은 상대 레인지의 모든 조합을 정확히 셌습니다.' : `상대 핸드와 남은 보드를 ${result.samples.toLocaleString('ko-KR')}번 뽑아 셌습니다(오차 ±0.5% 안팎).`)
 
+  const VerdictIcon = verdict === 'call' ? CheckmarkCircle20Filled : verdict === 'fold' ? Warning20Filled : Info20Regular
+  const widthOf = (value: number) => ({ width: `${Math.round(value * 1000) / 10}%` }) as CSSProperties
+
   return (
     <>
       {header}
@@ -127,41 +133,77 @@ export function MultiwayAnalysis({ spot, load, calculator }: MultiwayAnalysisPro
         <div>
           <dt>내 승률</dt>
           <dd className="numeric">{percent(result.equity)}</dd>
-          <dd className="gto-multiway-detail">남은 상대 {spot.opponents.length}명을 모두 이길 확률(비기면 나눈 몫 포함)</dd>
         </div>
         {required !== null && verdict ? (
           <>
             <div>
-              <dt>콜에 필요한 승률</dt>
+              <dt>필요 승률 (팟 오즈)</dt>
               <dd className="numeric">{percent(required)}</dd>
               <dd className="gto-multiway-detail">
                 {bb(spot.toCall)} ÷ ({bb(spot.pot)} + {bb(spot.toCall)})
               </dd>
             </div>
-            <div>
-              <dt>판단</dt>
-              <dd className={verdict === 'fold' ? 'is-loss' : undefined}>{VERDICTS[verdict]}</dd>
-              <dd className="gto-multiway-detail">콜의 단순 기대값 {signedBb(ev)}</dd>
+            <div className={ev > 0.005 ? 'is-gain' : ev < -0.005 ? 'is-loss' : undefined}>
+              <dt>콜 기대값</dt>
+              <dd className="numeric">{signedBb(ev)}</dd>
+              <dd className="gto-multiway-detail">단순 계산</dd>
             </div>
           </>
-        ) : theirs !== null ? (
-          <div>
-            <dt>상대가 콜하려면 필요한 승률</dt>
-            <dd className="numeric">{percent(theirs)}</dd>
-            <dd className="gto-multiway-detail">내 {actualLabel(spot)} 기준</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt>상대별 승률</dt>
-          <dd>{spot.opponents.map((opponent, index) => `${opponent.position} 대비 ${percent(result.versus[index])}`).join(' · ')}</dd>
-          <dd className="gto-multiway-detail">한 명과 일대일로 붙었을 때</dd>
-        </div>
-        <div>
-          <dt>실제 행동</dt>
-          <dd>{actualLabel(spot)}</dd>
-        </div>
+        ) : (
+          <>
+            {theirs !== null ? (
+              <div>
+                <dt>상대가 콜하려면 필요한 승률</dt>
+                <dd className="numeric">{percent(theirs)}</dd>
+                <dd className="gto-multiway-detail">내 {actualLabel(spot)} 기준</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>실제 행동</dt>
+              <dd>{actualLabel(spot)}</dd>
+            </div>
+          </>
+        )}
       </dl>
+
+      {required !== null && verdict ? (
+        <div className="gto-compare">
+          <div aria-hidden="true" className="gto-compare-labels">
+            <span>필요 {percent(required)}</span>
+            <span>내 승률 {percent(result.equity)}</span>
+          </div>
+          <div aria-hidden="true" className="gto-compare-track">
+            <span className="gto-compare-fill" style={widthOf(result.equity)} />
+            <span className="gto-compare-mark" style={{ left: widthOf(required).width } as CSSProperties} />
+          </div>
+          <p className={`gto-verdict is-${verdict}`}>
+            <VerdictIcon aria-hidden="true" />
+            <span>
+              <strong>{VERDICTS[verdict]}</strong> · 실제 행동 {actualLabel(spot)}
+            </span>
+          </p>
+        </div>
+      ) : null}
+
+      <div className="gto-versus">
+        <p className="gto-versus-title">상대별 승률 (일대일)</p>
+        <ul>
+          {spot.opponents.map((opponent, index) => (
+            <li key={opponent.position}>
+              <span>
+                {opponent.name} · {opponent.position}
+              </span>
+              <span aria-hidden="true" className="gto-versus-track">
+                <span style={widthOf(result.versus[index])} />
+              </span>
+              <b className="numeric">{percent(result.versus[index])}</b>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <ul className="gto-spot-notes">
+        <li>내 승률은 남은 상대 {spot.opponents.length}명을 모두 이길 확률입니다(비기면 나눈 몫 포함).</li>
         {notes.map((note) => (
           <li key={note}>{note}</li>
         ))}

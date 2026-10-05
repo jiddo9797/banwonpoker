@@ -1,20 +1,21 @@
 import {
   ArrowDownload20Regular,
-  ArrowLeft20Regular,
   ChevronLeft20Regular,
   ChevronRight20Regular,
-  Grid20Regular,
+  DataHistogram20Regular,
   Star20Filled,
   Star20Regular,
 } from '@fluentui/react-icons'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import type { ExportOutcome } from '../../app/flow'
+import { Avatar } from '../../shared/Avatar'
 import { formatChips } from '../../shared/format'
+import { TopBar } from '../../shared/TopBar'
 import { SpotDialog } from '../gto/SpotDialog'
 import type { ChartFocus } from '../gto/SpotDialog'
 import { isDecision } from '../gto/spot'
 import { AudioScrubber } from './components/AudioScrubber'
-import { AudioTrackStatus, audioStatusDescription, audioStatusOrder } from './components/AudioTrackStatus'
+import { AudioLegend, AudioTrackStatus } from './components/AudioTrackStatus'
 import { ExportModal } from './components/ExportModal'
 import { HandPicker } from './components/HandPicker'
 import { ParticipantMixer } from './components/ParticipantMixer'
@@ -82,6 +83,8 @@ interface ReplayScreenProps {
   /** 내보내기 창의 `세션 전체` 설명 */
   sessionInfo?: { handCount: number; durationMinutes: number }
   backLabel?: string
+  /** 상단 바에 쓰는 방 이름 */
+  roomName?: string
   /** GTO 분석 창에서 `전체 차트에서 보기`를 눌렀을 때 */
   onOpenChart?: (focus: ChartFocus) => void
   /** 실제 게임: 복기하면서 핸드 표시를 넣거나 뺀다. 있으면 표시 버튼을 보여준다. */
@@ -99,6 +102,7 @@ export function ReplayScreen({
   exporter,
   sessionInfo = { handCount: sessionSummary.handCount, durationMinutes: sessionSummary.durationMinutes },
   backLabel = '세션 요약',
+  roomName = sessionSummary.roomName,
   onOpenChart,
   onToggleMark,
 }: ReplayScreenProps) {
@@ -112,7 +116,8 @@ export function ReplayScreen({
   const [spotTarget, setSpotTarget] = useState<{ hand: ReplayHand; index: number } | null>(null)
   const hand = handOf(state.hands, state.handNumber)
   const current = hand.actions[state.index]
-  const actor = hand.players.find((player) => player.id === current.playerId)
+  const actorIndex = hand.players.findIndex((player) => player.id === current.playerId)
+  const actor = hand.players[actorIndex] as (typeof hand.players)[number] | undefined
   // 남은 칩: 액션 칸은 액션한 사람, 결과 칸은 승자 기준
   const stackFact = stackFactAt(hand, state.index)
   const stackOwner = hand.players.find((player) => player.id === stackFact?.playerId)
@@ -144,7 +149,8 @@ export function ReplayScreen({
   }
 
   // 음성 위치: 칸이 바뀌면 처음으로. 멈췄다 다시 틀면 멈춘 곳부터, 막대를 옮기면 그곳부터 튼다.
-  const hasVoice = audio !== undefined && current.audio.status === 'voice' && current.turnSeq !== undefined
+  // 목 데이터는 실제 음성이 없어 위치만 옮긴다.
+  const hasVoice = current.audio.status === 'voice' && (audio === undefined || current.turnSeq !== undefined)
   const [audioClock, setAudioClock] = useState({ key: '', current: 0, duration: 0 })
   const clipKey = `${hand.number}:${state.index}`
   const clip = audioClock.key === clipKey ? audioClock : { key: clipKey, current: 0, duration: current.audio.seconds ?? 0 }
@@ -238,82 +244,98 @@ export function ReplayScreen({
 
   return (
     <div className="replay-screen">
-      <header className="replay-header">
-        <button className="btn btn--secondary" onClick={onBack} type="button">
-          <ArrowLeft20Regular aria-hidden="true" />
-          {backLabel}
-        </button>
-        <div className="replay-heading">
-          <h1>복기 · 핸드 #{hand.number}</h1>
-          <p>모든 참가자의 패와 차례별 음성이 공개됩니다.</p>
-        </div>
-        <nav aria-label="핸드 이동" className="hand-nav">
-          <button
-            aria-disabled={!previousHand}
-            className="icon-button"
-            onClick={() => {
-              if (previousHand) dispatch({ type: 'hand.changed', handNumber: previousHand.number })
-            }}
-            type="button"
-          >
-            <ChevronLeft20Regular aria-hidden="true" />
-            <span className="visually-hidden">이전 핸드</span>
-          </button>
-          <HandPicker
-            currentNumber={hand.number}
-            hands={state.hands}
-            marked={marked}
-            onSelect={(handNumber) => dispatch({ type: 'hand.changed', handNumber })}
-          />
-          <button
-            aria-disabled={!nextHand}
-            className="icon-button"
-            onClick={() => {
-              if (nextHand) dispatch({ type: 'hand.changed', handNumber: nextHand.number })
-            }}
-            type="button"
-          >
-            <ChevronRight20Regular aria-hidden="true" />
-            <span className="visually-hidden">다음 핸드</span>
-          </button>
-          {onToggleMark ? (
-            <button
-              aria-pressed={isMarked}
-              className={isMarked ? 'icon-button mark-button is-marked' : 'icon-button mark-button'}
-              onClick={toggleMark}
-              title="나중에 다시 볼 핸드로 표시합니다. 나에게만 보입니다."
-              type="button"
-            >
-              {isMarked ? <Star20Filled aria-hidden="true" /> : <Star20Regular aria-hidden="true" />}
-              <span className="visually-hidden">핸드 #{hand.number} 표시</span>
+      <TopBar
+        end={
+          <>
+            <button className="top-bar-button" onClick={onBack} type="button">
+              {backLabel}
             </button>
-          ) : null}
-          {markError ? (
-            <span className="mark-error" role="alert">
-              {markError}
-            </span>
-          ) : null}
-        </nav>
-        <button className="btn btn--primary" onClick={() => dispatch({ type: 'export.opened' })} type="button">
-          <ArrowDownload20Regular aria-hidden="true" />
-          영상 내보내기
-        </button>
-      </header>
-
+            <button className="top-bar-button is-primary" onClick={() => dispatch({ type: 'export.opened' })} type="button">
+              <ArrowDownload20Regular aria-hidden="true" />
+              영상 내보내기
+            </button>
+          </>
+        }
+        pills={<span className="top-bar-pill">세션 종료 · 복기</span>}
+        title={roomName}
+      />
       <main className="replay-main">
-        <ReplayTable hand={hand} index={state.index} playing={state.playing} />
+        <h1 className="visually-hidden">복기 · 핸드 #{hand.number}</h1>
+        <ReplayTable
+          hand={hand}
+          index={state.index}
+          nav={
+            <nav aria-label="핸드 이동" className="hand-nav">
+              <button
+                aria-disabled={!previousHand}
+                className="hand-nav-button"
+                onClick={() => {
+                  if (previousHand) dispatch({ type: 'hand.changed', handNumber: previousHand.number })
+                }}
+                type="button"
+              >
+                <ChevronLeft20Regular aria-hidden="true" />
+                <span className="visually-hidden">이전 핸드</span>
+              </button>
+              <HandPicker
+                currentNumber={hand.number}
+                hands={state.hands}
+                marked={marked}
+                onSelect={(handNumber) => dispatch({ type: 'hand.changed', handNumber })}
+              />
+              <button
+                aria-disabled={!nextHand}
+                className="hand-nav-button"
+                onClick={() => {
+                  if (nextHand) dispatch({ type: 'hand.changed', handNumber: nextHand.number })
+                }}
+                type="button"
+              >
+                <ChevronRight20Regular aria-hidden="true" />
+                <span className="visually-hidden">다음 핸드</span>
+              </button>
+              {onToggleMark ? (
+                <button
+                  aria-pressed={isMarked}
+                  className={isMarked ? 'hand-nav-button mark-button is-marked' : 'hand-nav-button mark-button'}
+                  onClick={toggleMark}
+                  title="나중에 다시 볼 핸드로 표시합니다. 나에게만 보입니다."
+                  type="button"
+                >
+                  {isMarked ? <Star20Filled aria-hidden="true" /> : <Star20Regular aria-hidden="true" />}
+                  <span className="visually-hidden">핸드 #{hand.number} 표시</span>
+                </button>
+              ) : null}
+              {markError ? (
+                <span className="mark-error" role="alert">
+                  {markError}
+                </span>
+              ) : (
+                <span className="hand-nav-note">모든 참가자의 패와 차례별 음성이 공개됩니다</span>
+              )}
+            </nav>
+          }
+          playing={state.playing}
+        />
 
         <div className="replay-side">
           <section aria-labelledby="action-detail-title" className="replay-card action-detail">
             <div className="replay-card-header">
-              <h2 id="action-detail-title">현재 액션</h2>
+              <h2 className="micro-label" id="action-detail-title">
+                현재 액션
+              </h2>
               <span className="prep-caption">
                 {streetLabels[current.street]} · {state.index + 1}번째
               </span>
             </div>
-            <p className="action-detail-main">
-              <strong>{actor?.name ?? '결과'}</strong> {current.kind === 'result' ? hand.result : current.label}
-            </p>
+            <div className="action-detail-main">
+              {actor ? <Avatar index={actorIndex} me={actor.position === 'hero'} name={actor.name} size={32} /> : null}
+              <p>
+                <span className="action-detail-actor">{actor?.name ?? '결과'}</span>{' '}
+                <strong>{current.kind === 'result' ? hand.result : current.label}</strong>
+              </p>
+              <AudioTrackStatus seconds={current.audio.seconds} status={current.audio.status} />
+            </div>
             <dl className="action-detail-facts">
               <div>
                 <dt>생각 시간</dt>
@@ -337,24 +359,17 @@ export function ReplayScreen({
                   </dd>
                 </div>
               ) : null}
-              <div>
-                <dt>음성</dt>
-                <dd>
-                  <AudioTrackStatus seconds={current.audio.seconds} status={current.audio.status} />
-                </dd>
-              </div>
             </dl>
-            <p className="action-detail-note">{audioStatusDescription(current.audio.status)}</p>
             {hand.bigBlind && isDecision(current) ? (
               <button
-                className="btn btn--secondary action-detail-gto"
+                className="action-detail-gto"
                 onClick={() => {
                   if (state.playing) dispatch({ type: 'playback.toggled' })
                   setSpotTarget({ hand, index: state.index })
                 }}
                 type="button"
               >
-                <Grid20Regular aria-hidden="true" />
+                <DataHistogram20Regular aria-hidden="true" />
                 이 지점 GTO 분석
               </button>
             ) : null}
@@ -375,9 +390,8 @@ export function ReplayScreen({
             onStep={(delta) => dispatch({ type: 'playback.stepped', delta })}
             onTogglePlay={() => dispatch({ type: 'playback.toggled' })}
             playing={state.playing}
-            scrubber={
-              audio ? <AudioScrubber available={hasVoice} current={clip.current} duration={clip.duration} onSeek={seek} /> : undefined
-            }
+            legend={<AudioLegend />}
+            scrubber={<AudioScrubber available={hasVoice} current={clip.current} duration={clip.duration} onSeek={seek} />}
             speed={state.speed}
             total={hand.actions.length}
           />
@@ -386,13 +400,6 @@ export function ReplayScreen({
             index={state.index}
             onSelect={(index) => dispatch({ type: 'action.selected', index })}
           />
-          <ul aria-label="음성 상태 범례" className="audio-legend">
-            {audioStatusOrder.map((status) => (
-              <li key={status}>
-                <AudioTrackStatus status={status} />
-              </li>
-            ))}
-          </ul>
         </section>
       </main>
 

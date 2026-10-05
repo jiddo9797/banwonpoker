@@ -1,4 +1,4 @@
-import { Clock20Regular, Copy20Regular, Info20Regular, Play20Filled } from '@fluentui/react-icons'
+import { Clock20Regular, Info20Regular, Link20Regular, Play20Filled } from '@fluentui/react-icons'
 import { useEffect, useId, useState } from 'react'
 import { RoomRules } from '../room/RoomRules'
 import { RoomSettingsForm } from '../room/RoomSettingsForm'
@@ -48,12 +48,14 @@ function InviteBox({ url = INVITE_URL }: { url?: string }) {
 
   return (
     <div className="invite-box">
-      <div>
-        <span className="field-label">초대 링크</span>
-        <code className="numeric">{url}</code>
+      <span aria-hidden="true" className="invite-icon">
+        <Link20Regular />
+      </span>
+      <div className="invite-text">
+        <span className="invite-label">초대 링크</span>
+        <code>{url}</code>
       </div>
-      <button className="btn btn--secondary btn--sm" onClick={copy} type="button">
-        <Copy20Regular aria-hidden="true" />
+      <button className="btn btn--primary btn--md" onClick={copy} type="button">
         링크 복사
       </button>
       <span aria-live="polite" className="invite-status">
@@ -77,27 +79,28 @@ function HostLobby({ context, seatNumber, onSettingsChange, onStart, onBack, liv
       : live?.errorMessage
 
   return (
-    <div className="prep-panel prep-panel--compact">
+    <div className="lobby-host">
       <InviteBox url={live?.inviteUrl} />
 
-      <RoomSettingsForm
-        errors={errors}
-        headcount={live ? live.headcount : headcount('host')}
-        onChange={onSettingsChange}
-        settings={context.room}
-        showErrors
-      />
+      <section aria-labelledby="room-settings-title" className="prep-panel">
+        <h2 className="prep-panel-title" id="room-settings-title">
+          방 설정
+        </h2>
+        <RoomSettingsForm
+          errors={errors}
+          headcount={live ? live.headcount : headcount('host')}
+          onChange={onSettingsChange}
+          settings={context.room}
+          showErrors
+        />
+      </section>
 
       <div className="start-box">
         <div className="start-box-text">
-          <strong>
-            준비 완료 <span className="numeric">{ready}</span>명으로 시작합니다
-          </strong>
           <span>
             {lateNames.length > 0
               ? `${lateNames.join('·')}은(는) 준비를 마치면 다음 핸드부터 참여합니다.`
-              : '모든 참가자가 준비를 마쳤습니다.'}{' '}
-            게임을 시작하면 설정을 바꿀 수 없습니다.
+              : '모든 참가자가 준비를 마쳤습니다.'}
           </span>
           {reason ? (
             <span className="field-error" id={reasonId}>
@@ -105,13 +108,13 @@ function HostLobby({ context, seatNumber, onSettingsChange, onStart, onBack, liv
             </span>
           ) : null}
         </div>
-        <button className="btn btn--secondary" onClick={onBack} type="button">
+        <button className="btn btn--outline btn--lg" onClick={onBack} type="button">
           준비 취소
         </button>
         <button
           aria-describedby={reason ? reasonId : undefined}
           aria-disabled={!canStart}
-          className="btn btn--primary"
+          className="btn btn--primary btn--lg btn--raised"
           onClick={() => {
             if (canStart) onStart()
           }}
@@ -165,8 +168,9 @@ function GuestLobby({ context, onStart, onBack, live }: LobbyScreenProps) {
 }
 
 export function LobbyScreen(props: LobbyScreenProps) {
-  const { context, nickname, seatNumber, selfMicLabel } = props
+  const { context, nickname, seatNumber, selfMicLabel, live } = props
   const isHost = context.role === 'host'
+  const ready = live ? live.readyCount : readyHeadcount('host', seatNumber)
 
   return (
     <PrepLayout
@@ -176,6 +180,15 @@ export function LobbyScreen(props: LobbyScreenProps) {
       seatNumber={seatNumber}
       selfMicLabel={selfMicLabel}
       selfReady
+      description={
+        isHost ? (
+          <>
+            준비 완료 <span className="numeric">{ready}</span>명 · 게임을 시작하면 설정을 바꿀 수 없습니다.
+          </>
+        ) : (
+          '방장이 게임을 시작하면 자동으로 테이블로 이동합니다.'
+        )
+      }
       title={isHost ? '친구들이 준비되면 시작하세요' : '대기실'}
     >
       {isHost ? <HostLobby {...props} /> : <GuestLobby {...props} />}

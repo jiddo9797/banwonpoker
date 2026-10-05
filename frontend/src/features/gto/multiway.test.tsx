@@ -250,14 +250,16 @@ describe('참고 분석 창', () => {
     const dialog = screen.getByRole('dialog', { name: '참고 분석 · 핸드 #12' })
     expect(within(dialog).getByText('GTO 아님 · 3인 팟')).toBeInTheDocument()
     expect(within(dialog).getByText('플랍 · 팟 12BB · 내 차례: 4BB 콜할지')).toBeInTheDocument()
-    const facts = (await within(dialog).findByText('콜에 필요한 승률')).closest('dl') as HTMLElement
-    expect(within(facts).getByText('31%')).toBeInTheDocument()
-    expect(within(facts).getByText('25%')).toBeInTheDocument()
-    expect(within(facts).getByText('4BB ÷ (12BB + 4BB)')).toBeInTheDocument()
-    expect(within(facts).getByText('콜이 수학적으로 이득')).toBeInTheDocument()
+    const facts = (await within(dialog).findByText('필요 승률 (팟 오즈)')).closest('dl') as HTMLElement
+    expect(within(facts).getByText('내 승률').closest('div')).toHaveTextContent('31%')
+    expect(within(facts).getByText('필요 승률 (팟 오즈)').closest('div')).toHaveTextContent('25%4BB ÷ (12BB + 4BB)')
     // 0.31 × (12 + 4) − 4 = +0.96BB
-    expect(within(facts).getByText('콜의 단순 기대값 +0.96BB')).toBeInTheDocument()
-    expect(within(facts).getByText('CO 대비 58% · BB 대비 47%')).toBeInTheDocument()
+    expect(within(facts).getByText('콜 기대값').closest('div')).toHaveTextContent('+0.96BB')
+    expect(within(dialog).getByText('콜이 수학적으로 이득')).toBeInTheDocument()
+    expect(within(dialog).getByText(/실제 행동 콜/)).toBeInTheDocument()
+    const versus = within(dialog).getByText('상대별 승률 (일대일)').closest('div') as HTMLElement
+    expect(within(versus).getByText('co · CO').closest('li')).toHaveTextContent('58%')
+    expect(within(versus).getByText('bb · BB').closest('li')).toHaveTextContent('47%')
     expect(within(dialog).getByText('이 분석은 GTO가 아닙니다.')).toBeInTheDocument()
     expect(within(dialog).getByText('상대 레인지는 근사입니다.')).toBeInTheDocument()
     expect(within(dialog).getByText(/BB 레인지는 차트에 없어/)).toBeInTheDocument()
@@ -275,8 +277,11 @@ describe('참고 분석 창', () => {
     // 6 ÷ (8 + 6 + 6) = 30%
     expect(within(facts).getByText('30%')).toBeInTheDocument()
     expect(within(facts).getByText('내 베팅 6BB 기준')).toBeInTheDocument()
-    expect(within(facts).queryByText('판단')).toBeNull()
-    expect(within(facts).getByText(/^CO 대비 \d+% · BB 대비 \d+%$/)).toBeInTheDocument()
+    expect(within(facts).queryByText('콜 기대값')).toBeNull()
+    expect(screen.queryByText(/수학적으로 이득/)).toBeNull()
+    const versus = screen.getByText('상대별 승률 (일대일)').closest('div') as HTMLElement
+    expect(within(versus).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(versus).getByText('co · CO').closest('li')).toHaveTextContent(/\d+%$/)
   })
 
   it('헤즈업 포스트플랍은 그대로 GTO 분석 창이다', () => {
