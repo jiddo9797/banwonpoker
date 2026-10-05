@@ -1,6 +1,7 @@
 import { ChevronDown20Regular, ChevronUp20Regular, PersonDelete20Regular } from '@fluentui/react-icons'
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { Avatar } from '../../../shared/Avatar'
 import { formatChips } from '../../../shared/format'
 import type { ChatLine, PanelTab, TableSnapshot } from '../model'
 
@@ -25,7 +26,18 @@ interface SidePanelProps {
   onSendChat: (text: string) => void
 }
 
-function ChatPanel({ messages, onSend }: { messages: ChatLine[]; onSend: (text: string) => void }) {
+const SEAT_ORDER = ['bottom-left', 'top-left', 'top-center', 'top-right', 'bottom-right']
+
+function ChatPanel({
+  messages,
+  onSend,
+  avatarIndex,
+}: {
+  messages: ChatLine[]
+  onSend: (text: string) => void
+  /** 이름으로 좌석 순서를 찾아 아바타 색을 맞춘다. */
+  avatarIndex: (name: string) => number
+}) {
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLOListElement>(null)
   const canSend = draft.trim().length > 0
@@ -48,8 +60,20 @@ function ChatPanel({ messages, onSend }: { messages: ChatLine[]; onSend: (text: 
       <ol aria-label="채팅 메시지" className="chat-messages" ref={listRef} tabIndex={0}>
         {messages.map((message) => (
           <li className={message.mine ? 'is-mine' : undefined} key={message.id}>
-            <strong>{message.name}</strong>
-            <span>{message.text}</span>
+            {message.mine ? (
+              <>
+                <strong className="visually-hidden">{message.name}</strong>
+                <span className="chat-bubble">{message.text}</span>
+              </>
+            ) : (
+              <>
+                <Avatar index={avatarIndex(message.name)} name={message.name} size={24} />
+                <span className="chat-body">
+                  <strong>{message.name}</strong>
+                  <span>{message.text}</span>
+                </span>
+              </>
+            )}
           </li>
         ))}
       </ol>
@@ -174,7 +198,16 @@ export function SidePanel({
         </button>
       </div>
 
-      {!collapsed && activeTab === 'chat' ? <ChatPanel messages={chatMessages} onSend={onSendChat} /> : null}
+      {!collapsed && activeTab === 'chat' ? (
+        <ChatPanel
+          avatarIndex={(name) => {
+            const seat = snapshot.seats.find((item) => item.name === name)
+            return seat ? SEAT_ORDER.indexOf(seat.position) : [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0)
+          }}
+          messages={chatMessages}
+          onSend={onSendChat}
+        />
+      ) : null}
 
       {!collapsed && activeTab === 'log' ? (
         <div aria-labelledby="log-tab" className="panel-body" id="log-panel" role="tabpanel" tabIndex={0}>

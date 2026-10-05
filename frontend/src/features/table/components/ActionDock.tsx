@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { streetBetTotal } from '../model'
 import type { ActionOption, DemoPhase, TableSnapshot } from '../model'
 import { formatChips } from '../../../shared/format'
@@ -6,6 +7,8 @@ import { formatChips } from '../../../shared/format'
 /** 액션 단축키. 한/영 상태와 상관없이 같은 자리의 키로 동작하도록 key가 아니라 code로 본다. */
 const hotkeys: Record<string, ActionOption['id']> = { KeyC: 'call', KeyK: 'check', KeyR: 'raise', KeyF: 'fold' }
 const hotkeyLabels: Record<ActionOption['id'], string> = { call: 'C', check: 'K', raise: 'R', fold: 'F' }
+/** 버튼 네 자리는 이 순서로 고정한다(왼쪽부터 폴드 · 체크 · 콜 · 레이즈). */
+const ACTION_ORDER: Array<ActionOption['id']> = ['fold', 'check', 'call', 'raise']
 
 /** 글자를 입력하는 칸이면 단축키를 쓰지 않는다(채팅·금액 입력). 슬라이더·버튼에 포커스가 있을 때는 쓴다. */
 export function isTypingTarget(target: EventTarget | null) {
@@ -59,6 +62,7 @@ export function ActionDock({
     onBetAmountChange(amount)
     return amount
   }
+  const fillPercent = snapshot.maxRaise > snapshot.minRaise ? ((selectedBetAmount - snapshot.minRaise) / (snapshot.maxRaise - snapshot.minRaise)) * 100 : 100
   const hasBetControl = snapshot.actions.find((action) => action.id === 'raise')?.enabled ?? false
   const isPending = phase === 'pending' || snapshot.key === 'pending'
   const canAct = (id: ActionOption['id']) => !isPending && (snapshot.actions.find((action) => action.id === id)?.enabled ?? false)
@@ -96,7 +100,7 @@ export function ActionDock({
         <div className="bet-control">
           <div className="bet-control-header">
             <span>
-              콜 {formatChips(snapshot.callAmount)} · 최소 레이즈 {formatChips(snapshot.minRaise)}
+              콜 <b>{formatChips(snapshot.callAmount)}</b> · 최소 레이즈 <b>{formatChips(snapshot.minRaise)}</b>
             </span>
             <div aria-label="빠른 베팅 금액" className="quick-bets" role="group">
               {quickBets.map((bet) => (
@@ -120,6 +124,7 @@ export function ActionDock({
               min={snapshot.minRaise}
               onChange={(event) => onBetAmountChange(Number(event.target.value))}
               step={betStep}
+              style={{ '--fill': `${fillPercent}%` } as CSSProperties}
               type="range"
               value={selectedBetAmount}
             />
@@ -192,24 +197,23 @@ export function ActionDock({
       </div>
 
       <div className="action-grid">
-        {snapshot.actions.map((action) => {
+        {[...snapshot.actions].sort((a, b) => ACTION_ORDER.indexOf(a.id) - ACTION_ORDER.indexOf(b.id)).map((action) => {
           const enabled = action.enabled && !isPending
           const isSubmitted = isPending && action.id === (pendingAction ?? 'raise')
-          const label = isSubmitted
-            ? '처리 중…'
-            : action.id === 'raise' && action.enabled
-              ? `${action.label} ${formatChips(selectedBetAmount)}`
-              : action.label
+          // 레이즈는 이름 아래에 정한 금액을 크게 쓴다. 보조기술에는 `레이즈 2,400`처럼 함께 읽힌다.
+          const raiseAmount = action.id === 'raise' && action.enabled && !isSubmitted ? formatChips(selectedBetAmount) : null
+          const label = isSubmitted ? '처리 중…' : action.label
           const detail = isSubmitted
             ? action.id === 'raise'
               ? `${action.label === '처리 중…' ? '레이즈' : action.label} ${formatChips(selectedBetAmount)}`
               : action.label
-            : action.detail
+            : (raiseAmount ?? action.detail)
 
           return (
             <button
               aria-disabled={!enabled}
               aria-keyshortcuts={hotkeyLabels[action.id]}
+              aria-label={raiseAmount ? `${label} ${raiseAmount}` : undefined}
               className={`action-button action-button--${action.tone} ${isSubmitted ? 'is-pending' : ''}`}
               key={action.id}
               onClick={() => {
@@ -218,7 +222,7 @@ export function ActionDock({
               type="button"
             >
               <strong>{label}</strong>
-              <span>{detail}</span>
+              <span className={raiseAmount ? 'action-amount' : undefined}>{detail}</span>
               <kbd aria-hidden="true" className="action-key">
                 {hotkeyLabels[action.id]}
               </kbd>

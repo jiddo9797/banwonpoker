@@ -91,6 +91,7 @@ export function LiveTable({ client, snapshot, state }: LiveTableProps) {
         hostName={host?.nickname ?? ''}
         isHost={state.you.isHost}
         marked={marked}
+        roomName={state.room.name}
         menuOpen={menuOpen}
         onCloseMenu={() => setMenuOpen(false)}
         onEndSession={() => {

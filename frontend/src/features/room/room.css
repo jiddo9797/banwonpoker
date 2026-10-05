@@ -54,7 +54,7 @@
   color: var(--text-secondary);
   background: var(--control);
   cursor: pointer;
-  font-family: "Inter Variable", "Inter", sans-serif;
+  font-variant-numeric: tabular-nums;
   font-size: 12px;
   font-weight: 600;
 }
@@ -176,7 +176,7 @@
   border-radius: 4px;
   color: var(--text-primary);
   background: var(--control);
-  font-family: "Inter Variable", "Inter", sans-serif;
+  font-variant-numeric: tabular-nums;
   font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
