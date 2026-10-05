@@ -165,6 +165,33 @@ describe('게임 중 음성 기록 끄기·켜기', () => {
   })
 })
 
+describe('복기 핸드 표시', () => {
+  it('게임 중에 표시한 핸드는 그 사람에게만 보이고, 아직 시작하지 않은 핸드는 표시할 수 없다', () => {
+    const store = new SessionStore()
+    const { room, host, minsu } = playedRoom(store)
+    const sent: string[] = []
+    room.attach(host, (message) => sent.push(`host:${message.type}`))
+    room.attach(minsu, (message) => sent.push(`minsu:${message.type}`))
+    sent.length = 0
+
+    room.handle(minsu, { type: 'hand.mark', handNumber: 1, marked: true })
+    expect(room.stateFor(minsu).you.markedHands).toEqual([1])
+    expect(room.stateFor(host).you.markedHands).toEqual([])
+    // 바뀐 상태는 표시한 사람에게만 보낸다(다른 사람은 누가 표시했는지 모른다).
+    expect(sent).toEqual(['minsu:state'])
+    expect(store.marks('S1', minsu)).toEqual([1])
+
+    const errors: string[] = []
+    room.attach(minsu, (message) => message.type === 'error' && errors.push(message.error.message))
+    room.handle(minsu, { type: 'hand.mark', handNumber: 2, marked: true })
+    expect(errors).toEqual(['아직 시작하지 않은 핸드입니다.'])
+
+    room.handle(minsu, { type: 'hand.mark', handNumber: 1, marked: false })
+    expect(room.stateFor(minsu).you.markedHands).toEqual([])
+    expect(store.marks('S1', minsu)).toEqual([])
+  })
+})
+
 describe('buildReplay', () => {
   it('핸드별 전체 패, 액션 순서, 팟, 생각 시간, 음성 상태를 만든다', () => {
     const store = new SessionStore()
@@ -316,6 +343,26 @@ describe('HTTP API', () => {
     expect(audio.headers.get('content-type')).toBe('audio/webm')
     expect([...new Uint8Array(await audio.arrayBuffer())]).toEqual([8, 9])
     expect((await fetch(`${base}/api/sessions/NOPE/replay`, { headers: auth('t1') })).status).toBe(404)
+  })
+
+  it('복기에는 내가 표시한 핸드만 오고, 끝난 세션은 복기 화면에서 표시를 넣고 뺄 수 있다', async () => {
+    const { base, host, minsu, room } = await start()
+    room.handle(minsu, { type: 'hand.mark', handNumber: 1, marked: true })
+    const mark = (method: string, token: string, hand = 1) => fetch(`${base}/api/sessions/S1/marks/${hand}`, { method, headers: auth(token) })
+    // 게임 중에는 테이블에서만 표시한다.
+    expect((await mark('PUT', 't1')).status).toBe(403)
+
+    room.handle(host, { type: 'session.end' })
+    const replayOf = async (token: string) =>
+      ((await (await fetch(`${base}/api/sessions/S1/replay`, { headers: auth(token) })).json()) as { replay: ReplayData }).replay.marked
+    expect(await replayOf('t2')).toEqual([1])
+    expect(await replayOf('t1')).toEqual([])
+
+    expect(await (await mark('PUT', 't1')).json()).toEqual({ ok: true, marked: [1] })
+    expect(await replayOf('t1')).toEqual([1])
+    expect(await (await mark('DELETE', 't1')).json()).toEqual({ ok: true, marked: [] })
+    expect((await mark('PUT', 't1', 99)).status).toBe(404)
+    expect((await fetch(`${base}/api/sessions/S1/marks/1`, { method: 'PUT' })).status).toBe(401)
   })
 
   it('허용한 Origin에만 CORS를 열고, 나머지 Origin은 막는다', async () => {

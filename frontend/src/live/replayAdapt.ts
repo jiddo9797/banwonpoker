@@ -51,6 +51,8 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
   const maxSeats = replay.session.settings.maxPlayers
   const layout = layouts[maxSeats] ?? layouts[6]
   const nicknames = new Map(replay.participants.map((participant) => [participant.playerId, participant.nickname]))
+  // 표시 기능 전에 배포된 서버는 marked를 보내지 않는다.
+  const marked = new Set(replay.marked ?? [])
   const nameOf = (id: string) => (id === viewerId ? '나' : (nicknames.get(id) ?? '알 수 없음'))
 
   return replay.hands
@@ -134,6 +136,7 @@ export function toReplayHands(replay: ReplayData, viewerId: string): ReplayHand[
         startStacks,
         payouts,
         bigBlind: hand.blinds.bigBlind,
+        marked: marked.has(hand.number),
       }
     })
 }

@@ -107,6 +107,7 @@ const routes = {
   complete: /^\/api\/sessions\/([\w-]{1,64})\/turns\/(\d{1,9})\/complete$/,
   audio: /^\/api\/sessions\/([\w-]{1,64})\/turns\/(\d{1,9})\/audio$/,
   replay: /^\/api\/sessions\/([\w-]{1,64})\/replay$/,
+  mark: /^\/api\/sessions\/([\w-]{1,64})\/marks\/(\d{1,6})$/,
 }
 
 /** 이 서버가 준 화면에서 온 요청인지 */
@@ -131,7 +132,7 @@ export async function handleHttp(request: IncomingMessage, response: ServerRespo
       response.setHeader('access-control-allow-origin', origin)
       response.setHeader('vary', 'origin')
       response.setHeader('access-control-allow-headers', 'authorization, content-type')
-      response.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS')
+      response.setHeader('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS')
     } else if (origin && !sameOrigin) {
       sendError(response, 'FORBIDDEN', '허용하지 않은 사이트에서 온 요청입니다.')
       return true
@@ -155,7 +156,8 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, pat
 
   const match =
     (request.method === 'POST' && (pathname.match(routes.chunk) ?? pathname.match(routes.complete))) ||
-    (request.method === 'GET' && (pathname.match(routes.audio) ?? pathname.match(routes.replay)))
+    (request.method === 'GET' && (pathname.match(routes.audio) ?? pathname.match(routes.replay))) ||
+    ((request.method === 'PUT' || request.method === 'DELETE') && pathname.match(routes.mark))
   if (!match) return sendError(response, 'NOT_FOUND', '없는 주소입니다.')
 
   const sessionId = match[1]
@@ -164,11 +166,21 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, pat
   const participant = store.participantByToken(sessionId, bearer(request))
   if (!participant) return sendError(response, 'UNAUTHORIZED', '이 세션의 참가자만 쓸 수 있습니다.')
 
+  // ── 핸드 표시: 복기하면서 나만 보는 표시를 넣거나 뺀다(PUT 넣기, DELETE 빼기) ──
+  if (routes.mark.test(pathname)) {
+    // 게임 중에는 WebSocket(hand.mark)으로 표시한다. 방이 들고 있는 표시와 어긋나지 않게 여기서는 끝난 세션만 받는다.
+    if (session.endedAt === null) return sendError(response, 'FORBIDDEN', '게임 중에는 테이블에서 표시하세요.')
+    const handNumber = Number(match[2])
+    if (!store.hands(sessionId).some((hand) => hand.handNumber === handNumber)) return sendError(response, 'NOT_FOUND', '없는 핸드입니다.')
+    store.setMark(sessionId, participant.playerId, handNumber, request.method === 'PUT')
+    return sendJson(response, 200, { ok: true, marked: store.marks(sessionId, participant.playerId) })
+  }
+
   // ── 복기: 세션이 끝난 뒤에만 ──
   if (request.method === 'GET') {
     if (session.endedAt === null) return sendError(response, 'FORBIDDEN', '세션이 끝난 뒤에 볼 수 있습니다.')
     if (routes.replay.test(pathname)) {
-      const replay = buildReplay(session, store.participants(sessionId), store.hands(sessionId), store.events(sessionId), store.turns(sessionId))
+      const replay = buildReplay(session, store.participants(sessionId), store.hands(sessionId), store.events(sessionId), store.turns(sessionId), store.marks(sessionId, participant.playerId))
       return sendJson(response, 200, { ok: true, replay })
     }
     const audio = store.turnAudio(sessionId, Number(match[2]))

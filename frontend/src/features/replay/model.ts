@@ -55,6 +55,8 @@ export interface ReplayHand {
   payouts: Record<string, number>
   /** 이 핸드의 빅 블라인드. 있으면 칩을 BB 수로도 보여준다. */
   bigBlind?: number
+  /** 실제 게임: 내가 나중에 복기하려고 표시한 핸드 */
+  marked?: boolean
 }
 
 export interface SessionResult {

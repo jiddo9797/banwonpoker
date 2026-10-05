@@ -50,7 +50,7 @@ function build(names: string[], viewer: string, options: { maxPlayers?: number; 
       participants,
       summary: null,
     },
-    you: { playerId: viewer, isHost: viewer === names[0], seat: 0, ready: true, voiceless: false },
+    you: { playerId: viewer, isHost: viewer === names[0], seat: 0, ready: true, voiceless: false, markedHands: [] },
     game: {
       startedAt: NOW - 1_000,
       view: playerView(table, viewer),
