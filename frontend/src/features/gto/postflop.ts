@@ -44,7 +44,8 @@ export interface PostflopSpot {
   actual: PathStep
 }
 
-export type PostflopLookup = { ok: true; spot: PostflopSpot } | Failure
+/** multiway: 세 명 이상이 플랍을 봐서 솔버 대신 참고 분석(multiway.ts)으로 넘긴다. */
+export type PostflopLookup = { ok: true; spot: PostflopSpot } | (Failure & { multiway?: true })
 
 const toPathStep = (action: HandAction): PathStep => {
   if (action.kind === 'bet' || action.kind === 'raise') return { kind: action.allIn ? 'allin' : action.kind, amount: action.to ?? 0 }
@@ -61,13 +62,14 @@ export function postflopSpotAt(hand: ReplayHand, index: number): PostflopLookup 
   const table = readTable(hand)
   if (!table.ok) return table
   const firstPostflop = hand.actions.findIndex((item) => item.street !== 'preflop' && item.kind !== 'blind')
+  // 림프가 섞인 멀티웨이 팟도 참고 분석으로 넘기도록 인원부터 센다.
+  const loose = readPreflop(hand, table, firstPostflop, { anyLimp: true })
+  const seen = loose.ok ? hand.players.filter((player) => !loose.folded.has(player.id)).length : 0
+  if (seen > 2) return { ok: false, multiway: true, reason: `플랍을 ${seen}명이 봤습니다. 포스트플랍 GTO는 두 명이 남은 팟만 분석합니다.` }
   const preflop = readPreflop(hand, table, firstPostflop)
   if (!preflop.ok) return preflop
 
   const alive = hand.players.filter((player) => !preflop.folded.has(player.id))
-  if (alive.length > 2) {
-    return { ok: false, reason: `플랍을 ${alive.length}명이 봤습니다. 포스트플랍 GTO는 두 명이 남은 팟만 분석합니다.` }
-  }
   if (alive.length < 2) return { ok: false, reason: '플랍까지 간 사람이 한 명뿐입니다.' }
   if (hand.board.length < 3) return { ok: false, reason: '보드 기록이 없습니다.' }
 
@@ -144,7 +146,7 @@ function rangeString(weights: number[]): string {
 }
 
 /** 프리플랍 라인에서 그 사람이 마지막으로 고른 행동까지의 레인지(169종 가중치) */
-function rangeOf(chart: ChartFile, line: SpotStep[], position: string): number[] | undefined {
+export function rangeOf(chart: ChartFile, line: SpotStep[], position: string): number[] | undefined {
   const last = line.map((step) => step.position).lastIndexOf(position)
   if (last < 0) return undefined
   const node = findNode(chart, position, line.slice(0, last))

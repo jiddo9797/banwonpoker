@@ -10,8 +10,13 @@ declare const self: DedicatedWorkerGlobalScope
 
 /** 한 묶음을 이 시간쯤 돌리고 진행을 알린다. */
 const BATCH_MS = 1000
-/** 균형 오차 계산은 반복 한두 번만큼 비싸므로 이 간격으로만 한다. */
-const CHECK_MS = 8000
+/**
+ * 균형 오차 계산은 반복 한두 번만큼 비싸므로, 잰 시간의 약 10배 간격으로만 한다.
+ * 작은 상황은 자주 재서 다 풀리면 바로 멈추고, 큰 상황은 드물게 잰다.
+ */
+const CHECK_RATIO = 10
+const CHECK_MIN_MS = 1500
+const CHECK_MAX_MS = 8000
 
 type Solver = { WasmSpot: typeof WasmSpot; threads: number; fallback?: string }
 
@@ -71,6 +76,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         const started = performance.now()
         let lastCheck = started
         let perIteration = 0
+        let checkEvery = CHECK_MIN_MS
         while (true) {
           const count = perIteration > 0 ? Math.min(50, Math.max(1, Math.round(BATCH_MS / perIteration))) : 1
           const batchStart = performance.now()
@@ -80,9 +86,11 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           const elapsed = now - started
           const overBudget = elapsed >= message.budgetMs && spot.spot.iterations() >= message.minIterations
           const lastRound = overBudget || spot.spot.iterations() >= message.maxIterations
-          if (now - lastCheck >= CHECK_MS || lastRound || !Number.isFinite(spot.exploitability)) {
+          if (now - lastCheck >= checkEvery || lastRound || !Number.isFinite(spot.exploitability)) {
+            const checkStart = performance.now()
             spot.exploitability = spot.spot.exploitability() / pot
             lastCheck = performance.now()
+            checkEvery = Math.min(CHECK_MAX_MS, Math.max(CHECK_MIN_MS, (lastCheck - checkStart) * CHECK_RATIO))
           }
           post({
             type: 'progress',

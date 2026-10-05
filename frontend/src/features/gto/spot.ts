@@ -78,9 +78,9 @@ type Table = Extract<ReturnType<typeof readTable>, { ok: true }>
 
 /**
  * 프리플랍 행동을 차트 표기로 읽는다. end 칸 앞까지의 폴드가 아닌 행동(line)과 폴드한 사람,
- * end 칸이 프리플랍 결정이면 그 행동(actual)을 돌려준다.
+ * end 칸이 프리플랍 결정이면 그 행동(actual)을 돌려준다. anyLimp면 스몰 블라인드가 아닌 림프도 읽는다(멀티웨이 참고 분석).
  */
-export function readPreflop(hand: ReplayHand, table: Table, end: number) {
+export function readPreflop(hand: ReplayHand, table: Table, end: number, { anyLimp = false } = {}) {
   let raises = 0
   const toStep = (item: HandAction): SpotStep | { unsupported: string } | null => {
     const position = table.positionOf.get(item.playerId ?? '') ?? ''
@@ -92,7 +92,7 @@ export function readPreflop(hand: ReplayHand, table: Table, end: number) {
         return { position, kind: 'check', toBb }
       case 'call':
         if (raises > 0) return { position, kind: 'call', toBb }
-        if (position !== table.sb) return { unsupported: `${position}의 림프는 차트에 없습니다. 차트는 스몰 블라인드의 림프만 다룹니다.` }
+        if (position !== table.sb && !anyLimp) return { unsupported: `${position}의 림프는 차트에 없습니다. 차트는 스몰 블라인드의 림프만 다룹니다.` }
         return { position, kind: 'limp', toBb }
       case 'bet':
       case 'raise':
