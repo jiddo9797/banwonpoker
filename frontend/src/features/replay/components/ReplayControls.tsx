@@ -12,8 +12,10 @@ interface ReplayControlsProps {
   onTogglePlay: () => void
   onStep: (delta: number) => void
   onSpeedChange: (speed: PlaybackSpeed) => void
-  /** 음성 위치 막대(실제 게임 복기) */
+  /** 음성 위치 막대 */
   scrubber?: ReactNode
+  /** 음성 상태 범례 */
+  legend?: ReactNode
 }
 
 export function ReplayControls({
@@ -25,6 +27,7 @@ export function ReplayControls({
   onStep,
   onSpeedChange,
   scrubber,
+  legend,
 }: ReplayControlsProps) {
   const atStart = index === 0
   const atEnd = index === total - 1
@@ -35,7 +38,7 @@ export function ReplayControls({
         <button
           aria-disabled={atStart}
           aria-label="이전 액션"
-          className="icon-button"
+          className="icon-button replay-step"
           onClick={() => {
             if (!atStart) onStep(-1)
           }}
@@ -50,7 +53,7 @@ export function ReplayControls({
         <button
           aria-disabled={atEnd}
           aria-label="다음 액션"
-          className="icon-button"
+          className="icon-button replay-step"
           onClick={() => {
             if (!atEnd) onStep(1)
           }}
@@ -62,7 +65,7 @@ export function ReplayControls({
 
       {scrubber}
 
-      <div aria-label="재생 속도" className="segmented" role="group">
+      <div aria-label="재생 속도" className="segmented replay-speed" role="group">
         {speeds.map((option) => (
           <button
             aria-pressed={speed === option}
@@ -74,6 +77,8 @@ export function ReplayControls({
           </button>
         ))}
       </div>
+
+      {legend}
     </div>
   )
 }

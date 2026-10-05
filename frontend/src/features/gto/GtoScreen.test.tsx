@@ -1,11 +1,11 @@
 import { HAND_COUNT, handIndex } from '@banwonpoker/gto'
 import type { ChartFile } from '@banwonpoker/gto'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import chart6p100 from './charts/6p-100bb.json'
 import { GtoScreen } from './GtoScreen'
-import { actionLabel, describeLine, handCell, loadChart, nearestStack, nodeSummary, situationsFor } from './model'
+import { CHART_STACKS, actionLabel, describeLine, handCell, loadChart, nearestStack, nodeSummary, situationsFor } from './model'
 
 const sixMax = chart6p100 as ChartFile
 
@@ -77,7 +77,10 @@ describe('GtoScreen', () => {
     expect(await screen.findByRole('heading', { name: 'BB · vs BTN 림프' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'UTG' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '10' }))
+    const stack = screen.getByRole('slider', { name: /유효 스택/ })
+    expect(stack).toHaveAttribute('aria-valuetext', '100BB')
+    fireEvent.change(stack, { target: { value: String(CHART_STACKS.indexOf(10)) } })
+    expect(stack).toHaveAttribute('aria-valuetext', '10BB')
     expect(await screen.findByRole('heading', { name: 'BB · vs BTN 올인 10BB' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '푸시/폴드 내시 균형' })).toBeInTheDocument()
 

@@ -123,7 +123,13 @@ export function LiveApp({ client = getLiveClient() }: { client?: LiveClient }) {
       {screen === 'kicked' ? <Kicked onHome={leave} /> : null}
       {screen === 'replaced' ? <Replaced onLeave={leave} onResume={() => client.resumeSaved()} /> : null}
       {screen === 'prep' && snapshot.state ? (
-        <LivePrep client={client} key={snapshot.state.room.code} lastError={snapshot.lastError} state={snapshot.state} />
+        <LivePrep
+          client={client}
+          key={snapshot.state.room.code}
+          lastError={snapshot.lastError}
+          state={snapshot.state}
+          status={snapshot.status}
+        />
       ) : null}
       {screen === 'table' && snapshot.state ? <LiveTable client={client} snapshot={snapshot} state={snapshot.state} /> : null}
       {screen === 'summary' && snapshot.state ? (

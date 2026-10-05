@@ -241,7 +241,8 @@ export function toTableSnapshot(state: ClientState, events: TimedEvent[], { now,
   }
 
   const remainingSeconds = game.turn ? Math.max(0, Math.ceil((game.turn.deadline - now) / 1_000)) : undefined
-  const revealed = new Map(view.showdown.map((reveal) => [reveal.playerId, reveal.handName]))
+  // 공개된 족보도 내 족보처럼 영어 대문자로 쓴다. 예: `TWO PAIR(9,K)`
+  const revealed = new Map(view.showdown.map((reveal) => [reveal.playerId, madeHandName(reveal.cards, view.board)]))
   const winnings = new Map<string, number>()
   for (const award of view.awards) {
     for (const winner of award.winners) winnings.set(winner.playerId, (winnings.get(winner.playerId) ?? 0) + winner.amount)
