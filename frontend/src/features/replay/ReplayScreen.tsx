@@ -4,8 +4,7 @@ import type { ExportOutcome } from '../../app/flow'
 import { formatChips } from '../../shared/format'
 import { SpotDialog } from '../gto/SpotDialog'
 import type { ChartFocus } from '../gto/SpotDialog'
-import { isDecision, spotAt } from '../gto/spot'
-import type { SpotLookup } from '../gto/spot'
+import { isDecision } from '../gto/spot'
 import { AudioScrubber } from './components/AudioScrubber'
 import { AudioTrackStatus, audioStatusDescription, audioStatusOrder } from './components/AudioTrackStatus'
 import { ExportModal } from './components/ExportModal'
@@ -99,7 +98,7 @@ export function ReplayScreen({
   )
   const [exportFiles, setExportFiles] = useState<ExportFile[]>()
   const [exportError, setExportError] = useState<string>()
-  const [spotLookup, setSpotLookup] = useState<SpotLookup | null>(null)
+  const [spotTarget, setSpotTarget] = useState<{ hand: ReplayHand; index: number } | null>(null)
   const hand = handOf(state.hands, state.handNumber)
   const current = hand.actions[state.index]
   const actor = hand.players.find((player) => player.id === current.playerId)
@@ -299,7 +298,7 @@ export function ReplayScreen({
                 className="btn btn--secondary action-detail-gto"
                 onClick={() => {
                   if (state.playing) dispatch({ type: 'playback.toggled' })
-                  setSpotLookup(spotAt(hand, state.index))
+                  setSpotTarget({ hand, index: state.index })
                 }}
                 type="button"
               >
@@ -346,12 +345,12 @@ export function ReplayScreen({
       </main>
 
       <SpotDialog
-        lookup={spotLookup}
-        onClose={() => setSpotLookup(null)}
+        target={spotTarget}
+        onClose={() => setSpotTarget(null)}
         onOpenChart={
           onOpenChart
             ? (focus) => {
-                setSpotLookup(null)
+                setSpotTarget(null)
                 onOpenChart(focus)
               }
             : undefined

@@ -1,0 +1,10 @@
+{
+  "name": "@banwonpoker/postflop",
+  "private": true,
+  "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
+  "description": "포스트플랍 솔버(b-inary/postflop-solver)를 브라우저 WASM으로 빌드한다. Rust 크레이트는 Cargo.toml을 본다.",
+  "scripts": {
+    "build:wasm": "node build-wasm.mjs"
+  }
+}

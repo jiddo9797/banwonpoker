@@ -132,7 +132,7 @@ describe('SpotDialog', () => {
       ['BTN', 'fold', 0],
     ])
     hand.players[3].cards = [{ rank: 'A', suit: 'spade' }, { rank: 'A', suit: 'heart' }]
-    render(<SpotDialog lookup={spotAt(hand, hand.actions.length - 1)} onClose={() => {}} onOpenChart={onOpenChart} />)
+    render(<SpotDialog onClose={() => {}} onOpenChart={onOpenChart} target={{ hand, index: hand.actions.length - 1 }} />)
 
     const dialog = await screen.findByRole('dialog', { name: 'GTO 분석 · 핸드 #7' })
     expect(await within(dialog).findByText('오픈 (RFI)')).toBeInTheDocument()
