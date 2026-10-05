@@ -305,6 +305,22 @@ pnpm --filter @banwonpoker/gto charts 3000 6 100   # 6인 100BB만 다시
 pnpm --filter @banwonpoker/gto equity        # 승률표를 처음부터(약 1분, 보통은 필요 없음)
 ```
 
+## 포스트플랍 GTO 분석
+
+복기에서 두 명이 플랍을 본 핸드의 플랍·턴·리버 결정 칸에서 `이 지점 GTO 분석`을 누르면, 브라우저 안에서 솔버를 돌려 그 결정의 GTO 빈도·EV와 실제 행동, GTO 선호 행동, EV 손실, 이 핸드의 승률을 보여줍니다.
+
+- 솔버는 [b-inary/postflop-solver](https://github.com/b-inary/postflop-solver)(AGPL-3.0)를 `backend/postflop`에서 WASM으로 감싸 Web Worker에서 돌립니다. 서버는 계산하지 않습니다.
+- 두 사람의 레인지는 프리플랍 차트에서 그 라인으로 플랍까지 오는 빈도로 만들고, 플랍부터 리버까지 한 번에 풉니다. 같은 핸드의 다른 결정은 다시 풀지 않습니다.
+- 트리는 브라우저 메모리에 맞게 플랍 33%, 턴·리버 75% 베팅과 올인 레이즈만 둡니다. 실제 사이즈는 가장 가까운 것으로 보고 그렇다고 적습니다.
+- 팟의 1%까지 풀거나 2분이 지나면 멈추고 그때의 균형 오차를 보여줍니다. 교차 출처 격리(COOP/COEP 헤더)가 되면 멀티스레드 빌드를 써서 훨씬 빠릅니다(12스레드에서 넓은 림프 팟이 약 35초). 안 되면 스레드 하나로 풉니다.
+- 세 명 이상이 플랍을 본 팟은 아직 분석하지 않습니다.
+
+WASM은 빌드해서 `frontend/src/features/gto/postflop-wasm*/`에 커밋합니다. 솔버 코드를 고쳤을 때만 다시 만듭니다(Rust stable과 nightly, `wasm32-unknown-unknown`, `rust-src`, `wasm-bindgen-cli` 0.2.129 필요).
+
+```bash
+pnpm --filter @banwonpoker/postflop build:wasm
+```
+
 ## 녹음과 복기
 
 - 내 차례가 시작되면 **내 브라우저에서만** 마이크를 열어 녹음하고, 액션을 누르면 멈추고, 차례가 끝나면 마이크를 끕니다. 음성은 3초 조각으로 서버에 올라갑니다.

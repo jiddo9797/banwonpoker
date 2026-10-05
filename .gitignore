@@ -153,3 +153,4 @@ blob-report/
 # 게임 서버 기록(DB·음성)
 backend/server/data/
 data/
+backend/postflop/target/

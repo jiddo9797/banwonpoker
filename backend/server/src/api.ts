@@ -74,6 +74,8 @@ const contentTypes: Record<string, string> = {
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',
   '.txt': 'text/plain; charset=utf-8',
+  // 포스트플랍 솔버. 이 형식이어야 브라우저가 내려받으면서 바로 컴파일한다.
+  '.wasm': 'application/wasm',
 }
 
 /** 빌드된 프론트엔드를 제공한다. 없는 경로는 index.html(한 페이지 앱)로 돌린다. */
@@ -91,6 +93,10 @@ function serveStatic(request: IncomingMessage, response: ServerResponse, staticD
     'content-type': contentTypes[extname(file)] ?? 'application/octet-stream',
     // 해시가 붙은 파일은 오래 캐시하고, index.html은 늘 새로 받게 한다.
     'cache-control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache',
+    // 교차 출처 격리: 포스트플랍 솔버가 SharedArrayBuffer로 여러 스레드를 쓴다(frontend/vite.config.ts와 같다).
+    'cross-origin-opener-policy': 'same-origin',
+    'cross-origin-embedder-policy': 'require-corp',
+    'cross-origin-resource-policy': 'same-origin',
   })
   response.end(readFileSync(file))
   return true

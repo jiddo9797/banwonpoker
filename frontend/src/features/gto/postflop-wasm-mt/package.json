@@ -1,0 +1,8 @@
+{
+  "name": "postflop-wasm-mt",
+  "private": true,
+  "type": "module",
+  "main": "postflop.js",
+  "module": "postflop.js",
+  "types": "postflop.d.ts"
+}
