@@ -18,10 +18,11 @@ primary_region = "nrt" # 도쿄: 한국에서 가장 가까운 리전
 [http_service]
   internal_port = 8080
   force_https = true
-  # 진행 중인 방은 서버 메모리에 있으므로 멈추면 게임이 사라진다. 항상 한 대를 켜 둔다.
-  auto_stop_machines = "off"
+  # 비용을 줄이려고 접속이 없으면 머신을 끄고, 누가 접속하면 다시 켠다.
+  # 게임 중에는 WebSocket 연결이 있어 꺼지지 않지만, 모두 나가서 꺼지면 진행 중이던 방은 사라진다.
+  auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
 
   [http_service.concurrency]
     type = "connections"

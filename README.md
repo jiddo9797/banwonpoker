@@ -6,7 +6,7 @@ Private multiplayer poker with turn-based voice replay
 
 **서비스 주소: <https://banwonpoker.fly.dev>** — 방을 만들고 대기실의 초대 링크를 친구에게 보내면 됩니다. 설치할 것은 없고, 폰·PC 브라우저에서 마이크 권한만 허용하면 됩니다.
 
-> **현재 단계: 기능 완성 · 배포 완료.** 방 만들기부터 게임, 내 차례 녹음, 세션 종료, 전체 패·음성 복기, 음성·기록 내보내기까지 실제로 동작하고, Fly.io(도쿄 `nrt`)에서 서버 한 대가 항상 켜져 있습니다.
+> **현재 단계: 기능 완성 · 배포 완료.** 방 만들기부터 게임, 내 차례 녹음, 세션 종료, 전체 패·음성 복기, 음성·기록 내보내기까지 실제로 동작하고, Fly.io(도쿄 `nrt`)에서 접속할 때만 서버가 켜집니다.
 > - `backend/engine/`: 노리밋 홀덤 규칙 엔진
 > - `backend/gto/`: 프리플랍 GTO 솔버와 차트 생성(처음 화면의 `GTO 차트 보기`)
 > - `backend/server/`: 게임 서버(WebSocket), 세션 기록 저장(SQLite + 음성 파일), 녹음 업로드·복기 API, 배포 시 화면 제공
@@ -393,7 +393,7 @@ fly deploy
 - 서버가 꺼져 있으면 `fly machine list --app banwonpoker`로 머신 ID를 보고 `fly machine start <ID> --app banwonpoker`로 켭니다.
 - Fly.io 무료 체험 계정은 머신을 5분마다 끕니다. 카드를 등록해야 계속 켜져 있습니다.
 - 진행 중인 방은 서버 메모리에 있으므로, 배포(재시작)하면 그때 진행 중이던 게임은 끊깁니다. 끝난 세션의 기록과 복기는 볼륨에 남습니다.
-- 서버를 항상 한 대 켜 두도록(`auto_stop_machines = "off"`) 설정했습니다. 비용은 Fly.io 요금표를 확인하세요.
+- 비용을 줄이려고 접속이 없으면 머신이 꺼지고(`auto_stop_machines = "stop"`, `min_machines_running = 0`), 누가 주소를 열면 몇 초 안에 다시 켜집니다. 게임 중에는 WebSocket 연결 때문에 꺼지지 않지만, 모두 나가서 꺼지면 진행 중이던 방은 사라집니다.
 - 로컬에서 같은 구성을 확인하려면 `docker build -t banwonpoker .` 후 `docker run -p 8080:8080 banwonpoker`로 실행하고 <http://localhost:8080>을 엽니다.
 
 ## 게임 서버
